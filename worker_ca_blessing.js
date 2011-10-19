@@ -46,9 +46,11 @@ Blessing.display = [
 
 Blessing.init = function() {
 	var when = this.get(['runtime','when'], 0);
+
 	if (when) {
-		this._remind((when - Date.now()) / 1000, 'blessing');
+		this._remindMs(Math.max(1, when - Date.now()), 'blessing');
 	}
+
 	this._watch(Upgrade, 'runtime.next');
 };
 
@@ -77,40 +79,44 @@ Blessing.page = function(page, change) {
 	return false;
 };
 
-Blessing.update = function(event){
-	var d, demi, which = this.option.which;
+Blessing.update = function(event, events) {
+	var now = Date.now(), d, i, demi, which = this.option.which;
+
 	if (this.option.upgrade) {
-		which = Upgrade.get(['runtime','next'], which, 'string'); // use type to force it to fallback
+		which = Upgrade.get(['runtime','next']) || which;
 	}
+
 	if (which && which !== 'None') {
 		which = which.ucfirst();
 		d = new Date(this.runtime.when);
-		switch(this.option.which.toLowerCase()) {
-			case 'energy':
-				demi = Config.makeImage('symbol-1') + ' Ambrosia (' + which + ')';
-				break;
-			case 'attack':
-				demi = Config.makeImage('symbol-2') + ' Malekus (' + which + ')';
-				break;
-			case 'defense':
-				demi = Config.makeImage('symbol-3') + ' Corvintheus (' + which + ')';
-				break;
-			case 'health':
-				demi = Config.makeImage('symbol-4') + ' Aurora (' + which + ')';
-				break;
-			case 'stamina':
-				demi = Config.makeImage('symbol-5') + ' Azeron (' + which + ')';
-				break;
-			default:
-				demi = 'Unknown';
-				break;
+		switch (which.toLowerCase()) {
+		case 'energy':
+			demi = Config.makeImage('symbol-1', 'Ambrosia');
+			break;
+		case 'attack':
+			demi = Config.makeImage('symbol-2', 'Malekus');
+			break;
+		case 'defense':
+			demi = Config.makeImage('symbol-3', 'Corvintheus');
+			break;
+		case 'health':
+			demi = Config.makeImage('symbol-4', 'Aurora');
+			break;
+		case 'stamina':
+			demi = Config.makeImage('symbol-5', 'Azeron');
+			break;
+		default:
+			demi = 'Unknown';
+			break;
 		}
-		Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing performed on ' + d.format('l g:i a') + ' to ' + demi + ' </span>');
-		this.set(['option','_sleep'], Date.now() < this.runtime.when);
+		Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing due on ' + d.format('l g:i a') + ' to ' + demi + ' for ' + which + '</span>');
+		this.set(['option','_sleep'], now < this.runtime.when);
 	} else {
 		Dashboard.status(this);
 		this.set(['option','_sleep'], true);
 	}
+
+	return true;
 };
 
 Blessing.work = function(state) {

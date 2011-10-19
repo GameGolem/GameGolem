@@ -75,21 +75,23 @@ FP.runtime = {
 
 FP.init = function() {
 	// BEGIN: fix up "under level 4" generals
-	if (this.option.general=== 'under level 4') {
+	if (this.option.general === 'under level 4') {
 	        this.set('option.general', 'under max level');
 	}
 	// END
 };
 
 FP.page = function(page, change) {
-	// No need to parse out Income potions as about to visit the Keep anyway...
-	$('.oracleItemSmallBoxGeneral:contains("You have : ")').each(function(i,el){
-		FP.set(['runtime','points'], $(el).text().regex(/You have : (\d+) points/i));
-	});
-	$('.title_action:contains("favor points")').each(function(i,el){
-		FP.set(['runtime','points'], $(el).text().regex(/You have (\d+) favor points/i));
-	});
-	History.set('favor points',this.runtime.points);
+	if (page === 'index') {
+		$('.oracleItemSmallBoxGeneral:contains("You have : ")').each(function(i,el){
+			FP.set(['runtime','points'], $(el).text().regex(/\bYou have : (\d+) points?\b/im));
+		});
+	} else if (page === 'oracle_oracle') {
+		$('.title_action:contains("favor point")').each(function(i,el){
+			FP.set(['runtime','points'], $(el).text().regex(/\bYou have (\d+) favor points?\b/im));
+		});
+	}
+	History.set('favor points', this.runtime.points);
 	return false;
 };
 

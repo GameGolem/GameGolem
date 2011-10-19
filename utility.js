@@ -1,12 +1,14 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Workers, Worker, Resources, Script,
+	$, Worker, Workers, Script,
 	APP, APPID, PREFIX, userID, imagepath,
 	isRelease, version, revision,
-	browser, window, localStorage, console, chrome
-	log:true, length:true
+	browser, window, localStorage, console, chrome,
+	length:true
 */
 // Utility functions
+
+Date.HUGE = 1e13; // huge but "valid" date, approx. Nov. 20th, 2286
 
 // Functions to check type of variable - here for javascript optimisations and readability, makes a miniscule difference using them
 
@@ -135,9 +137,9 @@ var LOG_USER3 = 7;
 var LOG_USER4 = 8;
 var LOG_USER5 = 9;
 var log = function(lvl, txt /*, obj, array etc*/){
-	var level, args = Array.prototype.slice.call(arguments), prefix = [],
+	var args = Array.prototype.slice.call(arguments), prefix = [], level,
 		date = [true, true, true, true, true, true, true, true, true, true],
-		rev = [true, true, true, true, true, true, true, true, true, true],
+		rev = [true, true, false, false, true, true, true, true, true, true],
 		worker = [true, true, true, true, true, true, true, true, true, true];
 	if (isNumber(args[0])) {
 		level = Math.range(0, args.shift(), 9);
@@ -151,7 +153,7 @@ var log = function(lvl, txt /*, obj, array etc*/){
 		prefix.push('[' + (isRelease ? 'v'+version : 'r'+revision) + ']');
 	}
 	if (date[level]) {
-		prefix.push('[' + (new Date()).toLocaleTimeString() + ']');
+		prefix.push('[' + (new Date()).format('H:i:s.u') + ']');
 	}
 	if (worker[level]) {
 		prefix.push(Worker.stack.length ? Worker.stack[0] : '');
@@ -159,7 +161,8 @@ var log = function(lvl, txt /*, obj, array etc*/){
 	args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '');
 	try {
 		console.log.apply(console.firebug ? window : console, args);
-	} catch(e) { // FF4 fix - doesn't like .apply
+	} catch(e) {
+		// FF4 fix - doesn't like .apply
 		console.log(args);
 	}
 };
@@ -168,7 +171,7 @@ var log = function(lvl, txt /*, obj, array etc*/){
 
 String.prototype.trim = function(inside) {
 	if (inside) {
-		this.replace(/^\s+$/gm, ' ');
+		return this.replace(/\s+/gm, ' ').replace(/^ | $/g, '');
 	}
 	return this.replace(/^\s+|\s+$/gm, '');
 };
@@ -177,10 +180,16 @@ String.prototype.innerTrim = function() {
 	return this.replace(/\s+/gm, ' ');
 };
 
-String.prototype.filepart = function() {
-	var x = this.lastIndexOf('/');
+String.prototype.filepart = function(stripExt, retainDot) {
+	var x = this.lastIndexOf('/'), y;
 	if (x >= 0) {
-		return this.substr(x+1);
+		if (stripExt && (y = this.lastIndexOf('.')) >= x) {
+			return this.substring(x+1, y + (retainDot ? 1 : 0));
+		} else {
+			return this.substr(x+1);
+		}
+	} else if (stripExt && (y = this.lastIndexOf('.')) >= 0) {
+		return this.substring(0, y + (retainDot ? 1 : 0));
 	}
 	return this;
 };
@@ -232,7 +241,7 @@ String.prototype.parseTimer = function() {
 		b = b * 60 + parseInt(a[i],10);
 	}
 	if (isNaN(b)) {
-		b = 9999;
+		b = Date.HUGE;
 	}
 	return b;
 };
@@ -249,6 +258,9 @@ String.prototype.ucwords = function() {
 
 String.prototype.html_escape = function() {
 	return this.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
+String.prototype.quote_escape = function() {
+	return this.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 };
 
 String.prototype.regexp_escape = function() {
@@ -321,7 +333,8 @@ Number.prototype.SI = function(prec) {
 	return this.toExponential(Math.max(0, p - 1));
 };
 
-Number.prototype.addCommas = function(digits) { // Add commas to a number, optionally converting to a Fixed point number
+// Add commas to a number, optionally converting to a Fixed point number
+Number.prototype.addCommas = function(digits) {
 	var n = isNumber(digits) ? this.toFixed(digits) : this.toString(), rx = /^(.*\s)?(\d+)(\d{3}\b)/;
 	return n === (n = n.replace(rx, '$1$2,$3')) ? n : arguments.callee.call(n);
 };
@@ -330,7 +343,8 @@ Math.range = function(min, num, max) {
 	return Math.max(min, Math.min(num, max));
 };
 
-Array.prototype.unique = function() { // Returns an array with only unique *values*, does not alter original array
+// Returns an array with only unique *values*, does not alter original array
+Array.prototype.unique = function() {
 	var o = {}, i, l = this.length, r = [];
 	for (i = 0; i < l; i++) {
 		o[this[i]] = this[i];
@@ -341,7 +355,8 @@ Array.prototype.unique = function() { // Returns an array with only unique *valu
 	return r;
 };
 
-Array.prototype.remove = function(value) { // Removes matching elements from an array, alters original
+// Removes matching elements from an array, alters original
+Array.prototype.remove = function(value) {
 	var i = 0;
 	while ((i = this.indexOf(value, i)) >= 0) {
 		this.splice(i, 1);
@@ -349,11 +364,13 @@ Array.prototype.remove = function(value) { // Removes matching elements from an 
 	return this;
 };
 
-Array.prototype.find = function(value) { // Returns if a value is found in an array
+// Returns if a value is found in an array
+Array.prototype.find = function(value) {
 	return this.indexOf(value) >= 0;
 };
 
-Array.prototype.higher = function(value) { // return the lowest entry greater or equal to value, return -1 on failure
+// return the lowest entry greater or equal to value, return -1 on failure
+Array.prototype.higher = function(value) {
 	var i = this.length, best = Number.POSITIVE_INFINITY;
 	while (i--) {
 		if (isNumber(this[i]) && this[i] >= value && this[i] < best) {
@@ -363,17 +380,19 @@ Array.prototype.higher = function(value) { // return the lowest entry greater or
 	return best === Number.POSITIVE_INFINITY ? -1 : best;
 };
 
-Array.prototype.lower = function(value) { // return the highest entry lower or equal to value, return -1 on failure
-	var i = this.length, best = -1;
+// return the highest entry lower or equal to value, return -1 on failure
+Array.prototype.lower = function(value) {
+	var i = this.length, best = Number.NEGATIVE_INFINITY;
 	while (i--) {
 		if (isNumber(this[i]) && this[i] <= value && this[i] > best) {
 			best = this[i];
 		}
 	}
-	return best;
+	return best === Number.NEGATIVE_INFINITY ? -1 : best;
 };
 
-Array.prototype.trim = function() { // Remove empty entries
+// Remove empty entries
+Array.prototype.trim = function() {
 	var i = this.length, arr = [];
 	while (i--) {
 		if (this[i]) {
@@ -415,7 +434,7 @@ var isEvent = function(event, worker, type, id, path) {
  * @return {?Object}
  */
 Array.prototype.findEvent = function(worker, type, id, path) {
-	if (worker || type || id) {
+	if (worker || type || id || path) {
 		this._worker = worker;
 		this._type = type;
 		this._id = id;
@@ -449,12 +468,38 @@ Array.prototype.getEvent = function(worker, type, id, path) {
 
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
-var makeTimer = function(sec) {
-	var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = Math.floor(sec % 60);
-	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
+var makeTimerMs = function(ms, past) {
+	var str, sign = ms < 0 ? '-' : '',
+		t = Math.abs(ms),
+		d = Math.floor(t / (24*60*60*1000)),
+		h = Math.floor(t / (60*60*1000)) % 24,
+		m = Math.floor(t / (60*1000)) % 60,
+		s = Math.floor(t / 1000) % 60;
+	if (!past && ms < 0) {
+		str = 'now?';
+	} else {
+		str = sign;
+		if (d || h) {
+			if (d) {
+				str += d+'d';
+				str += '+';
+			}
+			str += h > 9 ? h : '0'+h;
+			str += ':';
+		}
+		str += m > 9 ? m : '0'+m;
+		str += ':';
+		str += s > 9 ? s : '0'+s;
+	}
+	return str;
 };
 
-var Divisor = function(number) { // Find a "nice" value that goes into number up to 20 times
+var makeTimer = function(sec, past) {
+	return makeTimerMs(Math.round(sec * 1000), past);
+};
+
+// Find a "nice" value that goes into number up to 20 times
+var Divisor = function(number) {
 	var num = number, step = 1;
 	if (num < 20) {
 		return 1;
@@ -472,7 +517,8 @@ var Divisor = function(number) { // Find a "nice" value that goes into number up
 	return step;
 };
 
-var length = function(obj) { // Find the number of entries in an object (also works on arrays)
+// Find the number of entries in an object (also works on arrays)
+var length = function(obj) {
 	if (isArray(obj)) {
 		return obj.length;
 	} else if (isObject(obj)) {
@@ -487,9 +533,10 @@ var length = function(obj) { // Find the number of entries in an object (also wo
 	return 0;
 };
 
-var empty = function(x) { // Tests whether an object is empty (also useable for other types)
+// Tests whether an object is empty (also useable for other types)
+var empty = function(x) {
 	var i;
-	if (x === undefined || !x) {
+	if (!x) {
 		return true;
 	} else if (isObject(x)) {
 		for (i in x) {
@@ -504,7 +551,26 @@ var empty = function(x) { // Tests whether an object is empty (also useable for 
 	return false;
 };
 
-var sum = function(a) { // Adds the values of all array entries together
+// valid for arrays, objects, and undefined only
+var isEmpty = function(x) {
+	var i;
+	if (typeof x === 'undefined') {
+		return true;
+	} else if (isObject(x)) {
+		for (i in x) {
+			if (x.hasOwnProperty(i)) {
+				return false;
+			}
+		}
+		return true;
+	} else if (isArray(x)) {
+		return x.length === 0;
+	}
+	return false;
+};
+
+// Adds the values of all array entries together
+var sum = function(a) {
 	var i, t = 0, args = Array.prototype.slice.call(arguments);
 	while ((a = args.shift())) {
 		if (isArray(a)) {
@@ -650,58 +716,6 @@ var objectIndex = function(obj, index) {
 	return null;
 };
 
-var getAttDefList = [];
-var getAttDef = function(list, unitfunc, x, count, type, suffix) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
-	var units = [], limit = 1e99, attack = 0, defend = 0, i, p, own, x2;
-	if (type !== 'monster') {
-		x2 = 'tot_' + x;
-	}
-	if (unitfunc) {
-		for (i in list) {
-			unitfunc(units, i, list);
-		}
-	} else {
-		units = getAttDefList;
-	}
-	units.sort(function(a,b) {
-		return (list[b][x2] || 0) - (list[a][x2] || 0)
-			|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
-			|| (list[a].cost || 0) - (list[b].cost || 0);
-	});
-	if (!suffix) { suffix = ''; }
-	// hack for limits of 3 on war equipment
-	if (count < 0) {
-		limit = 3;
-		count = Math.abs(count);
-	}
-	for (i=0; i<units.length; i++) {
-		p = list[units[i]];
-		own = isNumber(p.own) ? p.own : 0;
-		if (type) {
-			Resources.set(['data', '_'+units[i], type+suffix+'_'+x], Math.min(count, limit) || undefined);
-			if (Math.min(count, own) > 0) {
-				//log(LOG_WARN, 'Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(p));
-				if (!p['use'+suffix]) {
-					p['use'+suffix] = {};
-				}
-				p['use'+suffix][type+suffix+'_'+x] = Math.min(count, own, limit);
-			} else if (length(p['use'+suffix])) {
-				delete p['use'+suffix][type+suffix+'_'+x];
-				if (!length(p['use'+suffix])) {
-					delete p['use'+suffix];
-				}
-			}
-		}
-		//if (count <= 0) {break;}
-		own = Math.min(count, own, limit);
-		attack += own * ((p.att || 0) + ((p.stats && p.stats.att) || 0));
-		defend += own * ((p.def || 0) + ((p.stats && p.stats.def) || 0));
-		count -= own;
-	}
-	getAttDefList = units;
-	return (x==='att'?attack:(0.7*attack)) + (x==='def'?defend:(0.7*defend));
-};
-
 var tr = function(list, html, attr) {
 	list.push('<tr' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</tr>');
 };
@@ -778,7 +792,10 @@ Date.replaceChars = {
 	/** @this {Date} */	H: function() { return (this.getHours() < 10 ? '0' : '') + this.getHours(); },
 	/** @this {Date} */	i: function() { return (this.getMinutes() < 10 ? '0' : '') + this.getMinutes(); },
 	/** @this {Date} */	s: function() { return (this.getSeconds() < 10 ? '0' : '') + this.getSeconds(); },
-	/** @this {Date} */	u: function() { return (this.getMilliseconds() < 100 ? '0' : '') + (this.getMilliseconds() < 10 ? '0' : '') + this.getMilliseconds(); },
+	/** @this {Date} */	u: function() {
+		var ms = '000' + this.getMilliseconds();
+		return ms.substr(ms.length - 3);
+	},
 	// Timezone
 	/** @this {Date} */	e: function() { return "Not Yet Supported"; },
 	/** @this {Date} */	I: function() { return "Not Supported"; },
@@ -810,7 +827,8 @@ var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_
 	object['avg_' + name] = sum(y_label_list) / sum(x_label_list);
 };
 
-var bestObjValue = function(obj, callback, filter) {// pass an object and a function to create a value from obj[key] - return the best key
+// pass an object and a function to create a value from obj[key] - return the best key
+var bestObjValue = function(obj, callback, filter) {
 	var i, best = null, bestval, val;
 	for (i in obj) {
 		if (isFunction(filter) && !filter(obj[i])) {
@@ -986,105 +1004,234 @@ var assert = function(test, msg, type) {
 	}
 };
 
-Number.prototype.toTimespan = function(allowPast) {
+Number.prototype.hex = function(len) {
+	var x = this.toString(16);
+	while (x.length < (len || 0)) {
+		x = '0' + x;
+	}
+	return x;
+};
+
+Number.prototype.toTimespan = function(brevity) {
 	var str = '', ms = this, ago = false, u, v;
 
-	if (allowPast && ms < 0) {
+	if (ms < 0) {
 		ago = true;
 		ms = Math.abs(ms);
 	}
 
-	if (ms >= (u = 365*24*60*60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' year' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 30*24*60*60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' month' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 7*24*60*60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' week' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 24*60*60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' day' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 60*60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' hour' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' minute' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' second' + plural(v);
-		ms -= v * u;
-	}
-	if (ms % 1000) {
-		if (str !== '') { str += ', '; }
-		v = ms % 1000;
-		str += v + ' milli' + plural(v);
-		ms -= v * u;
-	}
+	if (brevity) {
+		if (ms >= (u = 365*24*60*60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'yr' : ' year');
+		} else if (ms >= (u = 30*24*60*60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'mo' : ' month');
+		} else if (ms >= (u = 7*24*60*60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'wk' : ' week');
+		} else if (ms >= (u = 24*60*60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'dy' : ' day');
+		} else if (ms >= (u = 60*60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'hr' : ' hour');
+		} else if (ms >= (u = 60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'mi' : ' minute');
+		} else if (ms >= (u = 1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 's' : ' second');
+		} else if (ms > 0) {
+			str = '' + (v = ms) + (brevity === 2 ? 'ms' : ' milli');
+		} else {
+			str = 'now';
+			v = 1;
+		}
+		if (brevity !== 2) {
+			str += plural(v);
+		}
 
-	if (str === '') {
-		str = 'now';
-	} else if (ago) {
-		str += ' ago';
+		if (ago) {
+			str = '-' + str;
+		}
+	} else {
+		if (ms >= (u = 365*24*60*60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' year' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 30*24*60*60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' month' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 7*24*60*60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' week' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 24*60*60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' day' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 60*60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' hour' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' minute' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' second' + plural(v);
+			ms -= v * u;
+		}
+		if (ms % 1000) {
+			if (str !== '') { str += ', '; }
+			v = ms % 1000;
+			str += v + ' milli' + plural(v);
+			ms -= v * u;
+		}
+
+		if (str === '') {
+			str = 'now';
+		} else if (ago) {
+			str += ' ago';
+		}
 	}
 
 	return str;
 };
 
-Number.prototype.toTimespanShort = function(words, allowPast) {
-	var str = '', ms = this, u, x = 1, ago = false;
+var dom_heritage = function(obj, sep, all) {
+	var str = '', i, j, k, x, y, z, len, seg, more, seen, part;
 
-	if (allowPast && ms < 0) {
-		ago = true;
-		ms = Math.abs(ms);
+	if (typeof sep === 'undefined' || sep === null) {
+		sep = '\n';
 	}
 
-	if (ms >= (u = 365*24*60*60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' year' : 'yr');
-	} else if (ms >= (u = 30*24*60*60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' month' : 'mo');
-	} else if (ms >= (u = 7*24*60*60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' week' : 'wk');
-	} else if (ms >= (u = 24*60*60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' day' : 'dy');
-	} else if (ms >= (u = 60*60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' hour' : 'hr');
-	} else if (ms >= (u = 60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' minute' : 'm');
-	} else if (ms >= (u = 1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' second' : 's');
-	} else if (ms > 0) {
-		str = '' + (x = ms) + (words ? ' milli' : 'ms');
-	} else {
-		str = 'now';
-	}
-	if (words) {
-		str += plural(x.SI());
-	}
+	if ((len = $(obj).length)) {
+		for (i = 0; i < len; i++) {
+			x = $(obj).eq(i);
+			seg = '';
+			more = true;
 
-	if (ago) {
-		str = '-' + str;
+			if (!x.length) {
+				log('# obj is: ' + (typeof obj) + '; ' + obj);
+			}
+
+			while (x && x.length && more) {
+				seen = {};
+				part = '';
+
+				for (j = 0; j < x.length; j++) {
+					if (!x[j]) {
+						log('dom_heritage: x[' + j + '] is ' + typeof x[j]);
+						break;
+					}
+
+					if (!isString(x[j]['tagName']) && !isString(x[j]['constructor'])) {
+						log('# x['+j+'] has no tagName: ' + (typeof x[j]));
+						for (k in x[j]) {
+							if (x[j].hasOwnProperty(k)) {
+								log('# x['+j+'].'+k+' = ' + x[j][k]);
+							} else if (!isFunction(x[j][k])) {
+								log('# x['+j+'].'+k+' is ' + (typeof x[j][k]));
+							}
+						}
+						break;
+					}
+
+					if (seen[x[j]]) {
+						continue;
+					}
+					seen[x[j]] = true;
+
+					// [#id][.class]tag[name=STR][src=STR][href=STR]
+
+					if (part !== '') {
+						part += ', ';
+					}
+					if (isString(z = x[j]['tagName'])) {
+						part += z.toLowerCase();
+					} else {
+						part += x[j]['constructor'];
+					}
+
+					if ((z = $(x).eq(j).attr('id'))) {
+						if (isString(z)) {
+							part += '#' + z;
+						} else {
+							part += '#{' + z + '}';
+						}
+
+						if (!all) {
+							more = false;
+						}
+					}
+
+					if ((z = $(x).eq(j).attr('class'))) {
+						if (!isString(z)) {
+							part += '.{' + z + '}';
+						} else if (z.trim() !== '') {
+							part += '.' + z.trim();
+						}
+					}
+
+					if ((z = $(x).eq(j).attr('name'))) {
+						if (!isString(z)) {
+							part += '[name={' + z + '}]';
+						} else if (z.trim() !== '') {
+							part += '[name="' + z.trim() + '"]';
+						}
+					}
+
+					if ((z = $(x).eq(j).attr('src'))) {
+						if (isString(z) && z.trim() !== '') {
+							part += '[src*="' + z.filepart(1,1) + '"]';
+						}
+					}
+					if ((z = $(x).eq(j).attr('href'))) {
+						if (isString(z) && z.trim() !== '') {
+							part += '[href*="' + z.filepart(1,1) + '"]';
+						}
+					}
+					if ((z = $(x).eq(j).attr('style'))) {
+						if (isString(z) && (y = z.match(/\burl\(\s*([^)]+)\s*\)/i))) {
+							z = y[1].trim().filepart(1,1);
+							part += '[style*="' + z + '"]';
+						}
+					}
+				}
+
+				if (x.length > 1) {
+					part = '[' + part + ']';
+				}
+
+				if (seg !== '') {
+					seg = part + ' ' + seg;
+				} else {
+					seg = part;
+				}
+
+				x = $(x).parent();
+			}
+
+			if (seg !== '') {
+				if (str !== '') {
+					if (i === 1) {
+						str = sep + '[0]: ' + str;
+					}
+					str += sep + '[' + i + ']: ';
+				}
+				str += seg;
+			}
+		}
 	}
 
 	return str;

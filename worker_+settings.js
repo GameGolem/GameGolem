@@ -48,12 +48,12 @@ Settings.menu = function(worker, key) {
 		if (!key) {
 			if (Config.option.advanced) {
 				for (i in worker._datatypes) {
-					keys.push(i+':' + (worker.name === this.temp.worker && i === this.temp.edit ? '=' : '') + 'Edit&nbsp;"' + worker.name + '.' + i + '"');
+					keys.push(i+':' + (worker.name === this.temp.worker && i === this.temp.edit ? '=' : '') + 'Edit "' + worker.name + '.' + i + '"');
 				}
 				keys.push('---');
 			}
-			keys.push('backup:Backup&nbsp;Options');
-			keys.push('restore:Restore&nbsp;Options');
+			keys.push('backup:Backup Options');
+			keys.push('restore:Restore Options');
 			return keys;
 		} else if (key) {
 			if (key === 'backup') {

@@ -218,7 +218,7 @@ Main.update = function(event, events) {
 						c1 += '00000'.substr(6 - x[1].length);
 					}
 					c1 += x[1].toLowerCase();
-				} else if ((x = colors[c1.innerTrim().toLowerCase()])) {
+				} else if ((x = colors[c1.trim(true).toLowerCase()])) {
 					c1 = x;
 				} else {
 					log(LOG_ERROR, 'Bad jQuery selector: $:colour.1(' + c1 + ')');
@@ -237,10 +237,10 @@ Main.update = function(event, events) {
 						c2 += '00000'.substr(6 - x[1].length);
 					}
 					c2 += x[1].toLowerCase();
-				} else if ((x = colors[c2.innerTrim().toLowerCase()])) {
+				} else if ((x = colors[c2.trim(true).toLowerCase()])) {
 					c2 = x;
 				} else {
-					log(LOG_ERROR, 'Bad jQuery selector: $:colour.2(' + c2.innerTrim() + ')');
+					log(LOG_ERROR, 'Bad jQuery selector: $:colour.2(' + c2.trim(true) + ')');
 					return false;
 				}
 

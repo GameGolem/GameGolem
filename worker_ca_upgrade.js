@@ -90,28 +90,41 @@ Upgrade.init = function() {
 };
 
 Upgrade.update = function(event, events) {
-	if (events.findEvent(this,'calc') || events.findEvent(this,'watch','option.script') || (this.option.cycle && events.findEvent(Player,'watch'))) {
+	var i, j, points = Player.get('upgrade'), next = null,
+		real = {
+			'stamina':'maxstamina',
+			'energy':'maxenergy',
+			'health':'maxhealth'
+		},
+		need = {
+			'energy':1,
+			'stamina':2,
+			'attack':1,
+			'defense':1,
+			'health':1
+		};
+
+	if (events.findEvent(this,'calc')
+	  || events.findEvent(this,'watch','option.script')
+	  || (this.option.cycle && events.findEvent(Player,'watch'))
+	) {
 		this.script = new Script(this.option.script, {
 			'map':{
 				stamina:'Player.data.maxstamina',
 				energy:'Player.data.maxenergy',
 				health:'Player.data.maxhealth'
 			},
-			'default':Player.data,
+			'default':Player.get('data'),
 			'data':'Upgrade.data' // So we can manually view it easily
 		});
-		this.script.run(true);
+		if (this.script) {
+			this.script.run(true);
+		}
 	}
-	var i, j, points = Player.get('upgrade'), next = null, real = {'stamina':'maxstamina', 'energy':'maxenergy', 'health':'maxhealth'}, need = {
-		'energy':1,
-		'stamina':2,
-		'attack':1,
-		'defense':1,
-		'health':1
-	};
+
 	for (i in this.data) {
 		if (need[i] && (j = Player.get(['data',real[i] || i],0)) < this.data[i]) {
-			Dashboard.status(this, 'Next point: ' + Config.makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + this.data[i] + ')');
+			Dashboard.status(this, 'Next point: ' + Config.makeImage(i, i.ucfirst()) + ' [' + j + ' / ' + this.data[i] + ']');
 			next = i;
 			break;
 		}
@@ -121,6 +134,7 @@ Upgrade.update = function(event, events) {
 	}
 	this.set(['runtime','next'], next);
 	this.set('option._sleep', !this.runtime.next || points < need[this.runtime.next]);
+
 	return true;
 };
 

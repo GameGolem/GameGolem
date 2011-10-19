@@ -93,7 +93,7 @@ Player.page = function(page, change) {
 		this.set('armymax', $('a[href*="army.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/));
 		this.set('army', Math.min(data.armymax, 501)); // XXX Need to check what max army is!
 		this.set('upgrade', $('a[href*="keep.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/) || 0);
-		this.set('general', $('div.general_name_div3').first().text().trim());
+		this.set('general', $('div.general_name_div3').first().text().trim(true).replace(/\*+$/, ''));
 		this.set('imagepath', $('#'+APPID_+'globalContainer img:eq(0)').attr('src').pathpart());
 		if (page === 'keep_stats') {
 			keep = $('.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
@@ -137,11 +137,11 @@ Player.page = function(page, change) {
 				o = {};
 				$('div', $tmp.last().parent()).each(function(a, el) {
 					if (!o[a]) { o[a] = {}; }
-					o[a].label = ($(el).text() || '').trim();
+					o[a].label = ($(el).text() || '').trim(true);
 				});
 				$('div', $tmp.last().parent().next()).each(function(a, el) {
 					if (!o[a]) { o[a] = {}; }
-					o[a].value = ($(el).text() || '').trim();
+					o[a].value = ($(el).text() || '').trim(true);
 				});
 				//log(LOG_WARN, 'Land.income: ' + JSON.shallow(o, 2));
 				for (i in o) {

@@ -7,14 +7,12 @@
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	isArray, isFunction, isNumber, isObject, isString, isUndefined,
-	length, sum, getAttDef, tr, th, td
+	length, sum, tr, th, td
 */
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
 var Town = new Worker('Town');
-Town.temp = null;
-
 Town.settings = {
 	taint:true
 };
@@ -39,6 +37,9 @@ Town.runtime = {
 	buy:0,
 	sell:0,
 	cost:0
+};
+
+Town.temp = {
 };
 
 Town.display = [
@@ -289,81 +290,529 @@ Town.page = function(page, change) {
 
 		// trigger the item type caption pass
 		if (page === 'town_blacksmith') {
-		    modify = true;
+			modify = true;
 		}
 	}
 
 	return modify;
 };
 
-Town.getInvade = function(army, suffix) {
-	var att = 0, def = 0, data = this.get('data');
+// Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
+Town.getAttDef = function(list, unitfunc, x, count, type, suffix) {
+	var units = [], limit = 1e99, attack = 0, defend = 0, i, n, p, w, own, x2,
+		atk, def, val, ascale = 1, dscale = 1, hi = -1e99, lo = 1e99, used = 0;
+
+	this.temp.AttDefMin = 0;
+	this.temp.AttDefMax = 0;
+	this.temp.AttDefAvg = 0;
+
+	x2 = type === 'monster' ? x : 'tot_' + x;
+	if (x === 'att') {
+		dscale = type === 'monster' ? 0 : 0.7;
+	} else if (x === 'def') {
+		ascale = type === 'monster' ? 0 : 0.7;
+	}
+
+	if (unitfunc) {
+		for (i in list) {
+			unitfunc(units, i, list);
+		}
+	} else {
+		units = this.temp.AttDefList || [];
+	}
+
+	units.sort(function(a,b) {
+		return (list[b][x2] || 0) - (list[a][x2] || 0)
+			|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
+			|| (list[a].cost || 0) - (list[b].cost || 0);
+	});
+
 	if (!suffix) { suffix = ''; }
-	att += getAttDef(data, function(list,i,units){if (units[i].page==='soldiers'){list.push(i);}}, 'att', army, 'invade', suffix);
-	def += getAttDef(data, null, 'def', army, 'invade', suffix);
-	att += getAttDef(data, function(list,i,units){if (units[i].type && units[i].type !== 'Weapon'){list.push(i);}}, 'att', army, 'invade', suffix);
-	def += getAttDef(data, null, 'def', army, 'invade', suffix);
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', army, 'invade', suffix);
-	def += getAttDef(data, null, 'def', army, 'invade', suffix);
-	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', army, 'invade', suffix);
-	def += getAttDef(data, null, 'def', army, 'invade', suffix);
-	return {attack:att, defend:def};
+	// hack for limits of 3 on war equipment
+	if (count < 0) {
+		limit = 3;
+		count = Math.abs(count);
+	}
+	for (i = 0; i < units.length; i++) {
+		p = list[units[i]];
+		own = isNumber(p.own) ? p.own : 0;
+		n = Math.min(count, own, limit);
+		if (type) {
+			// note how many we'd like to have used in Resources
+			w = Math.max(0, Math.min(count, limit));
+			/*
+			if (w > 0 && w > n) {
+				log(LOG_INFO, '# would use ' + w + '/' + n + ' ' + units[i]
+				  + ' for ' + type + '.' + x
+				);
+			}
+			*/
+			Resources.set(['data', '_'+units[i], type+suffix+'_'+x], w || undefined);
+			/*
+			if (n > 0) {
+				log(LOG_WARN, 'Utility','Using: '+n+' x '+units[i]+' = '+JSON.stringify(p));
+			}
+			*/
+			this.set(['data',units[i],'use'+suffix,type+suffix+'_'+x], n > 0 ? n : undefined);
+		}
+		if (n > 0) {
+			atk = (p['att'] || 0) + ((p['stats'] && p['stats']['att']) || 0);
+			def = (p['def'] || 0) + ((p['stats'] && p['stats']['def']) || 0);
+			attack += n * atk;
+			defend += n * def;
+			count -= n;
+			used += n;
+			val = atk * ascale + def * dscale;
+			hi = Math.max(hi, val);
+			lo = Math.min(lo, val);
+		}
+	}
+	this.temp.AttDefList = units;
+
+	// count empty slots as zero for min/max
+	if (hi > -1e99) {
+		this.temp.AttDefMax = hi;
+	}
+	if (count <= 0 && lo < 1e99) {
+		this.temp.AttDefMin = lo;
+	}
+	val = attack * ascale + defend * dscale;
+	if (used > 0 && val) {
+		this.temp.AttDefAvg = val / used;
+	}
+
+	return val;
+};
+
+Town.getInvade = function(army, suffix) {
+	var obj = {}, att = 0, def = 0, tag = 'invade',
+		gens = 1 + Math.floor((army - 1) / 5),
+		data = this.get('data'),
+		generals = Generals.get('data');
+
+	if (!suffix) { suffix = ''; }
+
+	try {
+		this._transaction();
+
+		att += this.getAttDef(generals, function(list, i, units) {
+			if (units[i].own) {
+				list.push(i);
+			}
+		}, 'att', gens, tag, suffix);
+		obj['attack_hero_max'] = this.temp.AttDefMax;
+		obj['attack_hero_min'] = this.temp.AttDefMin;
+		obj['attack_hero_avg'] = this.temp.AttDefAvg;
+		def += this.getAttDef(generals, null, 'def', gens, tag, suffix);
+		obj['defend_hero_max'] = this.temp.AttDefMax;
+		obj['defend_hero_min'] = this.temp.AttDefMin;
+		obj['defend_hero_avg'] = this.temp.AttDefAvg;
+
+		att += this.getAttDef(data, function(list, i, units) {
+			if (units[i].page === 'soldiers') {
+				list.push(i);
+			}
+		}, 'att', army, tag, suffix);
+		obj['attack_unit_max'] = this.temp.AttDefMax;
+		obj['attack_unit_min'] = this.temp.AttDefMin;
+		obj['attack_unit_avg'] = this.temp.AttDefAvg;
+		def += this.getAttDef(data, null, 'def', army, tag, suffix);
+		obj['defend_unit_max'] = this.temp.AttDefMax;
+		obj['defend_unit_min'] = this.temp.AttDefMin;
+		obj['defend_unit_avg'] = this.temp.AttDefAvg;
+
+		att += this.getAttDef(data, function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Weapon') {
+				list.push(i);
+			}
+		}, 'att', army, tag, suffix);
+		obj['attack_weapon_max'] = this.temp.AttDefMax;
+		obj['attack_weapon_min'] = this.temp.AttDefMin;
+		obj['attack_weapon_avg'] = this.temp.AttDefAvg;
+		def += this.getAttDef(data, null, 'def', army, tag, suffix);
+		obj['defend_weapon_max'] = this.temp.AttDefMax;
+		obj['defend_weapon_min'] = this.temp.AttDefMin;
+		obj['defend_weapon_avg'] = this.temp.AttDefAvg;
+
+		att += this.getAttDef(data, function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type !== 'Weapon') {
+				list.push(i);
+			}
+		}, 'att', army, tag, suffix);
+		obj['attack_equip_max'] = this.temp.AttDefMax;
+		obj['attack_equip_min'] = this.temp.AttDefMin;
+		obj['attack_equip_avg'] = this.temp.AttDefAvg;
+		def += this.getAttDef(data, null, 'def', army, tag, suffix);
+		obj['defend_equip_max'] = this.temp.AttDefMax;
+		obj['defend_equip_min'] = this.temp.AttDefMin;
+		obj['defend_equip_avg'] = this.temp.AttDefAvg;
+
+		att += this.getAttDef(data, function(list, i, units) {
+			if (units[i].page === 'magic') {
+				list.push(i);
+			}
+		}, 'att', army, tag, suffix);
+		obj['attack_magic_max'] = this.temp.AttDefMax;
+		obj['attack_magic_min'] = this.temp.AttDefMin;
+		obj['attack_magic_avg'] = this.temp.AttDefAvg;
+		def += this.getAttDef(data, null, 'def', army, tag, suffix);
+		obj['defend_magic_max'] = this.temp.AttDefMax;
+		obj['defend_magic_min'] = this.temp.AttDefMin;
+		obj['defend_magic_avg'] = this.temp.AttDefAvg;
+
+		obj.attack = att;
+		obj.defend = def;
+
+		this._transaction(true);
+	} catch (e) {
+		log(LOG_ERROR, e.name + ' in ' + this.name + '.getInvade(): ' + e.message);
+		this._transaction(false);
+		obj.attack = obj.defend = 0;
+	}
+
+	return obj;
 };
 
 Town.getDuel = function() {
-	var att = 0, def = 0, data = this.get('data');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Shield'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Helmet'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Gloves'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Armor'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Amulet'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	return {attack:att, defend:def};
+	var obj = {}, att = 0, def = 0, tag = 'duel', data = this.get('data');
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Weapon') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_weapon_max'] = this.temp.AttDefMax;
+	obj['attack_weapon_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_weapon_max'] = this.temp.AttDefMax;
+	obj['defend_weapon_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Shield') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_shield_max'] = this.temp.AttDefMax;
+	obj['attack_shield_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_shield_max'] = this.temp.AttDefMax;
+	obj['defend_shield_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Armor') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_armor_max'] = this.temp.AttDefMax;
+	obj['attack_armor_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_armor_max'] = this.temp.AttDefMax;
+	obj['defend_armor_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Helmet') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_helmet_max'] = this.temp.AttDefMax;
+	obj['attack_helmet_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_helmet_max'] = this.temp.AttDefMax;
+	obj['defend_helmet_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Amulet') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_amulet_max'] = this.temp.AttDefMax;
+	obj['attack_amulet_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_amulet_max'] = this.temp.AttDefMax;
+	obj['defend_amulet_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Gloves') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_gloves_max'] = this.temp.AttDefMax;
+	obj['attack_gloves_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_gloves_max'] = this.temp.AttDefMax;
+	obj['defend_gloves_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'magic') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_magic_max'] = this.temp.AttDefMax;
+	obj['attack_magic_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_magic_max'] = this.temp.AttDefMax;
+	obj['defend_magic_min'] = this.temp.AttDefMin;
+
+	obj.attack = att;
+	obj.defend = def;
+
+	return obj;
 };
 
 Town.getWar = function() {
-	var att = 0, def = 0, data = this.get('data');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Shield'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Armor'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Helmet'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Amulet'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Gloves'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	return {attack:att, defend:def};
+	var obj = {}, att = 0, def = 0, tag = 'war',
+		data = this.get('data'),
+		generals = Generals.get('data');
+
+	att += this.getAttDef(generals, function(list, i, units) {
+		if (units[i].own) {
+			list.push(i);
+		}
+	}, 'att', 6, tag);
+	obj['attack_hero_max'] = this.temp.AttDefMax;
+	obj['attack_hero_min'] = this.temp.AttDefMin;
+	obj['attack_hero_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(generals, null, 'def', 6, tag);
+	obj['defend_hero_max'] = this.temp.AttDefMax;
+	obj['defend_hero_min'] = this.temp.AttDefMin;
+	obj['defend_hero_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Weapon') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_weapon_max'] = this.temp.AttDefMax;
+	obj['attack_weapon_min'] = this.temp.AttDefMin;
+	obj['attack_weapon_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_weapon_max'] = this.temp.AttDefMax;
+	obj['defend_weapon_min'] = this.temp.AttDefMin;
+	obj['defend_weapon_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Shield') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_shield_max'] = this.temp.AttDefMax;
+	obj['attack_shield_min'] = this.temp.AttDefMin;
+	obj['attack_shield_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_shield_max'] = this.temp.AttDefMax;
+	obj['defend_shield_min'] = this.temp.AttDefMin;
+	obj['defend_shield_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Armor') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_armor_max'] = this.temp.AttDefMax;
+	obj['attack_armor_min'] = this.temp.AttDefMin;
+	obj['attack_armor_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_armor_max'] = this.temp.AttDefMax;
+	obj['defend_armor_min'] = this.temp.AttDefMin;
+	obj['defend_armor_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Helmet') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_helmet_max'] = this.temp.AttDefMax;
+	obj['attack_helmet_min'] = this.temp.AttDefMin;
+	obj['attack_helmet_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_helmet_max'] = this.temp.AttDefMax;
+	obj['defend_helmet_min'] = this.temp.AttDefMin;
+	obj['defend_helmet_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Amulet') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_amulet_max'] = this.temp.AttDefMax;
+	obj['attack_amulet_min'] = this.temp.AttDefMin;
+	obj['attack_amulet_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_amulet_max'] = this.temp.AttDefMax;
+	obj['defend_amulet_min'] = this.temp.AttDefMin;
+	obj['defend_amulet_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Gloves') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_gloves_max'] = this.temp.AttDefMax;
+	obj['attack_gloves_min'] = this.temp.AttDefMin;
+	obj['attack_gloves_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_gloves_max'] = this.temp.AttDefMax;
+	obj['defend_gloves_min'] = this.temp.AttDefMin;
+	obj['defend_gloves_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'magic') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_magic_max'] = this.temp.AttDefMax;
+	obj['attack_magic_min'] = this.temp.AttDefMin;
+	obj['attack_magic_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_magic_max'] = this.temp.AttDefMax;
+	obj['defend_magic_min'] = this.temp.AttDefMin;
+	obj['defend_magic_avg'] = this.temp.AttDefAvg;
+
+	obj.attack = att;
+	obj.defend = def;
+
+	return obj;
+};
+
+Town.getMonster = function() {
+	var obj = {}, att = 0, def = 0, tag = 'monster', data = this.get('data');
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Weapon') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_weapon_max'] = this.temp.AttDefMax;
+	obj['attack_weapon_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_weapon_max'] = this.temp.AttDefMax;
+	obj['defend_weapon_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Shield') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_shield_max'] = this.temp.AttDefMax;
+	obj['attack_shield_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_shield_max'] = this.temp.AttDefMax;
+	obj['defend_shield_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Armor') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_armor_max'] = this.temp.AttDefMax;
+	obj['attack_armor_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_armor_max'] = this.temp.AttDefMax;
+	obj['defend_armor_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Helmet') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_helmet_max'] = this.temp.AttDefMax;
+	obj['attack_helmet_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_helmet_max'] = this.temp.AttDefMax;
+	obj['defend_helmet_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Amulet') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_amulet_max'] = this.temp.AttDefMax;
+	obj['attack_amulet_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_amulet_max'] = this.temp.AttDefMax;
+	obj['defend_amulet_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Gloves') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_gloves_max'] = this.temp.AttDefMax;
+	obj['attack_gloves_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_gloves_max'] = this.temp.AttDefMax;
+	obj['defend_gloves_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Boots') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_boots_max'] = this.temp.AttDefMax;
+	obj['attack_boots_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_boots_max'] = this.temp.AttDefMax;
+	obj['defend_boots_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'magic') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_magic_max'] = this.temp.AttDefMax;
+	obj['attack_magic_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_magic_max'] = this.temp.AttDefMax;
+	obj['defend_magic_min'] = this.temp.AttDefMin;
+
+	obj.attack = att;
+	obj.defend = def;
+
+	return obj;
 };
 
 Town.update = function(event, events) {
-	var now = Date.now(), i, j, k, p, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost,
-		data = this.data,
+	var now = Date.now(), c, i, j, k, n, o, p, v, u, x, y,
+		need, want, have, cost, upkeep, cmp,
+		data = this.data, x1, x2, x3, x4,
+		best_buy = null, buy_pref = 0, best_sell = null,
+		best_in_class = {}, best_in_name = {}, good_buy,
+		sell_pref = 0, best_quest = false, buy = 0, sell = 0,
 		maxincome = Player.get('maxincome', 1, 'number'), // used as a divisor
-		upkeep = Player.get('upkeep', 0, 'number'),
+		total_upkeep = Player.get('upkeep', 0, 'number'),
 		// largest possible army, including bonus generals
-		armymax = Math.max(541, Generals.get('runtime.armymax', 1, 'number')),
+		armymax = Math.max(501, Generals.get('runtime.armymax', 1, 'number')),
 		// our army size, capped at the largest possible army size above
 		army = Math.min(armymax, Math.max(Generals.get('runtime.army', 1, 'number'), Player.get('armymax', 1, 'number'))),
 		max_buy = 0, max_sell = 0, resource, fixed_cost, max_cost, keep,
 		land_buffer = (Land.get('option.save_ahead') && Land.get('runtime.save_amount', 0, 'number')) || 0,
 		incr = this.runtime.cost_incr || 4,
-		info_str, buy_str = '', sell_str = '', net_cost = 0, net_upkeep = 0;
+		info_str, buy_str = '', sell_str = '', net_cost = 0, net_upkeep = 0,
+		type_map_duel = {
+			weapon: 'weapon',
+			shield: 'shield',
+			helmet: 'helmet',
+			armor: 'armor',
+			amulet: 'amulet',
+			gloves: 'gloves',
+			boots: 'boots',
+			magic: 'magic'
+		},
+		type_map_invade = {
+			soldiers: 'unit',
+			unit: 'unit',
+			weapon: 'weapon',
+			shield: 'equip',
+			helmet: 'equip',
+			armor: 'equip',
+			amulet: 'equip',
+			gloves: 'equip',
+			boots: 'equip',
+			magic: 'magic'
+		}, type, value, types;
 
 	fixed_cost = ({
-	    '$0':   0,
+		'$0':   0,
 		'$10k': 1e4,
 		'$100k':1e5,
 		'$1m':  1e6,
@@ -379,31 +828,32 @@ Town.update = function(event, events) {
 	})[this.option.maxcost] || 0;
 
 	switch (this.option.number) {
-		case 'Army':
-			max_buy = max_sell = army;
-			break;
-		case 'Army+':
-			max_buy = army;
-			max_sell = armymax;
-			break;
-		case 'Max Army':
-			max_buy = max_sell = armymax;
-			break;
-		default:
-			max_buy = 0;
-			max_sell = army;
-			break;
+	case 'Army':
+		max_buy = max_sell = army;
+		break;
+	case 'Army+':
+		max_buy = army;
+		max_sell = Math.max(armymax, 541);
+		break;
+	case 'Max Army':
+		max_buy = max_sell = Math.max(armymax, 541);
+		break;
+	default:
+		max_buy = 0;
+		max_sell = army;
+		break;
 	}
 
-	// These three fill in all the data we need for buying / sellings items
-	this.set(['runtime','invade'], this.getInvade(max_buy));
+	// These four fill in all the data we need for buying / sellings items
+	this.set(['runtime','invade'], this.getInvade(army));
 	this.set(['runtime','duel'], this.getDuel());
 	this.set(['runtime','war'], this.getWar());
+	this.set(['runtime','monster'], this.getMonster());
 
 	// Set up a keep set for future army sizes
 	keep = {};
 	if (army < max_sell) {
-		this.getInvade(max_sell, max_sell.toString());
+		this.set(['runtime', 'invade'+max_sell], this.getInvade(max_sell, max_sell.toString()));
 		i = 'invade' + max_sell + '_att';
 		j = 'invade' + max_sell + '_def';
 		for (u in data) {
@@ -430,6 +880,7 @@ Town.update = function(event, events) {
 	// 3. buy enough to get there
 	// 4. profit (or something)...
 	for (u in data) {
+		o = data[u];
 		p = Resources.get(['data','_'+u]) || {};
 		want = 0;
 		if (p.quest) {
@@ -451,7 +902,7 @@ Town.update = function(event, events) {
 				keep[u] = p.generals || 1e99;
 			}
 		}
-		have = data[u].own || 0;
+		have = o.own || 0;
 		need = 0;
 		if (this.option.units !== 'Best Defense') {
 			need = Math.range(need, Math.max(p.invade_att || 0, p.duel_att || 0, p.war_att || 0), max_buy);
@@ -459,53 +910,226 @@ Town.update = function(event, events) {
 		if (this.option.units !== 'Best Offense') {
 			need = Math.range(need, Math.max(p.invade_def || 0, p.duel_def || 0, p.war_def || 0), max_buy);
 		}
-		if (want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
+		// If we're buying for a quest item
+		// then we're only going to buy that item first
+		// though possibly more than specifically needed
+		if (want > have) {
 			max_cost = 1e99; // arbitrarily high value
 			need = want;
 		} else {
 			max_cost = fixed_cost;
 		}
 
-//			log(LOG_WARN, 'Item: '+u+', need: '+need+', want: '+want);
-		if (need > have) { // Want to buy more                                
-			if (!best_quest && data[u].buy && data[u].buy.length) {
-				if (data[u].cost <= max_cost && this.option.upkeep >= (((upkeep + ((data[u].upkeep || 0) * (i = data[u].buy.lower(need - have)))) / maxincome) * 100) && i > 1 && (!best_buy || need > buy)) {
-//						log(LOG_WARN, 'Buy: '+need);
+//		log(LOG_WARN, 'Item: '+u+', need: '+need+', want: '+want);
+		if ((n = need - have) > 0) { // Want to buy more                                
+			if (o.buy && o.buy.length
+			  && o.cost <= max_cost
+			  && (c = o.buy.lower(n))
+			  && (!o.upkeep || this.option.upkeep >= (((total_upkeep + (o.upkeep * c)) / maxincome) * 100))
+			  //&& i > 1 && (!best_buy || need > buy)
+			) {
+				// c is a convenient purchase size
+				// n is the total shortfall
+				if (buy_str !== '') { buy_str += ', '; }
+				buy_str += n + ' &times; ' + u + ' (~$' + (o.cost * n).SI();
+				//buy_str += ' < $' + max_cost.SI();
+				net_cost += o.cost * n;
+				if (isNumber(o.upkeep)) {
+					buy_str += ', upkeep $' + (o.upkeep * n).SI();
+					net_upkeep += o.upkeep * n;
+				}
+				buy_str += ')';
+				// pin the buy to the first quest item, if quest_buy is enabled
+				// order: buys by lowest total cost, then lowest total upkeep
+				// ---
+				// consider best in class also, so we don't buy something only
+				// to replace it immediately with something better when both
+				// are on the list of things to buy
+				log(LOG_INFO, 'Want: ' + c + '/' + n + ' ' + u
+				  + ((k = o.type) ? ' type[' + k + ']' : '')
+				  + ((k = o.page) ? ' page[' + k + ']' : '')
+				  + ((k = (p.duel_att || 0) - have) > 0 ? ' da[' + k + ']' : '')
+				  + ((k = (p.duel_def || 0) - have) > 0 ? ' dd[' + k + ']' : '')
+				  + ((k = (p.invade_att || 0) - have) > 0 ? ' ia[' + k + ']' : '')
+				  + ((k = (p.invade_def || 0) - have) > 0 ? ' id[' + k + ']' : '')
+				  + ((k = (p.war_att || 0) - have) > 0 ? ' wa[' + k + ']' : '')
+				  + ((k = (p.war_def || 0) - have) > 0 ? ' wd[' + k + ']' : '')
+				);
+				good_buy = false;
+				value = {};
+				types = [];
+				for (x in {duel:1, invade:1, war:1}) {
+					for (y in {att:1, def:1}) {
+						if ((k = (p[x+'_'+y] || 0) - have) > 0) {
+							if (x === 'invade') {
+								type = type_map_invade[o.type || o.page];
+							} else {
+								type = type_map_duel[o.type || o.page];
+							}
+							log(LOG_INFO, '# want ' + k + ' ' + type+'.'+u);
+							if ((v = o['tot_'+y])) {
+								value[type] = (value[type] || 0) + v;
+								types[type] = 1;
+							}
+							log(LOG_INFO, '# type[' + type + ']'
+							  + ' v[' + v + ']'
+							  + ' value[' + value[type] + ']'
+							);
+						}
+					}
+				}
+				for (type in types) {
+					if ((best_in_class[type] || 0) < (value[type] || 0)) {
+						if (best_in_name[type] === best_buy) {
+							best_buy = null;
+						}
+						log(LOG_INFO, '# best.' + type
+						  + ' was[' + best_in_name[type]
+						  + ': ' + best_in_class[type] + ']'
+						  + ' now[' + u + ': ' + value[type] + ']'
+						);
+						best_in_class[type] = value[type];
+						best_in_name[type] = u;
+						good_buy = true;
+					}
+				}
+				if ((!best_quest || want) && good_buy && (!best_buy
+				  || (o.cost || 0) * (have + c) < (data[best_buy].cost || 0) * buy
+				  || ((o.cost || 0) * (have + c) === (data[best_buy].cost || 0) * buy
+				  && o.upkeep * (have + c) < (data[best_buy].upkeep || 0) * buy))
+				) {
+//					log(LOG_WARN, 'Buy: ' + c + '/' + n);
 					best_buy = u;
-					buy = have + i; // this.buy() takes an absolute value
+					buy = have + c; // this.buy() takes an absolute value
 					buy_pref = Math.max(need, want);
-					if (want && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
+					// If we're buying for a quest item
+					// then we're only going to buy that item first
+					// though possibly more than specifically needed
+					if (want && want > have) {
 						best_quest = true;
 					}
 				}
+			} else if (o.cost) {
+				x1 = need - have;
+				x2 = isArray(o.buy) ? o.buy.lower(x1) : 1e99;
+				x3 = (o.upkeep || 0) * x2;
+				x4 = (total_upkeep + x3) * 100 / maxincome;
+				log(LOG_DEBUG, '# skip: ' + u +
+				  ', have ' + have +
+				  ', need ' + need +
+				  (o.cost ? ', cost $' + o.cost.SI() : '') +
+				  ', max_cost ' + max_cost.SI() +
+				  (o.upkeep ? ', upkeep $' + o.upkeep.SI() : '') +
+				  (o.buy ? ', buy ' + JSON.shallow(o.buy,2) : '') +
+				  (o.buy ? ', sell ' + JSON.shallow(o.sell,2) : '') +
+				  ', x1 ' + x1 +
+				  ', x2 ' + x2 +
+				  ', x3 $' + x3.SI() +
+				  ', x4 ' + x4.SI() + '%'
+				);
 			}
-		} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
-			need = data[u].sell.lower(have - (i = Math.max(need,want,keep[u] || 0)));
-			if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
-//				log(LOG_WARN, 'Sell: '+need);
-				best_sell = u;
-				sell = need;
-				sell_pref = i;
+		} else if (max_buy && this.option.sell && Math.max(need,want) < have
+		  && o.sell && o.sell.length
+		) {
+			// Want to sell off surplus (but never quest stuff)
+			c = o.sell.lower(n = have - (k = Math.max(need, want, keep[u] || 0)));
+			// c is a convenient sale size
+			// n is the total surplus
+			// k is the total need
+			if (n > 0) {
+				if (sell_str !== '') { sell_str += ', '; }
+				sell_str += n + ' &times; ' + u + ' (~$' + (o.cost * n / 2).SI();
+				net_cost -= o.cost / 2 * n;
+				if (isNumber(o.upkeep)) {
+					sell_str += ', upkeep $' + (o.upkeep * n).SI();
+					net_upkeep -= o.upkeep * n;
+				}
+				sell_str += ')';
+				// order: sells by highest upkeep saved, then highest cash gain
+				if (!best_sell
+				  || (cmp = (o.upkeep || 0) * c - (data[best_sell].upkeep || 0) * sell) > 0
+				  || (!cmp && o.cost * c > data[best_sell].cost * sell)
+				) {
+//					log(LOG_WARN, 'Sell: ' + c + '/' + n);
+					best_sell = u;
+					sell = c;
+					sell_pref = n;
+				}
 			}
 		}
+	}
+
+	info_str = '';
+	//info_str = '[' + new Date(now).format('D Y-m-d H:i:s.u') + ']';
+	if (sell_str !== '' || buy_str !== '') {
+		if (sell_str !== '') {
+			if (info_str !== '') { info_str += '; '; }
+			info_str += 'Sell: ' + sell_str;
+		}
+		if (buy_str !== '') {
+			if (info_str !== '') { info_str += '; '; }
+			info_str += 'Buy: ' + buy_str;
+		}
+		if (net_cost > 0) {
+			info_str += '; net cost $' + net_cost.SI();
+		} else if (net_cost < 0) {
+			info_str += '; net gain $' + (-net_cost).SI();
+		}
+		if (net_upkeep) {
+			info_str += '; net upkeep $' + net_upkeep.SI();
+		}
+		log(LOG_DEBUG, '# action: ' + info_str);
+		info_str = '<span title="' + info_str + '">';
 	}
 
 	if (best_sell) {// Sell before we buy
 		best_buy = null;
 		buy = 0;
 		upkeep = sell * (data[best_sell].upkeep || 0);
-		Dashboard.status(this, (this.option._disabled ? 'Would sell ' : 'Selling ') + sell + ' &times; ' + best_sell + ' for ' + Config.makeImage('gold') + '$' + (sell * data[best_sell].cost / 2).SI() + (upkeep ? ' (Upkeep: -$' + upkeep.SI() + ')': '') + (sell_pref < data[best_sell].own ? ' [' + data[best_sell].own + '/' + sell_pref + ']': ''));
+		Dashboard.status(this, info_str
+		  + (this.option._disabled ? 'Would sell ' : 'Selling ')
+		  + sell + ' &times; ' + best_sell
+		  + ' for ' + Config.makeImage('gold', 'Gold')
+		  + '$' + (sell * data[best_sell].cost / 2).SI()
+		  + (upkeep ? ' (Upkeep: -$' + upkeep.SI() + ')': '')
+		  + (sell_pref < data[best_sell].own ? ' [' + sell_pref + '/' + data[best_sell].own + ']': '')
+		  + (info_str ? '</span>' : '')
+		);
 	} else if (best_buy){
 		best_sell = null;
 		sell = 0;
 		cost = (buy - data[best_buy].own) * data[best_buy].cost;
-		net_upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
+		upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
 		if (land_buffer && !Bank.worth(land_buffer)) {
-			Dashboard.status(this, '<i>Deferring to Land</i>');
+			Dashboard.status(this, info_str
+			  + '<i>Deferring to Land</i>'
+			  + (info_str ? '</span>' : '')
+			);
 		} else if (Bank.worth(cost + land_buffer)) {
-			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI() + (net_upkeep ? ' (Upkeep: $' + net_upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
+			Dashboard.status(this, info_str
+			  + (this.option._disabled ? 'Would buy ' : 'Buying ')
+			  + (buy - data[best_buy].own) + ' &times; ' + best_buy
+			  + ' for ' + Config.makeImage('gold', 'Gold')
+			  + '$' + cost.SI()
+			  + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '')
+			  + (buy_pref > data[best_buy].own
+			  ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : '')
+			  + (info_str ? '</span>' : '')
+			);
 		} else {
-			Dashboard.status(this, 'Waiting for ' + Config.makeImage('gold') + '$' + (cost + land_buffer - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI());
+			Dashboard.status(this, info_str
+			  + 'Waiting for ' + Config.makeImage('gold', 'Gold')
+			  + '<span title="$' + cost.SI()
+			  + ' + $' + land_buffer.SI()
+			  + ' - $' + Bank.worth().SI()
+			  + '">'
+			  + '$' + (cost + land_buffer - Bank.worth()).SI()
+			  + '</span>'
+			  + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy
+			  + ' for ' + Config.makeImage('gold', 'Gold')
+			  + '$' + cost.SI()
+			  + (info_str ? '</span>' : '')
+			);
 		}
 	} else {
 		if (this.option.maxcost === 'INCR'){
@@ -515,7 +1139,11 @@ Town.update = function(event, events) {
 			this.set(['runtime','cost_incr'], null);
 			this.set(['runtime','check'], null);
 		}
-		Dashboard.status(this);
+		if (this.option._hide_status === 1 && info_str) {
+			Dashboard.status(this, info_str + '<i>Nothing to do.</i></span>');
+		} else {
+			Dashboard.status(this);
+		}
 	}
 	this.set(['runtime','best_buy'], best_buy);
 	this.set(['runtime','buy'], best_buy ? data[best_buy].buy.lower(buy - data[best_buy].own) : 0);
@@ -524,11 +1152,12 @@ Town.update = function(event, events) {
 	this.set(['runtime','cost'], best_buy ? this.runtime.buy * data[best_buy].cost : 0);
 
 	this.set(['option','_sleep'],
-	  !this.runtime.best_sell &&
-	  !(this.runtime.best_buy && Bank.worth(this.runtime.cost + land_buffer)) &&
-	  !Page.isStale('town_soldiers') &&
-	  !Page.isStale('town_blacksmith') &&
-	  !Page.isStale('town_magic'));
+	  !this.runtime.best_sell
+	  && !(this.runtime.best_buy && Bank.worth(this.runtime.cost + land_buffer))
+	  && !Page.isStale('town_soldiers')
+	  && !Page.isStale('town_blacksmith')
+	  && !Page.isStale('town_magic')
+	);
 
 	return true;
 };
@@ -596,7 +1225,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 Town.format_unit_str = function(name) {
     var i, j, k, n, m, p, s, str;
 
-	if (name && ((p = Town.get(['data',name])) || (p = Generals.get(['data',name])))) {
+	if (name && ((p = Generals.get(['data',name])) || (p = Town.get(['data',name])))) {
 		str = name;
 
 		j = p.att || 0;
@@ -606,7 +1235,7 @@ Town.format_unit_str = function(name) {
 		if ((m = (p.stats && p.stats.att) || 0) > 0) {
 			s += j + '+' + m;
 		} else if (m < 0) {
-			s += j + m;
+			s += j + '' + m;
 		} else {
 			s += j;
 		}
@@ -616,7 +1245,7 @@ Town.format_unit_str = function(name) {
 		if ((n = (p.stats && p.stats.def) || 0) > 0) {
 			s += k + '+' + n;
 		} else if (n < 0) {
-			s += k + n;
+			s += k + '' + n;
 		} else {
 			s += k;
 		}
@@ -644,8 +1273,9 @@ Town.format_unit_str = function(name) {
     return str;
 };
 
-var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
-	var units = [], output = [], i, o, p,
+// Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
+Town.makeDash = function(list, unitfunc, x, type, name, count) {
+	var i, j, k, o, p, units = [], output = [], label = [], top = 0, end = 0,
 		order = {
 			Weapon:1,
 			Shield:2,
@@ -653,8 +1283,21 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 			Armor:4,
 			Amulet:5,
 			Gloves:6,
-			Magic:7
+			Boots:7,
+			magic:8
 		};
+
+	if (name && name.charAt(0) === '*') {
+		p = name.substr(1).split(',');
+		if (p.length >= 2) {
+			top = order[p[0]];
+			end = order[p[1]];
+		} else if (p.length >= 1) {
+			top = 1;
+			end = order[p[0]];
+		}
+		name = null;
+	}
 
 	if (name) {
 		output.push('<div><h3><a>' + name + '</a></h3><div>');
@@ -664,32 +1307,66 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 		unitfunc(units, i, list);
 	}
 
-	if ((o = list[units[0]])) {
-		if (type === 'duel' && o.type) {
-			units.sort(function(a,b) {
-				return order[list[a].type] - order[list[b].type]
-					|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
-					|| (list[a].cost || 0) - (list[b].cost || 0);
-			});
-		} else {
-			units.sort(function(a,b) {
-				return (list[b]['tot_'+x] - list[a]['tot_'+x])
-					|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
-					|| (list[a].cost || 0) - (list[b].cost || 0);
-			});
+	o = list[units[0]];
+	if (type === 'duel' || type === 'monster') {
+		units.sort(function(a,b) {
+			return (order[list[a]['type'] || list[a]['page']]
+			  - order[list[b]['type'] || list[b]['page']]
+			  || (list[a]['upkeep'] || 0) - (list[b]['upkeep'] || 0)
+			  || (list[a]['cost'] || 0) - (list[b]['cost'] || 0));
+		});
+		if (top) {
+			for (i in order) {
+				label[order[i] - 1] = i.ucfirst();
+			}
 		}
+		if (units.length < end - top + 1) {
+			k = [];
+			while ((j = units.shift())) {
+				p = list[j];
+				while ((order[p.type || p.page] || top) > k.length + 2) {
+					k.push('<i>empty</i>');
+				}
+				if (order[p.type || p.page] === k.length + 1) {
+					k.push(j);
+				}
+			}
+			while (k.length < end - top + 1) {
+				k.push('<i>empty</i>');
+			}
+			units = k;
+		}
+	} else {
+		units.sort(function(a,b) {
+			return ((list[b]['tot_'+x] - list[a]['tot_'+x])
+			  || (list[a]['upkeep'] || 0) - (list[b]['upkeep'] || 0)
+			  || (list[a]['cost'] || 0) - (list[b]['cost'] || 0));
+		});
 	}
-	for (i=0; i<(count ? count : units.length); i++) {
+
+	for (i = 0; i < (count ? count : units.length); i++) {
 		p = list[units[i]];
-		if ((o && o.skills) || (p.use && p.use[type+'_'+x])) {
+		if (!p) {
+			output.push('<div style="height:25px;margin:1px;">');
+			output.push('<img style="width:25px;height:25px;float:left;margin-right:4px;">');
+			if (top) {
+				output.push(' <b>' + label[i + top - 1] + ':</b>');
+			}
+			output.push(' ' + units[i]);
+			output.push('</div>');
+		} else if ((o && o['skills']) || (p['use'] && p['use'][type+'_'+x])) {
 			output.push('<div style="height:25px;margin:1px;">');
 			output.push('<img src="' + imagepath + p.img + '"');
 			output.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
 			output.push(' ');
-			if (p.use) {
-				output.push(p.use[type+'_'+x]+' &times; ');
+			if (type === 'duel' || type === 'monster') {
+				if (top) {
+					output.push('<b>' + label[i + top - 1] + ':</b>');
+				}
+			} else if (name !== 'Heroes' && p['use']) {
+				output.push(' ' + p.use[type+'_'+x]+' &times;');
 			}
-			output.push(this.format_unit_str(units[i]));
+			output.push(' ' + this.format_unit_str(units[i]));
 			output.push('</div>');
 		}
 	}
@@ -702,179 +1379,232 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 };
 
 Town.dashboard = function() {
-	var i, best, tmp, lset = [], rset = [], generals = Generals.get(),
-		fn_own = function(list, i, units) {
+	var i, best, tag, tmp, lset = [], rset = [], generals = Generals.get(),
+		fn_hero = function(list, i, units) {
 			if (units[i].own) {
 				list.push(i);
 			}
 		},
-		fn_page_soldiers = function(list, i, units) {
+		fn_soldier = function(list, i, units) {
 			if (units[i].page === 'soldiers') {
 				list.push(i);
 			}
 		},
-		fn_page_blacksmith = function(list, i, units) {
+		fn_blacksmith = function(list, i, units) {
 			if (units[i].page === 'blacksmith') {
 				list.push(i);
 			}
 		},
-		fn_page_magic = function(list, i, units) {
+		fn_magic = function(list, i, units) {
 			if (units[i].page === 'magic') {
 				list.push(i);
 			}
 		},
-		fn_type_weapon = function(list, i, units) {
-			if (units[i].type === 'Weapon') {
+		fn_weapon = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Weapon') {
 				list.push(i);
 			}
 		},
-		fn_type_not_weapon = function(list, i, units) {
+		fn_equipment = function(list, i, units) {
 			if (units[i].page === 'blacksmith' && units[i].type !== 'Weapon') {
 				list.push(i);
 			}
 		},
-		fn_type_shield = function(list, i, units) {
-			if (units[i].type === 'Shield') {
+		fn_shield = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Shield') {
 				list.push(i);
 			}
 		},
-		fn_type_armor = function(list, i, units) {
-			if (units[i].type === 'Armor') {
+		fn_armor = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Armor') {
 				list.push(i);
 			}
 		},
-		fn_type_helmet = function(list, i, units) {
-			if (units[i].type === 'Helmet') {
+		fn_helmet = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Helmet') {
 				list.push(i);
 			}
 		},
-		fn_type_amulet = function(list, i, units) {
-			if (units[i].type === 'Amulet') {
+		fn_amulet = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Amulet') {
 				list.push(i);
 			}
 		},
-		fn_type_gloves = function(list, i, units) {
-			if (units[i].type === 'Gloves') {
+		fn_gloves = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Gloves') {
+				list.push(i);
+			}
+		},
+		fn_boots = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Boots') {
 				list.push(i);
 			}
 		};
 
 	// invade
+	tag = 'invade';
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.invade_att) {
+		if (this.get(['data',i,'use',tag+'_att'])) {
 			tmp[i] = this.data[i];
 		}
 	}
 
-	lset.push('<div><h3><a>Invade - Attack</a></h3><div>');
-	lset.push(makeTownDash(generals, fn_own, 'att', 'invade', 'Heroes'));
-	lset.push(makeTownDash(tmp, fn_page_soldiers, 'att', 'invade', 'Soldiers'));
-	lset.push(makeTownDash(tmp, fn_type_weapon, 'att', 'invade', 'Weapons'));
-	lset.push(makeTownDash(tmp, fn_type_not_weapon, 'att', 'invade', 'Equipment'));
-	lset.push(makeTownDash(tmp, fn_page_magic, 'att', 'invade', 'Magic'));
+	lset.push('<div><h3><a>'+tag.ucfirst()+' - Attack</a></h3><div>');
+	lset.push(this.makeDash(generals, fn_hero, 'att', tag, 'Heroes'));
+	lset.push(this.makeDash(tmp, fn_soldier, 'att', tag, 'Soldiers'));
+	lset.push(this.makeDash(tmp, fn_weapon, 'att', tag, 'Weapons'));
+	lset.push(this.makeDash(tmp, fn_equipment, 'att', tag, 'Equipment'));
+	lset.push(this.makeDash(tmp, fn_magic, 'att', tag, 'Magic'));
 	lset.push('</div></div>');
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.invade_def) {
+		if (this.get(['data',i,'use',tag+'_def'])) {
 			tmp[i] = this.data[i];
 		}
 	}
 
-	rset.push('<div><h3><a>Invade - Defend</a></h3><div>');
-	rset.push(makeTownDash(generals, fn_own, 'def', 'invade', 'Heroes'));
-	rset.push(makeTownDash(tmp, fn_page_soldiers, 'def', 'invade', 'Soldiers'));
-	rset.push(makeTownDash(tmp, fn_type_weapon, 'def', 'invade', 'Weapons'));
-	rset.push(makeTownDash(tmp, fn_type_not_weapon, 'def', 'invade', 'Equipment'));
-	rset.push(makeTownDash(tmp, fn_page_magic, 'def', 'invade', 'Magic'));
+	rset.push('<div><h3><a>'+tag.ucfirst()+' - Defend</a></h3><div>');
+	rset.push(this.makeDash(generals, fn_hero, 'def', tag, 'Heroes'));
+	rset.push(this.makeDash(tmp, fn_soldier, 'def', tag, 'Soldiers'));
+	rset.push(this.makeDash(tmp, fn_weapon, 'def', tag, 'Weapons'));
+	rset.push(this.makeDash(tmp, fn_equipment, 'def', tag, 'Equipment'));
+	rset.push(this.makeDash(tmp, fn_magic, 'def', tag, 'Magic'));
 	rset.push('</div></div>');
 	
 	// duel
+	tag = 'duel';
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.duel_att) {
+		if (this.get(['data',i,'use',tag+'_att'])) {
 			tmp[i] = this.data[i];
 		}
 	}
 
-	lset.push('<div><h3><a>Duel - Attack</a></h3><div>');
-	if ((best = Generals.best('duel')) !== 'any') {
+	lset.push('<div><h3><a>'+tag.ucfirst()+' - Attack</a></h3><div>');
+	if ((best = Generals.best(tag+'-attack')) !== 'any') {
 		lset.push('<div style="height:25px;margin:1px;">');
 		lset.push('<img src="' + imagepath + generals[best].img + '"');
 		lset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
-		lset.push(this.format_unit_str(best));
+		lset.push(' <b>General:</b> ' + this.format_unit_str(best));
 		lset.push('</div>');
 	}
-	lset.push(makeTownDash(tmp, fn_page_blacksmith, 'att', 'duel'));
-	lset.push(makeTownDash(tmp, fn_page_magic, 'att', 'duel'));
+	lset.push(this.makeDash(tmp, fn_blacksmith, 'att', tag, '*Boots'));
+	lset.push(this.makeDash(tmp, fn_magic, 'att', tag, '*magic,magic'));
 	lset.push('</div></div>');
 	
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.duel_def) {
+		if (this.get(['data',i,'use',tag+'_def'])) {
 			tmp[i] = this.data[i];
 		}
 	}
 
-	rset.push('<div><h3><a>Duel - Defend</a></h3><div>');
-	if ((best = Generals.best('defend')) !== 'any') {
+	rset.push('<div><h3><a>'+tag.ucfirst()+' - Defend</a></h3><div>');
+	if ((best = Generals.best(tag+'-defend')) !== 'any') {
 		rset.push('<div style="height:25px;margin:1px;">');
 		rset.push('<img src="' + imagepath + generals[best].img + '"');
 		rset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
-		rset.push(this.format_unit_str(best));
+		rset.push(' <b>General:</b> ' + this.format_unit_str(best));
 		rset.push('</div>');
 	}
-	rset.push(makeTownDash(tmp, fn_page_blacksmith, 'def', 'duel'));
-	rset.push(makeTownDash(tmp, fn_page_magic, 'def', 'duel'));
+	rset.push(this.makeDash(tmp, fn_blacksmith, 'def', tag, '*Boots'));
+	rset.push(this.makeDash(tmp, fn_magic, 'def', tag, '*magic,magic'));
 	rset.push('</div></div>');
 
 	// war
+	tag = 'war';
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.war_att) {
+		if (this.get(['data',i,'use',tag+'_att'])) {
 			tmp[i] = this.data[i];
-			}
+		}
 	}
 
-	lset.push('<div><h3><a>War - Attack</a></h3><div>');
-	lset.push(makeTownDash(generals, fn_own, 'att', 'war', 'Heroes', 6));
-	lset.push(makeTownDash(tmp, fn_type_weapon, 'att', 'war', 'Weapons'));
-	lset.push(makeTownDash(tmp, fn_type_shield, 'att', 'war', 'Shield'));
-	lset.push(makeTownDash(tmp, fn_type_armor, 'att', 'war', 'Armor'));
-	lset.push(makeTownDash(tmp, fn_type_helmet, 'att', 'war', 'Helmet'));
-	lset.push(makeTownDash(tmp, fn_type_amulet, 'att', 'war', 'Amulet'));
-	lset.push(makeTownDash(tmp, fn_type_gloves, 'att', 'war', 'Gloves'));
-	lset.push(makeTownDash(tmp, fn_page_magic, 'att', 'war', 'Magic'));
+	lset.push('<div><h3><a>'+tag.ucfirst()+' - Attack</a></h3><div>');
+	lset.push(this.makeDash(generals, fn_hero, 'att', tag, 'Heroes', 6));
+	lset.push(this.makeDash(tmp, fn_weapon, 'att', tag, 'Weapons'));
+	lset.push(this.makeDash(tmp, fn_shield, 'att', tag, 'Shield'));
+	lset.push(this.makeDash(tmp, fn_armor, 'att', tag, 'Armor'));
+	lset.push(this.makeDash(tmp, fn_helmet, 'att', tag, 'Helmet'));
+	lset.push(this.makeDash(tmp, fn_amulet, 'att', tag, 'Amulet'));
+	lset.push(this.makeDash(tmp, fn_gloves, 'att', tag, 'Gloves'));
+	lset.push(this.makeDash(tmp, fn_boots, 'att', tag, 'Boots'));
+	lset.push(this.makeDash(tmp, fn_magic, 'att', tag, 'Magic'));
 	lset.push('</div></div>');
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.war_def) {
+		if (this.get(['data',i,'use',tag+'_def'])) {
 			tmp[i] = this.data[i];
 		}
 	}
 
-	rset.push('<div><h3><a>War - Defend</a></h3><div>');
-	rset.push(makeTownDash(generals, fn_own, 'def', 'war', 'Heroes', 6));
-	rset.push(makeTownDash(tmp, fn_type_weapon, 'def', 'war', 'Weapons'));
-	rset.push(makeTownDash(tmp, fn_type_shield, 'def', 'war', 'Shield'));
-	rset.push(makeTownDash(tmp, fn_type_armor, 'def', 'war', 'Armor'));
-	rset.push(makeTownDash(tmp, fn_type_helmet, 'def', 'war', 'Helmet'));
-	rset.push(makeTownDash(tmp, fn_type_amulet, 'def', 'war', 'Amulet'));
-	rset.push(makeTownDash(tmp, fn_type_gloves, 'def', 'war', 'Gloves'));
-	rset.push(makeTownDash(tmp, fn_page_magic, 'def', 'war', 'Magic'));
+	rset.push('<div><h3><a>'+tag.ucfirst()+' - Defend</a></h3><div>');
+	rset.push(this.makeDash(generals, fn_hero, 'def', tag, 'Heroes', 6));
+	rset.push(this.makeDash(tmp, fn_weapon, 'def', tag, 'Weapons'));
+	rset.push(this.makeDash(tmp, fn_shield, 'def', tag, 'Shield'));
+	rset.push(this.makeDash(tmp, fn_armor, 'def', tag, 'Armor'));
+	rset.push(this.makeDash(tmp, fn_helmet, 'def', tag, 'Helmet'));
+	rset.push(this.makeDash(tmp, fn_amulet, 'def', tag, 'Amulet'));
+	rset.push(this.makeDash(tmp, fn_gloves, 'def', tag, 'Gloves'));
+	rset.push(this.makeDash(tmp, fn_boots, 'def', tag, 'Boots'));
+	rset.push(this.makeDash(tmp, fn_magic, 'def', tag, 'Magic'));
 	rset.push('</div></div>');
 	
+	// monster
+	tag = 'monster';
+
+	// prepare a short list of items being used
+	tmp = {};
+	for (i in this.data) {
+		if (this.get(['data',i,'use',tag+'_att'])) {
+			tmp[i] = this.data[i];
+		}
+	}
+
+	lset.push('<div><h3><a>'+tag.ucfirst()+' - Attack</a></h3><div>');
+	if ((best = Generals.best(tag+'-attack')) !== 'any') {
+		lset.push('<div style="height:25px;margin:1px;">');
+		lset.push('<img src="' + imagepath + generals[best].img + '"');
+		lset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
+		lset.push(' <b>General:</b> ' + this.format_unit_str(best));
+		lset.push('</div>');
+	}
+	lset.push(this.makeDash(tmp, fn_blacksmith, 'att', tag, '*Boots'));
+	lset.push(this.makeDash(tmp, fn_magic, 'att', tag, '*magic,magic'));
+	lset.push('</div></div>');
+	
+	// prepare a short list of items being used
+	tmp = {};
+	for (i in this.data) {
+		if (this.get(['data',i,'use',tag+'_def'])) {
+			tmp[i] = this.data[i];
+		}
+	}
+
+	rset.push('<div><h3><a>'+tag.ucfirst()+' - Defend</a></h3><div>');
+	if ((best = Generals.best(tag+'-defend')) !== 'any') {
+		rset.push('<div style="height:25px;margin:1px;">');
+		rset.push('<img src="' + imagepath + generals[best].img + '"');
+		rset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
+		rset.push(' <b>General:</b> ' + this.format_unit_str(best));
+		rset.push('</div>');
+	}
+	rset.push(this.makeDash(tmp, fn_blacksmith, 'def', tag, '*Boots'));
+	rset.push(this.makeDash(tmp, fn_magic, 'def', tag, '*magic,magic'));
+	rset.push('</div></div>');
+
 	// div wrappers
 
 	lset.unshift('<div style="float:left;width:50%;">');

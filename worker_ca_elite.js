@@ -51,7 +51,7 @@ Elite.display = [
 Elite.menu = function(worker, key) {
 	if (worker === this) {
 		if (!key) {
-			return ['fill:Fill&nbsp;Elite&nbsp;Guard&nbsp;Now'];
+			return ['fill:Fill Elite Guard Now'];
 		} else if (key === 'fill') {
 			this.set('runtime.waitelite', 0);
 		}

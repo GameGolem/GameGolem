@@ -34,11 +34,7 @@ Config.temp = {
 /** @this {Worker} */
 Config.init = function(old_revision) {
 	var i, j, k, tmp, worker, multi_change_fn;
-	// BEGIN: Changing this.option.display to a bool
-	if (old_revision <= 1110) {
-		this.option.display = (this.option.display === true || this.option.display === 'block');
-	}
-	// END
+
 	// START: Only safe place to put this - temporary for deleting old queue enabled code...
 	if (old_revision <= 1106) { // Not sure real revision
 		for (i in Workers) {
@@ -51,6 +47,7 @@ Config.init = function(old_revision) {
 		}
 	}
 	// END
+
 	// START: Move active (unfolded) workers into individual worker.option._config._show
 	if (old_revision <= 1106) { // Not sure real revision
 		if (this.option.active) {
@@ -64,6 +61,13 @@ Config.init = function(old_revision) {
 		}
 	}
 	// END
+
+	// BEGIN: Changing this.option.display to a bool
+	if (old_revision <= 1110) {
+		this.option.display = (this.option.display === true || this.option.display === 'block');
+	}
+	// END
+
 	this.makeWindow(); // Creates all UI stuff
 	multi_change_fn = function(el) {
 		var $this = $(el), tmp, worker, val;
@@ -158,10 +162,8 @@ Config.init = function(old_revision) {
 
 /** @this {Worker} */
 Config.update = function(event, events) {
-	var i, j, k, x, tmp, evt, worker, id, value, list,
+	var i, j, k, tmp, evt, worker, id, value, list,
 		show = false, options = [], handled = {};
-
-	//log(LOG_DEBUG, '# events: ' + JSON.shallow(events,3));
 
 	for (j = 0; j < events.length; j++) {
 		evt = events[j];
@@ -278,9 +280,9 @@ Config.menu = function(worker, key) {
 	if (!worker) {
 		if (!key) {
 			return [
-				'fixed:' + (this.option.fixed ? '<img src="' + getImage('pin_down') + '">Fixed' : '<img src="' + getImage('pin_left') + '">Normal') + '&nbsp;Position',
-				'advanced:' + (this.option.advanced ? '+' : '-') + 'Advanced&nbsp;Options',
-				'debug:' + (this.option.debug ? '+' : '-') + 'Debug&nbsp;Options'
+				'fixed: ' + (this.option.fixed ? '<img src="' + getImage('pin_down') + '">Fixed' : '<img src="' + getImage('pin_left') + '">Normal') + '&nbsp;Position',
+				'advanced:' + (this.option.advanced ? '+' : '-') + 'Advanced Options',
+				'debug:' + (this.option.debug ? '+' : '-') + 'Debug Options'
 			];
 		} else if (key) {
 			switch (key) {
@@ -559,8 +561,6 @@ Config.makeOption = function(worker, args) {
 		suffix: '',
 		className: '',
 		between: 'to',
-		min: 0,
-		max: 100,
 		real_id: ''
 	}, args);
 	if (o.id) {
@@ -619,17 +619,17 @@ Config.makeOption = function(worker, args) {
 		// our different types of input elements
 		if (o.info) { // only useful for externally changed
 			if (o.id) {
-				txt.push('<span style="float:right"' + o.real_id + '>' + (o.value || o.info) + '</span>');
+				txt.push('<span style="float:right"' + o.real_id + '>' + (o.value || o.info).toString().html_escape() + '</span>');
 			} else {
 				txt.push(o.info);
 			}
 		} else if (o.text) {
-			txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + (o.cols || o.size || 18) + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
+			txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + (o.cols || o.size || 18) + '" value="' + (o.value || isNumber(o.value) ? o.value : '').toString().html_escape().quote_escape() + '">');
 		} else if (o.number) {
-			txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + (o.cols || o.size || 6) + '"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
+			txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + (o.cols || o.size || 6) + '"' + (o.step ? ' step="'+o.step+'"' : '') + (isNumber(o.min) ? ' min="'+o.min+'"' : '') + (isNumber(o.max) ? ' max="'+o.max+'"' : '') + ' value="' + (isNumber(o.value) ? o.value : (o.min || 0)) + '">');
 		} else if (o.textarea) {
 			txt.push('<textarea' + o.real_id + ' cols="' + (o.cols || 20) + '" rows="' + (o.rows || 5) + '"' + (o.id ? '' : ' disabled') + ' style="float:right;margin-left:0;margin-right:0;' + (o.resize ? 'resize:'+o.resize+';' : '') + '" placeholder="Type here...">');
-			txt.push(o.value || '');
+			txt.push((o.value || '').toString().html_escape());
 			txt.push('</textarea>');
 		} else if (o.checkbox) {
 			txt.push('<input type="checkbox"' + o.real_id + (o.value ? ' checked' : '') + '>');
@@ -680,11 +680,11 @@ Config.makeOption = function(worker, args) {
 			// prepare the "selected" set
 			if (isArray(o.value)) {
 				for (i = 0; i < o.value.length; i++) {
-					list.push('<option>'+o.value[i]+'</option>');
+					list.push('<option>'+o.value[i].toString().html_escape()+'</option>');
 				}
 			} else if (isObject(o.value)) {
 				for (i in o.value) {
-					list.push('<option>'+o.value[i]+'</option>');
+					list.push('<option>'+o.value[i].toString().html_escape()+'</option>');
 				}
 			}
 			txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple' + o.real_id + '>' + list.join('') + '</select><br>');

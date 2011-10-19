@@ -1,12 +1,12 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Workers, Global,
+	$, Worker, Workers, Global, Main,
 	APP, APPID, APPID_, PREFIX, userID, imagepath,
 	isRelease, version, revision, Images, window, browser,
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	isArray, isFunction, isNumber, isObject, isString, isWorker,
-	makeTimer
+	makeTimerMs
 */
 /********** Worker.Page() **********
 * All navigation including reloading
@@ -130,11 +130,12 @@ Page.update = function(event, events) {
 	var i, list, now = Date.now(), time;
 	if (events.findEvent(null,'reminder','timers')) {
 		for (i in this.runtime.timers) {
-			time = (this.runtime.timers[i] - now) / 1000;
-			if (time <= -604800) { // Delete old timers 1 week after "now?"
+			time = this.runtime.timers[i] - now;
+			// Delete old timers 1 week after "now?"
+			if (time <= -7*24*60*60*1000) {
 				this.set(['runtime','timers',i]);
 			} else {
-				$('#'+i).text(time > 0 ? makeTimer(time) : 'now?');
+				$('#'+i).text(time > 0 ? makeTimerMs(time) : 'now?');
 			}
 		}
 	}
@@ -335,11 +336,12 @@ Page.clear = function() {
 };
 
 Page.addTimer = function(id, time, relative) {
+	var now = Date.now();
 	if (relative) {
-		time = Date.now() + time;
+		time = now + time;
 	}
 	this.set(['runtime','timers','golem_timer_'+id], time);
-	return '<span id="golem_timer_'+id+'">' + makeTimer((time - Date.now()) / 1000) + '</span>';
+	return '<span id="golem_timer_'+id+'">' + makeTimerMs(time - now) + '</span>';
 };
 
 Page.delTimer = function(id) {

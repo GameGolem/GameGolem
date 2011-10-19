@@ -186,11 +186,8 @@ Dashboard.menu = function(worker, key) {
 		this._unflush();
 		if (!key) {
 			keys = [];
-			if (this.data[worker.name]) {
-				keys.push('status:' + (worker.get(['option','_hide_status'], false) ? '-' : '+') + 'Show&nbsp;Status');
-			}
 			if (isFunction(worker.dashboard)) {
-				keys.push('dashboard:' + (worker.get(['option','_hide_dashboard'], false) ? '-' : '+') + 'Show&nbsp;Dashboard');
+				keys.push('dashboard:' + (worker.get(['option','_hide_dashboard'], false) ? '-' : '+') + 'Show Dashboard');
 			}
 			if (this.data.hasOwnProperty(worker.name)
 			  || this.get(['temp','status',worker.name])
@@ -198,9 +195,9 @@ Dashboard.menu = function(worker, key) {
 				i = worker.get(['option','_hide_status'], 2, 'number');
 				if (i === true) { i = 2; }
 				if (i !== 1 && i !== 2) { i = 0; }
-				keys.push('status0:' + (i === 0 ? '=' : '') + 'Hide&nbsp;Status');
-				keys.push('status1:' + (i === 1 ? '=' : '') + 'Show&nbsp;Status');
-				keys.push('status2:' + (i === 2 ? '=' : '') + 'Viable&nbsp;Status');
+				keys.push('status0:' + (i === 0 ? '=' : '') + 'Hide Status');
+				keys.push('status1:' + (i === 1 ? '=' : '') + 'Show Status');
+				keys.push('status2:' + (i === 2 ? '=' : '') + 'Active Status');
 			}
 			return keys;
 		} else {

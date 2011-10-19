@@ -462,7 +462,7 @@ Debug.menu = function(worker, key) {
 			this.set(['option','loglevel'], parseInt(key, 10));
 		} else if (Config.option.advanced || Config.option.debug) {
 			var levels = [
-				':<img src="' + getImage('bug') + '"><b>Log Level</b>',
+				': <img src="' + getImage('bug') + '"><b>Log Level</b>',
 				'0:' + (this.option.loglevel === 0 ? '=' : '') + 'Error',
 				'1:' + (this.option.loglevel === 1 ? '=' : '') + 'Warn',
 				'2:' + (this.option.loglevel === 2 ? '=' : '') + 'Log',

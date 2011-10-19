@@ -1,10 +1,10 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$,
-	APP, APPID, userID, imagepath, browser, localStorage, window,
+	APP, APPID, userID, imagepath, browser, window,
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	isArray, isBoolean, isFunction, isNull, isNumber, isObject, isString, isUndefined, isWorker,
-	empty, compare
+	empty, compare, localStorage
 */
 /* Worker Prototype
    ----------------
@@ -15,7 +15,8 @@ new Worker(name, pages, settings)
 .name			- String, the same as our class name.
 .pages			- String, list of pages that we want in the form "town.soldiers keep.stats"
 .data			- Object, for public reading, automatically saved
-.option			- Object, our options, changed from outide ourselves
+.option			- Object, our options, typically changed only from the user interface
+.runtime		- Object, intermediate data, results of decisions based on data, options and workers
 .temp			- Object, temporary unsaved data for this instance only
 .settings		- Object, various values for various sections, default is always false / blank
 				system (true/false) - exists for all games
@@ -34,22 +35,22 @@ new Worker(name, pages, settings)
 .defaults		- Object filled with objects. Assuming in an APP called "castle_age" then myWorker.defaults['castle_age'].* gets copied to myWorker.*
 
 *** User functions - should be in worker if needed ***
-.init()			- After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
+.init(old_revision,fresh)	- After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
 				This is the bext place to put default actions etc...
 				Cannot rely on other workers having their data filled out...
 .page(page,change)  - This can read data from the current page and cannot perform any actions.
 				page (string|'facebook') - the name of the page we're on, may be "facebook" for a popup, same as Page.temp.page
 				change (true/false) - can we change the DOM (used to prevent one worker changing something another one needs)
-				return true - We need to run again with change=1
+				return true - We need to run again with change=true
 .work(state)    - Do anything we need to do when it's our turn - this includes page changes. This is part the of Queue worker.
 				state = false - It's not our turn, don't start anything if we can't finish in this one call, this.data is null
 				state = true - It's our turn, do everything - Only true if not interrupted, this.data is useable
 				return true or QUEUE_RELEASE if we *want* to continue working, but can be interrupted
 				return QUEUE_CONTINUE if we *need* to continue working and don't want to be interrupted
 				return false or QUEUE_FINISH when someone else can work
-.update(type,worker)	- Called when the data, options or runtime have been changed
-				type = "data", "option", "runtime", "reminder", "watch" or null (only for first call after init())
-				worker = null (for worker = this), otherwise another worker (due to _watch())
+.update(event,events)	- Called when data has changed or other events have been triggered
+				event = single event that triggered this call (must return false if using this parameter)
+				events = list of all events fired since the last call (must return true if handling all of these events)
 .get(what)		- Calls this._get(what)
 				Official way to get any information from another worker
 				Overload for "special" data, and pass up to _get if basic data
@@ -73,8 +74,8 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._unshift(what,val,type)- Unshifts value onto this.data[what] (as an array), auto-loading if needed.
 ._transaction(commit)	- Starts a transaction (no args) to allow multilpe _set calls to effectively queue and only write (or clear) with a true (or false) call.
 
-._setup()				- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
-._init()				- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
+._setup(old_revision,fresh)	- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
+._init(old_revision,fresh)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
 
 ._load(type)			- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)			- Saves data / option to storage, calls .update(type) on change
@@ -237,30 +238,38 @@ Worker.prototype._flush = function() {
  */
 Worker.prototype._add = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		log(LOG_DEBUG, 'Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
-		return false;
+		log(LOG_WARN, 'Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof value));
+		return;
+	}
+	var x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
+	if (!x.length || !this._datatypes.hasOwnProperty(x[0])) {
+		x.unshift('data');
+	}
+	if (x.length <= 1) {
+		log(LOG_WARN, 'Attempt to add directly to ' + x.join('.'));
+		return;
 	}
 	if (isUndefined(value)) {
-		this._set(what);
+		this._set(x);
 	} else if (isBoolean(value)) {
-		this._set(what, function(old){
+		this._set(x, function(old){
 			value = (old = old ? (value ? false : undefined) : true) || false;
 			return old;
 		}, null, quiet);
 	} else if (isNumber(value)) {
-		this._set(what, function(old){
+		this._set(x, function(old){
 			return (isNumber(old) ? old : 0) + value;
 		}, null, quiet);
 	} else if (isString(value)) {
-		this._set(what, function(old){
+		this._set(x, function(old){
 			return (isString(old) ? old : '') + value;
 		}, null, quiet);
 	} else if (isArray(value)) {
-		this._set(what, function(old){
+		this._set(x, function(old){
 			return (isArray(old) ? old : []).concat(value);
 		}, null, quiet);
 	} else if (isObject(value)) {
-		this._set(what, function(old){
+		this._set(x, function(old){
 			return $.extend({}, isObject(old) ? old : {}, value);
 		}, null, quiet);
 	}
@@ -320,7 +329,7 @@ Worker.prototype._get = function(what, def, type) {
 		if (x.length && (isObject(x[0]) || isArray(x[0]))) { // Object or Array
 			data = x.shift();
 		} else { // String, Number or Undefined etc
-			if (!x.length || !(x[0] in this._datatypes)) {
+			if (!x.length || !this._datatypes.hasOwnProperty(x[0])) {
 				x.unshift('data');
 			}
 			if (x[0] === 'data') {
@@ -505,8 +514,15 @@ Worker.prototype._page = function(page,change) {
  * NOTE: This will change the data stored
  */
 Worker.prototype._pop = function(what, def, type, quiet) {
-	var data;
-	this._set(what, function(old){
+	var data, x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
+	if (!x.length || !this._datatypes.hasOwnProperty(x[0])) {
+		x.unshift('data');
+	}
+	if (x.length <= 1) {
+		log(LOG_WARN, 'Attempt to pop directly from ' + x.join('.'));
+		return;
+	}
+	this._set(x, function(old){
 		old = isArray(old) ? old.slice(0) : [];
 		data = old.pop();
 		return old;
@@ -527,10 +543,18 @@ Worker.prototype._pop = function(what, def, type, quiet) {
  */
 Worker.prototype._push = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		log(LOG_WARN, 'Bad type in ' + this.name + '.push('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
-		return false;
+		log(LOG_WARN, 'Bad type in ' + this.name + '.push('+JSON.shallow(arguments,2)+'): Seen ' + (typeof value));
+		return;
 	}
-	this._set(what, isUndefined(value) ? undefined : function(old){
+	var x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
+	if (!x.length || !this._datatypes.hasOwnProperty(x[0])) {
+		x.unshift('data');
+	}
+	if (x.length <= 1) {
+		log(LOG_WARN, 'Attempt to push directly into ' + x.join('.'));
+		return;
+	}
+	this._set(x, isUndefined(value) ? undefined : function(old){
 		old = isArray(old) ? old : [];
 		old.push(value);
 		return old;
@@ -554,12 +578,12 @@ Worker.prototype._pushStack = function() {
 
 /**
  * Starts a window.setInterval reminder event, optionally using an id to prevent multiple intervals with the same id
- * @param {number} seconds How long between events
+ * @param {number} milliseconds How long between events
  * @param {string=} id A unique identifier - trying to set the same id more than once will result in only the most recent timer running
  * @param {(function()|object)=} callback A function to call, or an event object to pass to _update
  * @return {number} The window.setInterval result
  */
-Worker.prototype._revive = function(seconds, id, callback) {
+Worker.prototype._reviveMs = function(ms, id, callback) {
 	var name = this.name, fn;
 	if (isFunction(callback)) {
 		fn = function(){callback.apply(Workers[name]);};
@@ -571,17 +595,32 @@ Worker.prototype._revive = function(seconds, id, callback) {
 	if (id && this._reminders['i' + id]) {
 		window.clearInterval(this._reminders['i' + id]);
 	}
-	return (this._reminders['i' + (id || '')] = window.setInterval(fn, Math.max(0, seconds) * 1000));
+	// never allow an interval below 500ms, as that may call call too quickly
+	if (ms < 500) {
+		log(LOG_WARN, 'Interval ('+id+') too short: ' + ms.toTimespan(1));
+	}
+	return (this._reminders['i' + (id || '')] = window.setInterval(fn, Math.max(500, ms)));
 };
 
 /**
- * Starts a window.setTimeout reminder event, optionally using an id to prevent multiple intervals with the same id
+ * Starts a window.setInterval reminder event, optionally using an id to prevent multiple intervals with the same id
  * @param {number} seconds How long before reminding us
  * @param {string=} id A unique identifier - trying to set the same id more than once will result in only the most recent reminder running
  * @param {(function()|object)=} callback A function to call, or an event object to pass to _update
+ * @return {number} The window.setInterval result
+ */
+Worker.prototype._revive = function(seconds, id, callback) {
+	return this._reviveMs(Math.round(seconds * 1000), id, callback);
+};
+
+/**
+ * Starts a window.setTimeout reminder event, optionally using an id to prevent multiple timeouts with the same id
+ * @param {number} milliseconds How long between events
+ * @param {string=} id A unique identifier - trying to set the same id more than once will result in only the most recent timer running
+ * @param {(function()|object)=} callback A function to call, or an event object to pass to _update
  * @return {number} The window.setTimeout result
  */
-Worker.prototype._remind = function(seconds, id, callback) {
+Worker.prototype._remindMs = function(ms, id, callback) {
 	var name = this.name, fn;
 	if (isFunction(callback)) {
 		fn = function(){delete Workers[name]._reminders['t' + id];callback.apply(Workers[name]);};
@@ -593,7 +632,22 @@ Worker.prototype._remind = function(seconds, id, callback) {
 	if (id && this._reminders['t' + id]) {
 		window.clearTimeout(this._reminders['t' + id]);
 	}
-	return (this._reminders['t' + (id || '')] = window.setTimeout(fn, Math.max(0, seconds) * 1000));
+	// never allow a timeout below 1ms, as that may call through immediately
+	if (ms < 1) {
+		log(LOG_WARN, 'Reminder ('+id+') too short: ' + ms.toTimespan(1));
+	}
+	return (this._reminders['t' + (id || '')] = window.setTimeout(fn, Math.max(1, ms)));
+};
+
+/**
+ * Starts a window.setTimeout reminder event, optionally using an id to prevent multiple intervals with the same id
+ * @param {number} seconds How long before reminding us
+ * @param {string=} id A unique identifier - trying to set the same id more than once will result in only the most recent reminder running
+ * @param {(function()|object)=} callback A function to call, or an event object to pass to _update
+ * @return {number} The window.setTimeout result
+ */
+Worker.prototype._remind = function(seconds, id, callback) {
+	return this._remindMs(Math.round(seconds * 1000), id, callback);
 };
 
 /**
@@ -704,8 +758,8 @@ Worker.prototype._save = function(type) {
  */
 Worker.prototype._set = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		log(LOG_WARN, 'Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
-		return false;
+		log(LOG_WARN, 'Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof value));
+		return;
 	}
 	var i, x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
 		var i = path[depth];
@@ -910,8 +964,8 @@ Worker.prototype._unflush = function() {
  */
 Worker.prototype._unshift = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		log(LOG_DEBUG, 'Bad type in ' + this.name + '.unshift('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
-		return false;
+		log(LOG_DEBUG, 'Bad type in ' + this.name + '.unshift('+JSON.shallow(arguments,2)+'): Seen ' + (typeof value));
+		return;
 	}
 	this._set(what, isUndefined(value) ? undefined : function(old){
 		old = isArray(old) ? old : [];

@@ -1,6 +1,6 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Workers, Worker, Config, Dashboard, History, Page, Queue, Resources, //Army,
+	$, Worker, Workers, Config, Dashboard, History, Page, Queue, Resources, //Army,
 	Battle, Generals, Heal, Monster, Player, Quest, //Bank, Income, LevelUp:true,
 	APP, APPID, APPID_, PREFIX, userID, imagepath,
 	isRelease, version, revision, Images, window, browser,
@@ -34,7 +34,8 @@ LevelUp.option = {
 	general_choice:'any',
 	order:'stamina',
 	algorithm:'Per Action',
-	override:false
+	override:false,
+	show_refills:false
 };
 
 LevelUp.runtime = {
@@ -114,8 +115,11 @@ LevelUp.init = function() {
 
 	this._watch(Player, 'data.health');
 	this._watch(Player, 'data.exp');
+	this._watch(Player, 'data.maxexp');
 	this._watch(Player, 'data.energy');
+	this._watch(Player, 'data.maxenergy');
 	this._watch(Player, 'data.stamina');
+	this._watch(Player, 'data.maxstamina');
 	this._watch(Resources, 'option.reserve');
 	this._watch(Quest, 'runtime.best');
 	this._watch(this, 'runtime.force.energy');

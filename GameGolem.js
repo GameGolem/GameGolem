@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1165
+ * GameGolem v31.6.1167
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1165
+ * GameGolem v31.6.1167
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1165;
+var revision = 1167;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,22 +471,21 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1164;
+var trunk_revision = 1166;
 try {
-    trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || 1164;
-} catch (e97) {
-    console.log(e97.name + ' in Main: ' + e97.message);
-}
-console.log('GameGolem: trunk_revision ' + trunk_revision);
+    trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
+} catch (e97) {}
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Workers, Worker, Resources, Script,
+	$, Worker, Workers, Script,
 	APP, APPID, PREFIX, userID, imagepath,
 	isRelease, version, revision,
-	browser, window, localStorage, console, chrome
-	log:true, length:true
+	browser, window, localStorage, console, chrome,
+	length:true
 */
 // Utility functions
+
+Date.HUGE = 1e13; // huge but "valid" date, approx. Nov. 20th, 2286
 
 // Functions to check type of variable - here for javascript optimisations and readability, makes a miniscule difference using them
 
@@ -615,9 +614,9 @@ var LOG_USER3 = 7;
 var LOG_USER4 = 8;
 var LOG_USER5 = 9;
 var log = function(lvl, txt /*, obj, array etc*/){
-	var level, args = Array.prototype.slice.call(arguments), prefix = [],
+	var args = Array.prototype.slice.call(arguments), prefix = [], level,
 		date = [true, true, true, true, true, true, true, true, true, true],
-		rev = [true, true, true, true, true, true, true, true, true, true],
+		rev = [true, true, false, false, true, true, true, true, true, true],
 		worker = [true, true, true, true, true, true, true, true, true, true];
 	if (isNumber(args[0])) {
 		level = Math.range(0, args.shift(), 9);
@@ -631,7 +630,7 @@ var log = function(lvl, txt /*, obj, array etc*/){
 		prefix.push('[' + (isRelease ? 'v'+version : 'r'+revision) + ']');
 	}
 	if (date[level]) {
-		prefix.push('[' + (new Date()).toLocaleTimeString() + ']');
+		prefix.push('[' + (new Date()).format('H:i:s.u') + ']');
 	}
 	if (worker[level]) {
 		prefix.push(Worker.stack.length ? Worker.stack[0] : '');
@@ -639,7 +638,8 @@ var log = function(lvl, txt /*, obj, array etc*/){
 	args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '');
 	try {
 		console.log.apply(console.firebug ? window : console, args);
-	} catch(e) { // FF4 fix - doesn't like .apply
+	} catch(e) {
+		// FF4 fix - doesn't like .apply
 		console.log(args);
 	}
 };
@@ -648,7 +648,7 @@ var log = function(lvl, txt /*, obj, array etc*/){
 
 String.prototype.trim = function(inside) {
 	if (inside) {
-		this.replace(/^\s+$/gm, ' ');
+		return this.replace(/\s+/gm, ' ').replace(/^ | $/g, '');
 	}
 	return this.replace(/^\s+|\s+$/gm, '');
 };
@@ -657,10 +657,16 @@ String.prototype.innerTrim = function() {
 	return this.replace(/\s+/gm, ' ');
 };
 
-String.prototype.filepart = function() {
-	var x = this.lastIndexOf('/');
+String.prototype.filepart = function(stripExt, retainDot) {
+	var x = this.lastIndexOf('/'), y;
 	if (x >= 0) {
-		return this.substr(x+1);
+		if (stripExt && (y = this.lastIndexOf('.')) >= x) {
+			return this.substring(x+1, y + (retainDot ? 1 : 0));
+		} else {
+			return this.substr(x+1);
+		}
+	} else if (stripExt && (y = this.lastIndexOf('.')) >= 0) {
+		return this.substring(0, y + (retainDot ? 1 : 0));
 	}
 	return this;
 };
@@ -712,7 +718,7 @@ String.prototype.parseTimer = function() {
 		b = b * 60 + parseInt(a[i],10);
 	}
 	if (isNaN(b)) {
-		b = 9999;
+		b = Date.HUGE;
 	}
 	return b;
 };
@@ -729,6 +735,9 @@ String.prototype.ucwords = function() {
 
 String.prototype.html_escape = function() {
 	return this.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
+String.prototype.quote_escape = function() {
+	return this.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 };
 
 String.prototype.regexp_escape = function() {
@@ -801,7 +810,8 @@ Number.prototype.SI = function(prec) {
 	return this.toExponential(Math.max(0, p - 1));
 };
 
-Number.prototype.addCommas = function(digits) { // Add commas to a number, optionally converting to a Fixed point number
+// Add commas to a number, optionally converting to a Fixed point number
+Number.prototype.addCommas = function(digits) {
 	var n = isNumber(digits) ? this.toFixed(digits) : this.toString(), rx = /^(.*\s)?(\d+)(\d{3}\b)/;
 	return n === (n = n.replace(rx, '$1$2,$3')) ? n : arguments.callee.call(n);
 };
@@ -810,7 +820,8 @@ Math.range = function(min, num, max) {
 	return Math.max(min, Math.min(num, max));
 };
 
-Array.prototype.unique = function() { // Returns an array with only unique *values*, does not alter original array
+// Returns an array with only unique *values*, does not alter original array
+Array.prototype.unique = function() {
 	var o = {}, i, l = this.length, r = [];
 	for (i = 0; i < l; i++) {
 		o[this[i]] = this[i];
@@ -821,7 +832,8 @@ Array.prototype.unique = function() { // Returns an array with only unique *valu
 	return r;
 };
 
-Array.prototype.remove = function(value) { // Removes matching elements from an array, alters original
+// Removes matching elements from an array, alters original
+Array.prototype.remove = function(value) {
 	var i = 0;
 	while ((i = this.indexOf(value, i)) >= 0) {
 		this.splice(i, 1);
@@ -829,11 +841,13 @@ Array.prototype.remove = function(value) { // Removes matching elements from an 
 	return this;
 };
 
-Array.prototype.find = function(value) { // Returns if a value is found in an array
+// Returns if a value is found in an array
+Array.prototype.find = function(value) {
 	return this.indexOf(value) >= 0;
 };
 
-Array.prototype.higher = function(value) { // return the lowest entry greater or equal to value, return -1 on failure
+// return the lowest entry greater or equal to value, return -1 on failure
+Array.prototype.higher = function(value) {
 	var i = this.length, best = Number.POSITIVE_INFINITY;
 	while (i--) {
 		if (isNumber(this[i]) && this[i] >= value && this[i] < best) {
@@ -843,17 +857,19 @@ Array.prototype.higher = function(value) { // return the lowest entry greater or
 	return best === Number.POSITIVE_INFINITY ? -1 : best;
 };
 
-Array.prototype.lower = function(value) { // return the highest entry lower or equal to value, return -1 on failure
-	var i = this.length, best = -1;
+// return the highest entry lower or equal to value, return -1 on failure
+Array.prototype.lower = function(value) {
+	var i = this.length, best = Number.NEGATIVE_INFINITY;
 	while (i--) {
 		if (isNumber(this[i]) && this[i] <= value && this[i] > best) {
 			best = this[i];
 		}
 	}
-	return best;
+	return best === Number.NEGATIVE_INFINITY ? -1 : best;
 };
 
-Array.prototype.trim = function() { // Remove empty entries
+// Remove empty entries
+Array.prototype.trim = function() {
 	var i = this.length, arr = [];
 	while (i--) {
 		if (this[i]) {
@@ -895,7 +911,7 @@ var isEvent = function(event, worker, type, id, path) {
  * @return {?Object}
  */
 Array.prototype.findEvent = function(worker, type, id, path) {
-	if (worker || type || id) {
+	if (worker || type || id || path) {
 		this._worker = worker;
 		this._type = type;
 		this._id = id;
@@ -929,12 +945,38 @@ Array.prototype.getEvent = function(worker, type, id, path) {
 
 //Array.prototype.inArray = function(value) {for (var i in this) if (this[i] === value) return true;return false;};
 
-var makeTimer = function(sec) {
-	var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = Math.floor(sec % 60);
-	return (h ? h+':'+(m>9 ? m : '0'+m) : m) + ':' + (s>9 ? s : '0'+s);
+var makeTimerMs = function(ms, past) {
+	var str, sign = ms < 0 ? '-' : '',
+		t = Math.abs(ms),
+		d = Math.floor(t / (24*60*60*1000)),
+		h = Math.floor(t / (60*60*1000)) % 24,
+		m = Math.floor(t / (60*1000)) % 60,
+		s = Math.floor(t / 1000) % 60;
+	if (!past && ms < 0) {
+		str = 'now?';
+	} else {
+		str = sign;
+		if (d || h) {
+			if (d) {
+				str += d+'d';
+				str += '+';
+			}
+			str += h > 9 ? h : '0'+h;
+			str += ':';
+		}
+		str += m > 9 ? m : '0'+m;
+		str += ':';
+		str += s > 9 ? s : '0'+s;
+	}
+	return str;
 };
 
-var Divisor = function(number) { // Find a "nice" value that goes into number up to 20 times
+var makeTimer = function(sec, past) {
+	return makeTimerMs(Math.round(sec * 1000), past);
+};
+
+// Find a "nice" value that goes into number up to 20 times
+var Divisor = function(number) {
 	var num = number, step = 1;
 	if (num < 20) {
 		return 1;
@@ -952,7 +994,8 @@ var Divisor = function(number) { // Find a "nice" value that goes into number up
 	return step;
 };
 
-var length = function(obj) { // Find the number of entries in an object (also works on arrays)
+// Find the number of entries in an object (also works on arrays)
+var length = function(obj) {
 	if (isArray(obj)) {
 		return obj.length;
 	} else if (isObject(obj)) {
@@ -967,9 +1010,10 @@ var length = function(obj) { // Find the number of entries in an object (also wo
 	return 0;
 };
 
-var empty = function(x) { // Tests whether an object is empty (also useable for other types)
+// Tests whether an object is empty (also useable for other types)
+var empty = function(x) {
 	var i;
-	if (x === undefined || !x) {
+	if (!x) {
 		return true;
 	} else if (isObject(x)) {
 		for (i in x) {
@@ -984,7 +1028,26 @@ var empty = function(x) { // Tests whether an object is empty (also useable for 
 	return false;
 };
 
-var sum = function(a) { // Adds the values of all array entries together
+// valid for arrays, objects, and undefined only
+var isEmpty = function(x) {
+	var i;
+	if (typeof x === 'undefined') {
+		return true;
+	} else if (isObject(x)) {
+		for (i in x) {
+			if (x.hasOwnProperty(i)) {
+				return false;
+			}
+		}
+		return true;
+	} else if (isArray(x)) {
+		return x.length === 0;
+	}
+	return false;
+};
+
+// Adds the values of all array entries together
+var sum = function(a) {
 	var i, t = 0, args = Array.prototype.slice.call(arguments);
 	while ((a = args.shift())) {
 		if (isArray(a)) {
@@ -1130,58 +1193,6 @@ var objectIndex = function(obj, index) {
 	return null;
 };
 
-var getAttDefList = [];
-var getAttDef = function(list, unitfunc, x, count, type, suffix) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
-	var units = [], limit = 1e99, attack = 0, defend = 0, i, p, own, x2;
-	if (type !== 'monster') {
-		x2 = 'tot_' + x;
-	}
-	if (unitfunc) {
-		for (i in list) {
-			unitfunc(units, i, list);
-		}
-	} else {
-		units = getAttDefList;
-	}
-	units.sort(function(a,b) {
-		return (list[b][x2] || 0) - (list[a][x2] || 0)
-			|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
-			|| (list[a].cost || 0) - (list[b].cost || 0);
-	});
-	if (!suffix) { suffix = ''; }
-	// hack for limits of 3 on war equipment
-	if (count < 0) {
-		limit = 3;
-		count = Math.abs(count);
-	}
-	for (i=0; i<units.length; i++) {
-		p = list[units[i]];
-		own = isNumber(p.own) ? p.own : 0;
-		if (type) {
-			Resources.set(['data', '_'+units[i], type+suffix+'_'+x], Math.min(count, limit) || undefined);
-			if (Math.min(count, own) > 0) {
-				//log(LOG_WARN, 'Utility','Using: '+Math.min(count, own)+' x '+units[i]+' = '+JSON.stringify(p));
-				if (!p['use'+suffix]) {
-					p['use'+suffix] = {};
-				}
-				p['use'+suffix][type+suffix+'_'+x] = Math.min(count, own, limit);
-			} else if (length(p['use'+suffix])) {
-				delete p['use'+suffix][type+suffix+'_'+x];
-				if (!length(p['use'+suffix])) {
-					delete p['use'+suffix];
-				}
-			}
-		}
-		//if (count <= 0) {break;}
-		own = Math.min(count, own, limit);
-		attack += own * ((p.att || 0) + ((p.stats && p.stats.att) || 0));
-		defend += own * ((p.def || 0) + ((p.stats && p.stats.def) || 0));
-		count -= own;
-	}
-	getAttDefList = units;
-	return (x==='att'?attack:(0.7*attack)) + (x==='def'?defend:(0.7*defend));
-};
-
 var tr = function(list, html, attr) {
 	list.push('<tr' + (attr ? ' ' + attr : '') + '>' + (html || '') + '</tr>');
 };
@@ -1258,7 +1269,10 @@ Date.replaceChars = {
 	/** @this {Date} */	H: function() { return (this.getHours() < 10 ? '0' : '') + this.getHours(); },
 	/** @this {Date} */	i: function() { return (this.getMinutes() < 10 ? '0' : '') + this.getMinutes(); },
 	/** @this {Date} */	s: function() { return (this.getSeconds() < 10 ? '0' : '') + this.getSeconds(); },
-	/** @this {Date} */	u: function() { return (this.getMilliseconds() < 100 ? '0' : '') + (this.getMilliseconds() < 10 ? '0' : '') + this.getMilliseconds(); },
+	/** @this {Date} */	u: function() {
+		var ms = '000' + this.getMilliseconds();
+		return ms.substr(ms.length - 3);
+	},
 	// Timezone
 	/** @this {Date} */	e: function() { return "Not Yet Supported"; },
 	/** @this {Date} */	I: function() { return "Not Supported"; },
@@ -1290,7 +1304,8 @@ var calc_rolling_weighted_average = function(object, y_label, y_val, x_label, x_
 	object['avg_' + name] = sum(y_label_list) / sum(x_label_list);
 };
 
-var bestObjValue = function(obj, callback, filter) {// pass an object and a function to create a value from obj[key] - return the best key
+// pass an object and a function to create a value from obj[key] - return the best key
+var bestObjValue = function(obj, callback, filter) {
 	var i, best = null, bestval, val;
 	for (i in obj) {
 		if (isFunction(filter) && !filter(obj[i])) {
@@ -1466,105 +1481,234 @@ var assert = function(test, msg, type) {
 	}
 };
 
-Number.prototype.toTimespan = function(allowPast) {
+Number.prototype.hex = function(len) {
+	var x = this.toString(16);
+	while (x.length < (len || 0)) {
+		x = '0' + x;
+	}
+	return x;
+};
+
+Number.prototype.toTimespan = function(brevity) {
 	var str = '', ms = this, ago = false, u, v;
 
-	if (allowPast && ms < 0) {
+	if (ms < 0) {
 		ago = true;
 		ms = Math.abs(ms);
 	}
 
-	if (ms >= (u = 365*24*60*60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' year' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 30*24*60*60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' month' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 7*24*60*60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' week' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 24*60*60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' day' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 60*60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' hour' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 60*1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' minute' + plural(v);
-		ms -= v * u;
-	}
-	if (ms >= (u = 1000)) {
-		if (str !== '') { str += ', '; }
-		v = Math.floor(ms / u);
-		str += v + ' second' + plural(v);
-		ms -= v * u;
-	}
-	if (ms % 1000) {
-		if (str !== '') { str += ', '; }
-		v = ms % 1000;
-		str += v + ' milli' + plural(v);
-		ms -= v * u;
-	}
+	if (brevity) {
+		if (ms >= (u = 365*24*60*60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'yr' : ' year');
+		} else if (ms >= (u = 30*24*60*60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'mo' : ' month');
+		} else if (ms >= (u = 7*24*60*60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'wk' : ' week');
+		} else if (ms >= (u = 24*60*60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'dy' : ' day');
+		} else if (ms >= (u = 60*60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'hr' : ' hour');
+		} else if (ms >= (u = 60*1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 'mi' : ' minute');
+		} else if (ms >= (u = 1000)) {
+			str = (v = (ms / u).SI()) + (brevity === 2 ? 's' : ' second');
+		} else if (ms > 0) {
+			str = '' + (v = ms) + (brevity === 2 ? 'ms' : ' milli');
+		} else {
+			str = 'now';
+			v = 1;
+		}
+		if (brevity !== 2) {
+			str += plural(v);
+		}
 
-	if (str === '') {
-		str = 'now';
-	} else if (ago) {
-		str += ' ago';
+		if (ago) {
+			str = '-' + str;
+		}
+	} else {
+		if (ms >= (u = 365*24*60*60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' year' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 30*24*60*60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' month' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 7*24*60*60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' week' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 24*60*60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' day' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 60*60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' hour' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 60*1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' minute' + plural(v);
+			ms -= v * u;
+		}
+		if (ms >= (u = 1000)) {
+			if (str !== '') { str += ', '; }
+			v = Math.floor(ms / u);
+			str += v + ' second' + plural(v);
+			ms -= v * u;
+		}
+		if (ms % 1000) {
+			if (str !== '') { str += ', '; }
+			v = ms % 1000;
+			str += v + ' milli' + plural(v);
+			ms -= v * u;
+		}
+
+		if (str === '') {
+			str = 'now';
+		} else if (ago) {
+			str += ' ago';
+		}
 	}
 
 	return str;
 };
 
-Number.prototype.toTimespanShort = function(words, allowPast) {
-	var str = '', ms = this, u, x = 1, ago = false;
+var dom_heritage = function(obj, sep, all) {
+	var str = '', i, j, k, x, y, z, len, seg, more, seen, part;
 
-	if (allowPast && ms < 0) {
-		ago = true;
-		ms = Math.abs(ms);
+	if (typeof sep === 'undefined' || sep === null) {
+		sep = '\n';
 	}
 
-	if (ms >= (u = 365*24*60*60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' year' : 'yr');
-	} else if (ms >= (u = 30*24*60*60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' month' : 'mo');
-	} else if (ms >= (u = 7*24*60*60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' week' : 'wk');
-	} else if (ms >= (u = 24*60*60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' day' : 'dy');
-	} else if (ms >= (u = 60*60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' hour' : 'hr');
-	} else if (ms >= (u = 60*1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' minute' : 'm');
-	} else if (ms >= (u = 1000)) {
-		str = (x = (ms / u).SI()) + (words ? ' second' : 's');
-	} else if (ms > 0) {
-		str = '' + (x = ms) + (words ? ' milli' : 'ms');
-	} else {
-		str = 'now';
-	}
-	if (words) {
-		str += plural(x.SI());
-	}
+	if ((len = $(obj).length)) {
+		for (i = 0; i < len; i++) {
+			x = $(obj).eq(i);
+			seg = '';
+			more = true;
 
-	if (ago) {
-		str = '-' + str;
+			if (!x.length) {
+				log('# obj is: ' + (typeof obj) + '; ' + obj);
+			}
+
+			while (x && x.length && more) {
+				seen = {};
+				part = '';
+
+				for (j = 0; j < x.length; j++) {
+					if (!x[j]) {
+						log('dom_heritage: x[' + j + '] is ' + typeof x[j]);
+						break;
+					}
+
+					if (!isString(x[j]['tagName']) && !isString(x[j]['constructor'])) {
+						log('# x['+j+'] has no tagName: ' + (typeof x[j]));
+						for (k in x[j]) {
+							if (x[j].hasOwnProperty(k)) {
+								log('# x['+j+'].'+k+' = ' + x[j][k]);
+							} else if (!isFunction(x[j][k])) {
+								log('# x['+j+'].'+k+' is ' + (typeof x[j][k]));
+							}
+						}
+						break;
+					}
+
+					if (seen[x[j]]) {
+						continue;
+					}
+					seen[x[j]] = true;
+
+					// [#id][.class]tag[name=STR][src=STR][href=STR]
+
+					if (part !== '') {
+						part += ', ';
+					}
+					if (isString(z = x[j]['tagName'])) {
+						part += z.toLowerCase();
+					} else {
+						part += x[j]['constructor'];
+					}
+
+					if ((z = $(x).eq(j).attr('id'))) {
+						if (isString(z)) {
+							part += '#' + z;
+						} else {
+							part += '#{' + z + '}';
+						}
+
+						if (!all) {
+							more = false;
+						}
+					}
+
+					if ((z = $(x).eq(j).attr('class'))) {
+						if (!isString(z)) {
+							part += '.{' + z + '}';
+						} else if (z.trim() !== '') {
+							part += '.' + z.trim();
+						}
+					}
+
+					if ((z = $(x).eq(j).attr('name'))) {
+						if (!isString(z)) {
+							part += '[name={' + z + '}]';
+						} else if (z.trim() !== '') {
+							part += '[name="' + z.trim() + '"]';
+						}
+					}
+
+					if ((z = $(x).eq(j).attr('src'))) {
+						if (isString(z) && z.trim() !== '') {
+							part += '[src*="' + z.filepart(1,1) + '"]';
+						}
+					}
+					if ((z = $(x).eq(j).attr('href'))) {
+						if (isString(z) && z.trim() !== '') {
+							part += '[href*="' + z.filepart(1,1) + '"]';
+						}
+					}
+					if ((z = $(x).eq(j).attr('style'))) {
+						if (isString(z) && (y = z.match(/\burl\(\s*([^)]+)\s*\)/i))) {
+							z = y[1].trim().filepart(1,1);
+							part += '[style*="' + z + '"]';
+						}
+					}
+				}
+
+				if (x.length > 1) {
+					part = '[' + part + ']';
+				}
+
+				if (seg !== '') {
+					seg = part + ' ' + seg;
+				} else {
+					seg = part;
+				}
+
+				x = $(x).parent();
+			}
+
+			if (seg !== '') {
+				if (str !== '') {
+					if (i === 1) {
+						str = sep + '[0]: ' + str;
+					}
+					str += sep + '[' + i + ']: ';
+				}
+				str += seg;
+			}
+		}
 	}
 
 	return str;
@@ -1953,10 +2097,10 @@ Script.prototype.parse = function() {
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$,
-	APP, APPID, userID, imagepath, browser, localStorage, window,
+	APP, APPID, userID, imagepath, browser, window,
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	isArray, isBoolean, isFunction, isNull, isNumber, isObject, isString, isUndefined, isWorker,
-	empty, compare
+	empty, compare, localStorage
 */
 /* Worker Prototype
    ----------------
@@ -1967,7 +2111,8 @@ new Worker(name, pages, settings)
 .name			- String, the same as our class name.
 .pages			- String, list of pages that we want in the form "town.soldiers keep.stats"
 .data			- Object, for public reading, automatically saved
-.option			- Object, our options, changed from outide ourselves
+.option			- Object, our options, typically changed only from the user interface
+.runtime		- Object, intermediate data, results of decisions based on data, options and workers
 .temp			- Object, temporary unsaved data for this instance only
 .settings		- Object, various values for various sections, default is always false / blank
 				system (true/false) - exists for all games
@@ -1986,22 +2131,22 @@ new Worker(name, pages, settings)
 .defaults		- Object filled with objects. Assuming in an APP called "castle_age" then myWorker.defaults['castle_age'].* gets copied to myWorker.*
 
 *** User functions - should be in worker if needed ***
-.init()			- After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
+.init(old_revision,fresh)	- After the script has loaded, but before anything else has run. Data has been filled, but nothing has been run.
 				This is the bext place to put default actions etc...
 				Cannot rely on other workers having their data filled out...
 .page(page,change)  - This can read data from the current page and cannot perform any actions.
 				page (string|'facebook') - the name of the page we're on, may be "facebook" for a popup, same as Page.temp.page
 				change (true/false) - can we change the DOM (used to prevent one worker changing something another one needs)
-				return true - We need to run again with change=1
+				return true - We need to run again with change=true
 .work(state)    - Do anything we need to do when it's our turn - this includes page changes. This is part the of Queue worker.
 				state = false - It's not our turn, don't start anything if we can't finish in this one call, this.data is null
 				state = true - It's our turn, do everything - Only true if not interrupted, this.data is useable
 				return true or QUEUE_RELEASE if we *want* to continue working, but can be interrupted
 				return QUEUE_CONTINUE if we *need* to continue working and don't want to be interrupted
 				return false or QUEUE_FINISH when someone else can work
-.update(type,worker)	- Called when the data, options or runtime have been changed
-				type = "data", "option", "runtime", "reminder", "watch" or null (only for first call after init())
-				worker = null (for worker = this), otherwise another worker (due to _watch())
+.update(event,events)	- Called when data has changed or other events have been triggered
+				event = single event that triggered this call (must return false if using this parameter)
+				events = list of all events fired since the last call (must return true if handling all of these events)
 .get(what)		- Calls this._get(what)
 				Official way to get any information from another worker
 				Overload for "special" data, and pass up to _get if basic data
@@ -2025,8 +2170,8 @@ NOTE: If there is a work() but no display() then work(false) will be called befo
 ._unshift(what,val,type)- Unshifts value onto this.data[what] (as an array), auto-loading if needed.
 ._transaction(commit)	- Starts a transaction (no args) to allow multilpe _set calls to effectively queue and only write (or clear) with a true (or false) call.
 
-._setup()				- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
-._init()				- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
+._setup(old_revision,fresh)	- Only ever called once - might even remove us from the list of workers, otherwise loads the data...
+._init(old_revision,fresh)	- Calls .init(), loads then saves data (for default values), delete this.data if !nokeep and settings.nodata, then removes itself from use
 
 ._load(type)			- Loads data / option from storage, merges with current values, calls .update(type) on change
 ._save(type)			- Saves data / option to storage, calls .update(type) on change
@@ -2189,30 +2334,38 @@ Worker.prototype._flush = function() {
  */
 Worker.prototype._add = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		log(LOG_DEBUG, 'Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
-		return false;
+		log(LOG_WARN, 'Bad type in ' + this.name + '.setAdd('+JSON.shallow(arguments,2)+'): Seen ' + (typeof value));
+		return;
+	}
+	var x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
+	if (!x.length || !this._datatypes.hasOwnProperty(x[0])) {
+		x.unshift('data');
+	}
+	if (x.length <= 1) {
+		log(LOG_WARN, 'Attempt to add directly to ' + x.join('.'));
+		return;
 	}
 	if (isUndefined(value)) {
-		this._set(what);
+		this._set(x);
 	} else if (isBoolean(value)) {
-		this._set(what, function(old){
+		this._set(x, function(old){
 			value = (old = old ? (value ? false : undefined) : true) || false;
 			return old;
 		}, null, quiet);
 	} else if (isNumber(value)) {
-		this._set(what, function(old){
+		this._set(x, function(old){
 			return (isNumber(old) ? old : 0) + value;
 		}, null, quiet);
 	} else if (isString(value)) {
-		this._set(what, function(old){
+		this._set(x, function(old){
 			return (isString(old) ? old : '') + value;
 		}, null, quiet);
 	} else if (isArray(value)) {
-		this._set(what, function(old){
+		this._set(x, function(old){
 			return (isArray(old) ? old : []).concat(value);
 		}, null, quiet);
 	} else if (isObject(value)) {
-		this._set(what, function(old){
+		this._set(x, function(old){
 			return $.extend({}, isObject(old) ? old : {}, value);
 		}, null, quiet);
 	}
@@ -2272,7 +2425,7 @@ Worker.prototype._get = function(what, def, type) {
 		if (x.length && (isObject(x[0]) || isArray(x[0]))) { // Object or Array
 			data = x.shift();
 		} else { // String, Number or Undefined etc
-			if (!x.length || !(x[0] in this._datatypes)) {
+			if (!x.length || !this._datatypes.hasOwnProperty(x[0])) {
 				x.unshift('data');
 			}
 			if (x[0] === 'data') {
@@ -2457,8 +2610,15 @@ Worker.prototype._page = function(page,change) {
  * NOTE: This will change the data stored
  */
 Worker.prototype._pop = function(what, def, type, quiet) {
-	var data;
-	this._set(what, function(old){
+	var data, x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
+	if (!x.length || !this._datatypes.hasOwnProperty(x[0])) {
+		x.unshift('data');
+	}
+	if (x.length <= 1) {
+		log(LOG_WARN, 'Attempt to pop directly from ' + x.join('.'));
+		return;
+	}
+	this._set(x, function(old){
 		old = isArray(old) ? old.slice(0) : [];
 		data = old.pop();
 		return old;
@@ -2479,10 +2639,18 @@ Worker.prototype._pop = function(what, def, type, quiet) {
  */
 Worker.prototype._push = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		log(LOG_WARN, 'Bad type in ' + this.name + '.push('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
-		return false;
+		log(LOG_WARN, 'Bad type in ' + this.name + '.push('+JSON.shallow(arguments,2)+'): Seen ' + (typeof value));
+		return;
 	}
-	this._set(what, isUndefined(value) ? undefined : function(old){
+	var x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []);
+	if (!x.length || !this._datatypes.hasOwnProperty(x[0])) {
+		x.unshift('data');
+	}
+	if (x.length <= 1) {
+		log(LOG_WARN, 'Attempt to push directly into ' + x.join('.'));
+		return;
+	}
+	this._set(x, isUndefined(value) ? undefined : function(old){
 		old = isArray(old) ? old : [];
 		old.push(value);
 		return old;
@@ -2506,12 +2674,12 @@ Worker.prototype._pushStack = function() {
 
 /**
  * Starts a window.setInterval reminder event, optionally using an id to prevent multiple intervals with the same id
- * @param {number} seconds How long between events
+ * @param {number} milliseconds How long between events
  * @param {string=} id A unique identifier - trying to set the same id more than once will result in only the most recent timer running
  * @param {(function()|object)=} callback A function to call, or an event object to pass to _update
  * @return {number} The window.setInterval result
  */
-Worker.prototype._revive = function(seconds, id, callback) {
+Worker.prototype._reviveMs = function(ms, id, callback) {
 	var name = this.name, fn;
 	if (isFunction(callback)) {
 		fn = function(){callback.apply(Workers[name]);};
@@ -2523,17 +2691,32 @@ Worker.prototype._revive = function(seconds, id, callback) {
 	if (id && this._reminders['i' + id]) {
 		window.clearInterval(this._reminders['i' + id]);
 	}
-	return (this._reminders['i' + (id || '')] = window.setInterval(fn, Math.max(0, seconds) * 1000));
+	// never allow an interval below 500ms, as that may call call too quickly
+	if (ms < 500) {
+		log(LOG_WARN, 'Interval ('+id+') too short: ' + ms.toTimespan(1));
+	}
+	return (this._reminders['i' + (id || '')] = window.setInterval(fn, Math.max(500, ms)));
 };
 
 /**
- * Starts a window.setTimeout reminder event, optionally using an id to prevent multiple intervals with the same id
+ * Starts a window.setInterval reminder event, optionally using an id to prevent multiple intervals with the same id
  * @param {number} seconds How long before reminding us
  * @param {string=} id A unique identifier - trying to set the same id more than once will result in only the most recent reminder running
  * @param {(function()|object)=} callback A function to call, or an event object to pass to _update
+ * @return {number} The window.setInterval result
+ */
+Worker.prototype._revive = function(seconds, id, callback) {
+	return this._reviveMs(Math.round(seconds * 1000), id, callback);
+};
+
+/**
+ * Starts a window.setTimeout reminder event, optionally using an id to prevent multiple timeouts with the same id
+ * @param {number} milliseconds How long between events
+ * @param {string=} id A unique identifier - trying to set the same id more than once will result in only the most recent timer running
+ * @param {(function()|object)=} callback A function to call, or an event object to pass to _update
  * @return {number} The window.setTimeout result
  */
-Worker.prototype._remind = function(seconds, id, callback) {
+Worker.prototype._remindMs = function(ms, id, callback) {
 	var name = this.name, fn;
 	if (isFunction(callback)) {
 		fn = function(){delete Workers[name]._reminders['t' + id];callback.apply(Workers[name]);};
@@ -2545,7 +2728,22 @@ Worker.prototype._remind = function(seconds, id, callback) {
 	if (id && this._reminders['t' + id]) {
 		window.clearTimeout(this._reminders['t' + id]);
 	}
-	return (this._reminders['t' + (id || '')] = window.setTimeout(fn, Math.max(0, seconds) * 1000));
+	// never allow a timeout below 1ms, as that may call through immediately
+	if (ms < 1) {
+		log(LOG_WARN, 'Reminder ('+id+') too short: ' + ms.toTimespan(1));
+	}
+	return (this._reminders['t' + (id || '')] = window.setTimeout(fn, Math.max(1, ms)));
+};
+
+/**
+ * Starts a window.setTimeout reminder event, optionally using an id to prevent multiple intervals with the same id
+ * @param {number} seconds How long before reminding us
+ * @param {string=} id A unique identifier - trying to set the same id more than once will result in only the most recent reminder running
+ * @param {(function()|object)=} callback A function to call, or an event object to pass to _update
+ * @return {number} The window.setTimeout result
+ */
+Worker.prototype._remind = function(seconds, id, callback) {
+	return this._remindMs(Math.round(seconds * 1000), id, callback);
 };
 
 /**
@@ -2656,8 +2854,8 @@ Worker.prototype._save = function(type) {
  */
 Worker.prototype._set = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		log(LOG_WARN, 'Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
-		return false;
+		log(LOG_WARN, 'Bad type in ' + this.name + '.set('+JSON.shallow(arguments,2)+'): Seen ' + (typeof value));
+		return;
 	}
 	var i, x = isArray(what) ? what.slice(0) : (isString(what) ? what.split('.') : []), fn = function(data, path, value, depth){
 		var i = path[depth];
@@ -2862,8 +3060,8 @@ Worker.prototype._unflush = function() {
  */
 Worker.prototype._unshift = function(what, value, type, quiet) {
 	if (type && ((isFunction(type) && !type(value)) || (isString(type) && typeof value !== type))) {
-//		log(LOG_DEBUG, 'Bad type in ' + this.name + '.unshift('+JSON.shallow(arguments,2)+'): Seen ' + (typeof data));
-		return false;
+		log(LOG_DEBUG, 'Bad type in ' + this.name + '.unshift('+JSON.shallow(arguments,2)+'): Seen ' + (typeof value));
+		return;
 	}
 	this._set(what, isUndefined(value) ? undefined : function(old){
 		old = isArray(old) ? old : [];
@@ -3365,11 +3563,7 @@ Config.temp = {
 /** @this {Worker} */
 Config.init = function(old_revision) {
 	var i, j, k, tmp, worker, multi_change_fn;
-	// BEGIN: Changing this.option.display to a bool
-	if (old_revision <= 1110) {
-		this.option.display = (this.option.display === true || this.option.display === 'block');
-	}
-	// END
+
 	// START: Only safe place to put this - temporary for deleting old queue enabled code...
 	if (old_revision <= 1106) { // Not sure real revision
 		for (i in Workers) {
@@ -3382,6 +3576,7 @@ Config.init = function(old_revision) {
 		}
 	}
 	// END
+
 	// START: Move active (unfolded) workers into individual worker.option._config._show
 	if (old_revision <= 1106) { // Not sure real revision
 		if (this.option.active) {
@@ -3395,6 +3590,13 @@ Config.init = function(old_revision) {
 		}
 	}
 	// END
+
+	// BEGIN: Changing this.option.display to a bool
+	if (old_revision <= 1110) {
+		this.option.display = (this.option.display === true || this.option.display === 'block');
+	}
+	// END
+
 	this.makeWindow(); // Creates all UI stuff
 	multi_change_fn = function(el) {
 		var $this = $(el), tmp, worker, val;
@@ -3489,10 +3691,8 @@ Config.init = function(old_revision) {
 
 /** @this {Worker} */
 Config.update = function(event, events) {
-	var i, j, k, x, tmp, evt, worker, id, value, list,
+	var i, j, k, tmp, evt, worker, id, value, list,
 		show = false, options = [], handled = {};
-
-	//log(LOG_DEBUG, '# events: ' + JSON.shallow(events,3));
 
 	for (j = 0; j < events.length; j++) {
 		evt = events[j];
@@ -3609,9 +3809,9 @@ Config.menu = function(worker, key) {
 	if (!worker) {
 		if (!key) {
 			return [
-				'fixed:' + (this.option.fixed ? '<img src="' + getImage('pin_down') + '">Fixed' : '<img src="' + getImage('pin_left') + '">Normal') + '&nbsp;Position',
-				'advanced:' + (this.option.advanced ? '+' : '-') + 'Advanced&nbsp;Options',
-				'debug:' + (this.option.debug ? '+' : '-') + 'Debug&nbsp;Options'
+				'fixed: ' + (this.option.fixed ? '<img src="' + getImage('pin_down') + '">Fixed' : '<img src="' + getImage('pin_left') + '">Normal') + '&nbsp;Position',
+				'advanced:' + (this.option.advanced ? '+' : '-') + 'Advanced Options',
+				'debug:' + (this.option.debug ? '+' : '-') + 'Debug Options'
 			];
 		} else if (key) {
 			switch (key) {
@@ -3890,8 +4090,6 @@ Config.makeOption = function(worker, args) {
 		suffix: '',
 		className: '',
 		between: 'to',
-		min: 0,
-		max: 100,
 		real_id: ''
 	}, args);
 	if (o.id) {
@@ -3950,17 +4148,17 @@ Config.makeOption = function(worker, args) {
 		// our different types of input elements
 		if (o.info) { // only useful for externally changed
 			if (o.id) {
-				txt.push('<span style="float:right"' + o.real_id + '>' + (o.value || o.info) + '</span>');
+				txt.push('<span style="float:right"' + o.real_id + '>' + (o.value || o.info).toString().html_escape() + '</span>');
 			} else {
 				txt.push(o.info);
 			}
 		} else if (o.text) {
-			txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + (o.cols || o.size || 18) + '" value="' + (o.value || isNumber(o.value) ? o.value : '') + '">');
+			txt.push('<input type="text"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + (o.cols || o.size || 18) + '" value="' + (o.value || isNumber(o.value) ? o.value : '').toString().html_escape().quote_escape() + '">');
 		} else if (o.number) {
-			txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + (o.cols || o.size || 6) + '"' + (o.step ? ' step="'+o.step+'"' : '') + ' min="' + o.min + '" max="' + o.max + '" value="' + (isNumber(o.value) ? o.value : o.min) + '">');
+			txt.push('<input type="number"' + o.real_id + (o.label || o.before || o.after ? '' : ' style="width:100%;"') + ' size="' + (o.cols || o.size || 6) + '"' + (o.step ? ' step="'+o.step+'"' : '') + (isNumber(o.min) ? ' min="'+o.min+'"' : '') + (isNumber(o.max) ? ' max="'+o.max+'"' : '') + ' value="' + (isNumber(o.value) ? o.value : (o.min || 0)) + '">');
 		} else if (o.textarea) {
 			txt.push('<textarea' + o.real_id + ' cols="' + (o.cols || 20) + '" rows="' + (o.rows || 5) + '"' + (o.id ? '' : ' disabled') + ' style="float:right;margin-left:0;margin-right:0;' + (o.resize ? 'resize:'+o.resize+';' : '') + '" placeholder="Type here...">');
-			txt.push(o.value || '');
+			txt.push((o.value || '').toString().html_escape());
 			txt.push('</textarea>');
 		} else if (o.checkbox) {
 			txt.push('<input type="checkbox"' + o.real_id + (o.value ? ' checked' : '') + '>');
@@ -4011,11 +4209,11 @@ Config.makeOption = function(worker, args) {
 			// prepare the "selected" set
 			if (isArray(o.value)) {
 				for (i = 0; i < o.value.length; i++) {
-					list.push('<option>'+o.value[i]+'</option>');
+					list.push('<option>'+o.value[i].toString().html_escape()+'</option>');
 				}
 			} else if (isObject(o.value)) {
 				for (i in o.value) {
-					list.push('<option>'+o.value[i]+'</option>');
+					list.push('<option>'+o.value[i].toString().html_escape()+'</option>');
 				}
 			}
 			txt.push('<select style="width:100%;clear:both;" class="golem_multiple" multiple' + o.real_id + '>' + list.join('') + '</select><br>');
@@ -4296,11 +4494,8 @@ Dashboard.menu = function(worker, key) {
 		this._unflush();
 		if (!key) {
 			keys = [];
-			if (this.data[worker.name]) {
-				keys.push('status:' + (worker.get(['option','_hide_status'], false) ? '-' : '+') + 'Show&nbsp;Status');
-			}
 			if (isFunction(worker.dashboard)) {
-				keys.push('dashboard:' + (worker.get(['option','_hide_dashboard'], false) ? '-' : '+') + 'Show&nbsp;Dashboard');
+				keys.push('dashboard:' + (worker.get(['option','_hide_dashboard'], false) ? '-' : '+') + 'Show Dashboard');
 			}
 			if (this.data.hasOwnProperty(worker.name)
 			  || this.get(['temp','status',worker.name])
@@ -4308,9 +4503,9 @@ Dashboard.menu = function(worker, key) {
 				i = worker.get(['option','_hide_status'], 2, 'number');
 				if (i === true) { i = 2; }
 				if (i !== 1 && i !== 2) { i = 0; }
-				keys.push('status0:' + (i === 0 ? '=' : '') + 'Hide&nbsp;Status');
-				keys.push('status1:' + (i === 1 ? '=' : '') + 'Show&nbsp;Status');
-				keys.push('status2:' + (i === 2 ? '=' : '') + 'Viable&nbsp;Status');
+				keys.push('status0:' + (i === 0 ? '=' : '') + 'Hide Status');
+				keys.push('status1:' + (i === 1 ? '=' : '') + 'Show Status');
+				keys.push('status2:' + (i === 2 ? '=' : '') + 'Active Status');
 			}
 			return keys;
 		} else {
@@ -4801,7 +4996,7 @@ Debug.menu = function(worker, key) {
 			this.set(['option','loglevel'], parseInt(key, 10));
 		} else if (Config.option.advanced || Config.option.debug) {
 			var levels = [
-				':<img src="' + getImage('bug') + '"><b>Log Level</b>',
+				': <img src="' + getImage('bug') + '"><b>Log Level</b>',
 				'0:' + (this.option.loglevel === 0 ? '=' : '') + 'Error',
 				'1:' + (this.option.loglevel === 1 ? '=' : '') + 'Warn',
 				'2:' + (this.option.loglevel === 2 ? '=' : '') + 'Log',
@@ -5426,7 +5621,7 @@ Main.update = function(event, events) {
 						c1 += '00000'.substr(6 - x[1].length);
 					}
 					c1 += x[1].toLowerCase();
-				} else if ((x = colors[c1.innerTrim().toLowerCase()])) {
+				} else if ((x = colors[c1.trim(true).toLowerCase()])) {
 					c1 = x;
 				} else {
 					log(LOG_ERROR, 'Bad jQuery selector: $:colour.1(' + c1 + ')');
@@ -5445,10 +5640,10 @@ Main.update = function(event, events) {
 						c2 += '00000'.substr(6 - x[1].length);
 					}
 					c2 += x[1].toLowerCase();
-				} else if ((x = colors[c2.innerTrim().toLowerCase()])) {
+				} else if ((x = colors[c2.trim(true).toLowerCase()])) {
 					c2 = x;
 				} else {
-					log(LOG_ERROR, 'Bad jQuery selector: $:colour.2(' + c2.innerTrim() + ')');
+					log(LOG_ERROR, 'Bad jQuery selector: $:colour.2(' + c2.trim(true) + ')');
 					return false;
 				}
 
@@ -5603,6 +5798,7 @@ if (!Main.loaded) { // Prevent double-start
 	$, Worker, Workers, Config, Theme,
 	APP, APPID, APPNAME, PREFIX, userID, imagepath,
 	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	isArray, isFunction, isNumber, isObject, isString, isWorker,
 	getImage
 */
@@ -5617,11 +5813,23 @@ Menu.settings = {
 	taint:true
 };
 
+// array of {key}[P][I]{label} strings
+//   key = '---'	- horizontal line separator is added into the menu
+//   key = *		- key name for that menu action
+//   label = *		- displayed label for that menu action
+//   P = ' '		- no mapping, spaces are left alone
+//   P = *			- spaces are mapped to &nbsp; to prevent wrapping (default)
+//   I = '!'		- !!! warning icon
+//   I = '+'		- checkbox style, set to selected (tick)
+//   I = '-'		- checkbox style, set to not selected (cross)
+//   I = '='		- radio button style, set to selected (dot)
+//   I = *			- plain menu item (default)
+
 Menu.init = function() {
 	Config._init(); // We patch into the output of Config.init so it must finish first
 	$('<span class="ui-icon golem-menu-icon ui-icon-' + Theme.get('Menu_icon', 'gear') + '"></span>')
 		.click(function(event) {
-			var i, j, k, w, keys, ord, hr = false, html = '',
+			var i, j, k, s, w, keys, ord, hr = false, html = '',
 				$this = $(this.wrappedJSObject || this),
 				worker = Worker.find($this.closest('div').attr('name')),
 				name = worker ? worker.name : '';
@@ -5637,10 +5845,14 @@ Menu.init = function() {
 				}
 				for (i = 0; i < ord.length; i++) {
 					w = ord[i];
-					if (isFunction(Workers[w].menu)) {
+					if (Workers[w].menu) {
 						hr = true;
 						Workers[w]._unflush();
-						keys = Workers[w].menu(worker) || [];
+						try {
+							keys = Workers[w].menu(worker) || [];
+						} catch (e) {
+							log(e, e.name + ' in ' + w + '.menu(' + worker.name + '): ' + e.message);
+						}
 						for (j=0; j<keys.length; j++) {
 							k = keys[j].regex(/([^:]*):?(.*)/);
 							if (k[0] === '---') {
@@ -5650,14 +5862,19 @@ Menu.init = function() {
 									html += html ? '<hr>' : '';
 									hr = false;
 								}
-								switch (k[1].charAt(0)) {
-								case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
-								case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
-								case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
-								case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
+								if (k[1].charAt(0) === ' ') {
+									s = k[1].substr(1);
+								} else {
+									s = k[1].replace(' ', '&nbsp;');
+								}
+								switch (s.charAt(0)) {
+								case '!':	s = '<img src="' + getImage('warning') + '">' + s.substr(1);	break;
+								case '+':	s = '<img src="' + getImage('tick') + '">' + s.substr(1);	break;
+								case '-':	s = '<img src="' + getImage('cross') + '">' + s.substr(1);	break;
+								case '=':	s = '<img src="' + getImage('dot') + '">' + s.substr(1);	break;
 								default:	break;
 								}
-								html += '<div name="' + w + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
+								html += '<div name="' + w + '.' + name + '.' + k[0] + '">' + s + '</div>';
 							}
 						}
 					}
@@ -5681,13 +5898,13 @@ Menu.init = function() {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Worker, Workers, Global,
+	$, Worker, Workers, Global, Main,
 	APP, APPID, APPID_, PREFIX, userID, imagepath,
 	isRelease, version, revision, Images, window, browser,
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	isArray, isFunction, isNumber, isObject, isString, isWorker,
-	makeTimer
+	makeTimerMs
 */
 /********** Worker.Page() **********
 * All navigation including reloading
@@ -5811,11 +6028,12 @@ Page.update = function(event, events) {
 	var i, list, now = Date.now(), time;
 	if (events.findEvent(null,'reminder','timers')) {
 		for (i in this.runtime.timers) {
-			time = (this.runtime.timers[i] - now) / 1000;
-			if (time <= -604800) { // Delete old timers 1 week after "now?"
+			time = this.runtime.timers[i] - now;
+			// Delete old timers 1 week after "now?"
+			if (time <= -7*24*60*60*1000) {
 				this.set(['runtime','timers',i]);
 			} else {
-				$('#'+i).text(time > 0 ? makeTimer(time) : 'now?');
+				$('#'+i).text(time > 0 ? makeTimerMs(time) : 'now?');
 			}
 		}
 	}
@@ -6016,11 +6234,12 @@ Page.clear = function() {
 };
 
 Page.addTimer = function(id, time, relative) {
+	var now = Date.now();
 	if (relative) {
-		time = Date.now() + time;
+		time = now + time;
 	}
 	this.set(['runtime','timers','golem_timer_'+id], time);
-	return '<span id="golem_timer_'+id+'">' + makeTimer((time - Date.now()) / 1000) + '</span>';
+	return '<span id="golem_timer_'+id+'">' + makeTimerMs(time - now) + '</span>';
 };
 
 Page.delTimer = function(id) {
@@ -6925,12 +7144,12 @@ Settings.menu = function(worker, key) {
 		if (!key) {
 			if (Config.option.advanced) {
 				for (i in worker._datatypes) {
-					keys.push(i+':' + (worker.name === this.temp.worker && i === this.temp.edit ? '=' : '') + 'Edit&nbsp;"' + worker.name + '.' + i + '"');
+					keys.push(i+':' + (worker.name === this.temp.worker && i === this.temp.edit ? '=' : '') + 'Edit "' + worker.name + '.' + i + '"');
 				}
 				keys.push('---');
 			}
-			keys.push('backup:Backup&nbsp;Options');
-			keys.push('restore:Restore&nbsp;Options');
+			keys.push('backup:Backup Options');
+			keys.push('restore:Restore Options');
 			return keys;
 		} else if (key) {
 			if (key === 'backup') {
@@ -8079,7 +8298,7 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 Bank.menu = function(worker, key) {
 	if (worker === this) {
 		if (!key && !this.option._disabled) {
-			return ['bank:Bank&nbsp;Now'];
+			return ['bank:Bank Now'];
 		} else if (key === 'bank') {
 			this.set(['temp','force'], true);
 		}
@@ -8809,9 +9028,11 @@ Blessing.display = [
 
 Blessing.init = function() {
 	var when = this.get(['runtime','when'], 0);
+
 	if (when) {
-		this._remind((when - Date.now()) / 1000, 'blessing');
+		this._remindMs(Math.max(1, when - Date.now()), 'blessing');
 	}
+
 	this._watch(Upgrade, 'runtime.next');
 };
 
@@ -8840,40 +9061,44 @@ Blessing.page = function(page, change) {
 	return false;
 };
 
-Blessing.update = function(event){
-	var d, demi, which = this.option.which;
+Blessing.update = function(event, events) {
+	var now = Date.now(), d, i, demi, which = this.option.which;
+
 	if (this.option.upgrade) {
-		which = Upgrade.get(['runtime','next'], which, 'string'); // use type to force it to fallback
+		which = Upgrade.get(['runtime','next']) || which;
 	}
+
 	if (which && which !== 'None') {
 		which = which.ucfirst();
 		d = new Date(this.runtime.when);
-		switch(this.option.which.toLowerCase()) {
-			case 'energy':
-				demi = Config.makeImage('symbol-1') + ' Ambrosia (' + which + ')';
-				break;
-			case 'attack':
-				demi = Config.makeImage('symbol-2') + ' Malekus (' + which + ')';
-				break;
-			case 'defense':
-				demi = Config.makeImage('symbol-3') + ' Corvintheus (' + which + ')';
-				break;
-			case 'health':
-				demi = Config.makeImage('symbol-4') + ' Aurora (' + which + ')';
-				break;
-			case 'stamina':
-				demi = Config.makeImage('symbol-5') + ' Azeron (' + which + ')';
-				break;
-			default:
-				demi = 'Unknown';
-				break;
+		switch (which.toLowerCase()) {
+		case 'energy':
+			demi = Config.makeImage('symbol-1', 'Ambrosia');
+			break;
+		case 'attack':
+			demi = Config.makeImage('symbol-2', 'Malekus');
+			break;
+		case 'defense':
+			demi = Config.makeImage('symbol-3', 'Corvintheus');
+			break;
+		case 'health':
+			demi = Config.makeImage('symbol-4', 'Aurora');
+			break;
+		case 'stamina':
+			demi = Config.makeImage('symbol-5', 'Azeron');
+			break;
+		default:
+			demi = 'Unknown';
+			break;
 		}
-		Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing performed on ' + d.format('l g:i a') + ' to ' + demi + ' </span>');
-		this.set(['option','_sleep'], Date.now() < this.runtime.when);
+		Dashboard.status(this, '<span title="Next Blessing">' + 'Next Blessing due on ' + d.format('l g:i a') + ' to ' + demi + ' for ' + which + '</span>');
+		this.set(['option','_sleep'], now < this.runtime.when);
 	} else {
 		Dashboard.status(this);
 		this.set(['option','_sleep'], true);
 	}
+
+	return true;
 };
 
 Blessing.work = function(state) {
@@ -8941,7 +9166,7 @@ Elite.display = [
 Elite.menu = function(worker, key) {
 	if (worker === this) {
 		if (!key) {
-			return ['fill:Fill&nbsp;Elite&nbsp;Guard&nbsp;Now'];
+			return ['fill:Fill Elite Guard Now'];
 		} else if (key === 'fill') {
 			this.set('runtime.waitelite', 0);
 		}
@@ -9079,15 +9304,16 @@ Elite.army = function(action, uid) {
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+	// Only need them the first time...
 /*global
-	$, Workers, Worker, Config, Dashboard, Page, Resources,
+	$, Workers, Worker, Config, Dashboard, Idle, Page, Resources,
 	LevelUp, Player, Town,
 	APP, APPID, PREFIX, userID, imagepath,
 	isRelease, version, revision, Images, window, browser, console,
 	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	isArray, isFunction, isNumber, isObject, isString, isWorker,
-	sum, getAttDef, tr, th, td, makeTime, nmax, assert
+	sum, tr, th, td, makeTime, nmax, assert
 */
 /********** Worker.Generals **********
 * Updates the list of Generals
@@ -9130,14 +9356,31 @@ Generals.display = [
 Generals.runtime = {
 	multipliers: {}, // Attack multipliers list for Orc King and Barbarus type generals
 	force: false,
-	armymax:1 // Don't force someone with a small army to buy a whole load of extra items...
+	armymax:1, // Don't force someone with a small army to buy a whole load of extra items...
+	last: {} // last visit timestamps
 };
 
-Generals.init = function(old_revision) {
-	if (!Player.get('attack') || !Player.get('defense')) { // Only need them the first time...
+Generals.menu = function(worker, key) {
+	if (worker === this) {
+		if (!key) {
+			return ['scan:Scan Generals at Idle'];
+		} else if (key === 'scan') {
+			Idle.set('temp.scan.generals', Date.now());
+		}
+	}
+};
+
+Generals.init = function(old_revision, fresh) {
+	// BEGIN: remove old per-worker revision check
+	this.set(['runtime','revision']);
+	// END: 
+
+	// Only need them the first time...
+	if (!Player.get('attack') || !Player.get('defense')) {
 		this._watch(Player, 'data.attack');
 		this._watch(Player, 'data.defense');
 	}
+
 	this._watch(Player, 'data.army');
 	this._watch(Player, 'data.armymax');
 	this._watch(Town, 'runtime.invade');
@@ -9146,10 +9389,10 @@ Generals.init = function(old_revision) {
 	this._watch(Town, 'data'); // item counts
 
 	// last recalc revision is behind the current, fire a reminder
-	if (this.get('runtime.revision', 0, 'number') < revision) {
-		this._remind(1, 'revision');
+	if (old_revision < revision) {
+		this._remindMs(1, 'revision');
 	} else if (this.get('runtime.force')) {
-		this._remind(1, 'force');
+		this._remindMs(1, 'force');
 	}
 };
 
@@ -9196,7 +9439,7 @@ Generals.page = function(page, change) {
 						}
 					}
 				}
-				this.set(['data',name,'skillsbase'], s = $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim());
+				this.set(['data',name,'skillsbase'], s = $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim(true));
 				j = parseInt($('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
 				if (j) {
 					k = this.get(['data',name,'skills']) || s || '';
@@ -9212,7 +9455,7 @@ Generals.page = function(page, change) {
 		}
 
 		// parse general equipment, including those not yet owned
-		name = $('.general_name_div3').first().text().trim();
+		name = $('.general_name_div3').first().text().trim(true).replace(/\*+$/, '');
 		if (this.get(['data',name])) {
 			tmp = $('div[style*="model_items."] img[title]');
 			for (i=0; i<tmp.length; i++) {
@@ -9220,7 +9463,7 @@ Generals.page = function(page, change) {
 				item = $(el).attr('title');
 				icon = ($(el).attr('src') || '').filepart();
 				if (isString(item)) {
-					item = item.replace('[not owned]', ' ').replace(/<[^>]*>|\s+/gim, ' ').trim();
+					item = item.replace('[not owned]', ' ').replace(/<[^>]*>|\s+/gim, ' ').trim(true);
 					if ((j = item.match(/^\s*([^:]*\w)\s*:\s*(.*\w)\s*$/i))) {
 						item = Town.qualify(j[1], icon);
 						Resources.set(['_'+item,'generals'], Math.max(1, Resources.get(['_'+item,'generals'], 0, 'number')));
@@ -9694,11 +9937,11 @@ Generals.update = function(event, events) {
 
 			army = Math.min(armymax + nmax(0, skillcombo.regex(/\b(\d+) Army members?/gi)), nmax(0, skillcombo.regex(/\bArmy Limit to (\d+)\b/gi)) || 501);
 
-			gen_att = getAttDef(data, listpush, 'att', 1 + Math.floor((army - 1) / 5));
-			gen_def = getAttDef(data, listpush, 'def', 1 + Math.floor((army - 1) / 5));
+			gen_att = Town.getAttDef(data, listpush, 'att', 1 + Math.floor((army - 1) / 5));
+			gen_def = Town.getAttDef(data, listpush, 'def', 1 + Math.floor((army - 1) / 5));
 
-			war_att = getAttDef(data, listpush, 'att', 6);
-			war_def = getAttDef(data, listpush, 'def', 6);
+			war_att = Town.getAttDef(data, listpush, 'att', 6);
+			war_def = Town.getAttDef(data, listpush, 'def', 6);
 
 			j = sum(skillcombo.regex(/([-+]?\d*\.?\d+)% Crit/gi));
 			if (j) { stats['crits'] = j; }
@@ -10726,7 +10969,7 @@ Heal.me = function() {
 * Keep focus for disabling other workers
 */
 var Idle = new Worker('Idle');
-Idle.temp = Idle.data = null;
+Idle.data = null;
 
 Idle.defaults['castle_age'] = {};
 
@@ -10750,6 +10993,11 @@ Idle.option = {
 	festival:0,
 	monsters:3600000
 //	collect:0
+};
+
+Idle.temp = {
+    scan:{},
+    generals:{}
 };
 
 Idle.when = {
@@ -10860,7 +11108,12 @@ Idle.pages = {
 	battle:['battle_battle'],
 	guild:['battle_guild'],
 	festival:['festival_guild'],
-	monsters:['monster_monster_list', 'battle_raid', 'festival_monster_list']
+	monsters:[
+		'monster_monster_list',
+		'battle_raid',
+		'festival_monster_list',
+		'festival_monster2_list'
+	]
 //	collect:['apprentice_collect']
 };
 
@@ -10880,15 +11133,22 @@ Idle.work = function(state) {
 	}
 
 	// handle the generals tour first, to avoid thrashing with the Idle general
-	if (this.option[i = 'generals'] && (p = Generals.get('data'))) {
-		for (j in p) {
-			if ((k = Generals.get(['runtime','last',j], 0)) + this.option[i] <= now) {
-				if (Generals.to(j) === null) {
-					// if we can't change the general now due to stats or error
-					// just try again in an hour
-					Generals.set(['runtime','last',j], Math.max(k, now + 60*60*1000 - this.option[i]));
+	if (((j = this.get('temp.scan.generals')) || (i = this.option.generals)) && (p = Generals.get('data'))) {
+		k = j ? now - j : i;
+		for (i in p) {
+			// purge cooldown guard after 5 minutes, if expired
+			if ((j = this.get(['temp','generals',i], 0, 'number')) && j + 300000 <= now) {
+				this.set(['temp','generals',i]);
+				j = 0;
+			}
+			if (p[i] && p[i].own && Math.max(j, Generals.get(['runtime','last',i], 0, 'number')) + k <= now) {
+				// if a general swap would be lossy, or it can't be done now,
+				// set a cooldown mark to guard against thrashing
+				if (Generals.to(i) === null) {
+					this.set(['temp','generals',i], now);
+				} else {
+					return true;
 				}
-				return true;
 			}
 		}
 	}
@@ -10897,14 +11157,18 @@ Idle.work = function(state) {
 		return true;
 	}
 
+	// stale pages tour
 	for (i in this.pages) {
-		if (this.option[i]) {
+		k = this.get(['temp','scan',i], 0, 'number');
+		if (k || (j = this.option[i])) {
+			j = Math.max(now - j, k);
 			for (p = 0; p < this.pages[i].length; p++) {
-				if (Page.isStale(this.pages[i][p], now - this.option[i]) && (!Page.to(this.pages[i][p]))) {
+				if (Page.isStale(this.pages[i][p], j) && (!Page.to(this.pages[i][p]))) {
 					return true;
 				}
 			}
 		}
+		this.set(['temp','scan',i]);
 	}
 
 	return true;
@@ -11309,7 +11573,7 @@ Land.work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Workers, Worker, Config, Dashboard, History, Page, Queue, Resources, //Army,
+	$, Worker, Workers, Config, Dashboard, History, Page, Queue, Resources, //Army,
 	Battle, Generals, Heal, Monster, Player, Quest, //Bank, Income, LevelUp:true,
 	APP, APPID, APPID_, PREFIX, userID, imagepath,
 	isRelease, version, revision, Images, window, browser,
@@ -11343,7 +11607,8 @@ LevelUp.option = {
 	general_choice:'any',
 	order:'stamina',
 	algorithm:'Per Action',
-	override:false
+	override:false,
+	show_refills:false
 };
 
 LevelUp.runtime = {
@@ -11423,8 +11688,11 @@ LevelUp.init = function() {
 
 	this._watch(Player, 'data.health');
 	this._watch(Player, 'data.exp');
+	this._watch(Player, 'data.maxexp');
 	this._watch(Player, 'data.energy');
+	this._watch(Player, 'data.maxenergy');
 	this._watch(Player, 'data.stamina');
+	this._watch(Player, 'data.maxstamina');
 	this._watch(Resources, 'option.reserve');
 	this._watch(Quest, 'runtime.best');
 	this._watch(this, 'runtime.force.energy');
@@ -11767,12 +12035,13 @@ LevelUp.resource = function() {
 /*global
 	$, Worker, Config, Dashboard, History, Page, Queue, Resources,
 	Battle, Generals, LevelUp, Player,
-	APP, APPID, APPID_, userID, imagepath,
+	APP, APPID, APPID_, userID, imagepath, isFacebook,
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH, QUEUE_NO_ACTION,
 	isArray, isFunction, isNumber, isObject, isString, isWorker
 	findInObject, bestObjValue, plural, sum, tr, th, td,
 	calc_rolling_weighted_average, assert
+	dom_heritage
 */
 /********** Worker.Monster **********
  * Automates Monster
@@ -11786,7 +12055,10 @@ var Monster = new Worker('Monster');
 Monster.temp = null;
 
 Monster.defaults['castle_age'] = {
-	pages:'monster_monster_list keep_monster_active monster_battle_monster battle_raid festival_monster_list festival_battle_monster festival_monster2_list monster_dead monster_remove_list'
+	pages:'monster_monster_list monster_battle_monster monster_dead'
+	  + ' monster_remove_list'
+	  + ' keep_monster_active battle_raid'
+	  + ' festival_monster_list festival_monster2_list festival_battle_monster'
 };
 
 Monster.option = {
@@ -11799,6 +12071,7 @@ Monster.option = {
 	defend: 80,
 	//	quest_over: 90,
 	min_to_attack: 20,
+	attack_active:false,
 	defend_active:false,
 	use_tactics:false,
 	choice: 'Any',
@@ -11825,30 +12098,30 @@ Monster.option = {
 };
 
 Monster.runtime = {
-	check:false, // id of monster to check if needed, otherwise false
-	attack:false, // id of monster if we have an attack target, otherwise false
-	defend:false, // id of monster if we have a defend target, otherwise false
+	check: false, // id of monster to check if needed, otherwise false
+	attack: false, // id of monster if we have an attack target, otherwise false
+	defend: false, // id of monster if we have a defend target, otherwise false
 	secondary: false, // Is there a target for mage or rogue that is full or not in cycle?  Used to tell quest to wait if don't quest when fortifying is on.
-	multiplier : {defend:1,attack:1}, // General multiplier like Orc King or Barbarus
-	values : {defend:[],attack:[]}, // Attack/defend values available for levelup
-	big : [], // Defend big values available for levelup
+	multiplier: {defend:1,attack:1}, // General multiplier like Orc King or Barbarus
+	values: {defend:[],attack:[]}, // Attack/defend values available for levelup
+	big: [], // Defend big values available for levelup
 	energy: 0, // How much can be used for next attack
 	stamina: 0, // How much can be used for next attack
-	used:{stamina:0,energy:0}, // How much was used in last attack
-	button: {attack: {pick:1, query:[]},  // Query - the jquery query for buttons, pick - which button to use
-			defend: {pick:1, query:[]},
+	used: {stamina:0,energy:0}, // How much was used in last attack
+	button: {attack: {pick:1,query:[]},  // Query - the jquery query for buttons, pick - which button to use
+			defend: {pick:1,query:[]},
 			count:1}, // How many attack/defend buttons can the player access?
-	health:10, // minimum health to attack,
+	health: 10, // minimum health to attack,
 	mode: null, // Used by update to tell work if defending or attacking
 	stat: null, // Used by update to tell work if using energy or stamina
 	message: null, // Message to display on dash and log when removing or reviewing or collecting monsters
-	
-	levelupdefending : false, // Used to preserve the runtime.defending value even when in force.stamina mode
-	page : null, // What page (battle or monster) the check page should go to
-	monsters : {}, // Used for storing running weighted averages for monsters
-	defending: false,	// hint for other workers as to whether we are potentially using energy to defend
-	banthus : [], // Possible attack values for :ban condition crits
-	banthusNow : false  // Set true when ready to use a Banthus crit
+
+	levelupdefending: false, // Used to preserve te runtime.defending value even when in force.stamina mode
+	page: null, // What page (battle or monster) the check page should go to
+	monsters: {}, // Used for storing running weighted averages for monsters
+	defending: false, // hint for other workers as to whether we are potentially using energy to defend
+	banthus: [], // Possible attack values for :ban condition crits
+	banthusNow: false // Set true when ready to use a Banthus crit
 };
 
 Monster.display = [
@@ -11862,103 +12135,109 @@ Monster.display = [
 		title:'Attack',
 		group:[
 			{
-				id:'best_attack',
-				label:'Use Best General',
-				checkbox:true
-			},{
-				advanced:true,
-				id:'general_attack',
-				label:'Attack General',
-				require:'!best_attack',
-				select:'generals'
-			},{
-				advanced:true,
-				id:'hide',
-				label:'Use Raids and Monsters to Hide',
+				id:'attack_active',
+				label:'Attack Active',
 				checkbox:true,
-				require:'stop!="Priority List"',
-				help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
+				help:'Spend stamina to defend monsters.'
+				  + ' Note: this option is not yet functional.'
 			},{
-				advanced:true,
-				id:'points',
-				label:'Get Demi Points First',
-				checkbox:true,
-				help:'Use Battle to get Demi Points prior to attacking Monsters.'
-			},{
-				id:'min_to_attack',
-				label:'Attack Over',
-				number:20,
-				min:0,
-				max:100,
-				step:1,
-				help:'Attack if defense is over this value. Range of 0% to 100%.',
-				after:'%'
-			},{
-				id:'use_tactics',
-				label:'Use tactics',
-				checkbox:true,
-				help:"Use tactics to improve damage when it's available (may lower exp ratio)"
-			},{
-				id:'choice',
-				label:'Attack',
-				select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Min Damage','ETD Maintain','Goal Maintain'],
-				help:'Any selects a random monster.' +
-					'\nStrongest and Weakest pick by monster health.' +
-					'\nShortest and Longest ETD pick by estimated time the monster will die.' +
-					'\nMin and Max Damage pick by your relative damage percent done to a monster.' +
-					'\nETD Maintain picks based on the longest monster expiry time.' +
-					'\nGoal Maintain picks by highest proportional damage needed to complete your damage goal in the time left on a monster.'
-			},{
-				id:'stop',
-				label:'Stop',
-				select:['Never', 'Achievement', '2X Achievement', 'Priority List', 'Continuous'],
-				help:'Select when to stop attacking a target.'
-			},{
-				id:'priority',
-				label:'Priority List',
-				require:'stop==="Priority List"',
-				textarea:true,
-				help:'Prioritized list of which monsters to attack'
-			},{
-				advanced:true,
-				id:'own',
-				label:'Never stop on Your Monsters',
-				require:'stop!=="Priority List"',
-				checkbox:true,
-				help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
-			},{
-				advanced:true,
-				id:'rescue',
-				require:'stop!=="Priority List"',
-				label:'Rescue failing monsters',
-				checkbox:true,
-				help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
-			},{
-				advanced:true,
-				id:'avoid_lost_cause',
-				require:'stop!=="Priority List"',
-				label:'Avoid Lost-cause Monsters',
-				checkbox:true,
-				help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
-			},{
-				advanced:true,
-				id:'lost_cause_hours',
-				require:'avoid_lost_cause',
-				label:'Lost-cause if ETD is',
-				after:'hours late',
-				cols:4,
-				text:true,
-				help:'# of Hours Monster must be behind before preventing attacks.'
-			},{
-				id:'attack_min',
-				label:'Min Stamina Cost',
-				select:[1,5,10,20,50,100,200],
-				help:'Select the minimum stamina for a single attack'
-			},{
-				id:'attack_max',
-				label:'Max Stamina Cost',
-				select:[1,5,10,20,50,100,200],
-				help:'Select the maximum stamina for a single attack'
+//				id:'attack_group',
+				require:'attack_active',
+				group:[
+					{
+						id:'best_attack',
+						label:'Use Best General',
+						checkbox:true
+					},{
+						advanced:true,
+						id:'general_attack',
+						label:'Attack General',
+						require:'!best_attack',
+						select:'generals'
+					},{
+						advanced:true,
+						id:'hide',
+						label:'Use Raids and Monsters to Hide',
+						checkbox:true,
+						require:'stop!="Priority List"',
+						help:'Fighting Raids keeps your health down. Fight Monsters with remaining stamina.'
+					},{
+						advanced:true,
+						id:'points',
+						label:'Get Demi Points First',
+						checkbox:true,
+						help:'Use Battle to get Demi Points prior to attacking Monsters.'
+					},{
+						id:'min_to_attack',
+						label:'Attack Over',
+						number:20,
+						min:0,
+						max:100,
+						step:1,
+						help:'Attack if defense is over this value. Range of 0% to 100%.',
+						after:'%'
+					},{
+						id:'use_tactics',
+						label:'Use tactics',
+						checkbox:true,
+						help:"Use tactics to improve damage when it's available (may lower exp ratio)"
+					},{
+						id:'choice',
+						label:'Attack',
+						select:['Any', 'Strongest', 'Weakest', 'Shortest ETD', 'Longest ETD', 'Spread', 'Max Damage', 'Min Damage','ETD Maintain','Goal Maintain'],
+						help:'Any selects a random monster.' +
+							'\nStrongest and Weakest pick by monster health.' +
+							'\nShortest and Longest ETD pick by estimated time the monster will die.' +
+							'\nMin and Max Damage pick by your relative damage percent done to a monster.' +
+							'\nETD Maintain picks based on the longest monster expiry time.' +
+							'\nGoal Maintain picks by highest proportional damage needed to complete your damage goal in the time left on a monster.'
+					},{
+						id:'stop',
+						label:'Stop',
+						select:['Never', 'Achievement', '2X Achievement', 'Priority List', 'Continuous'],
+						help:'Select when to stop attacking a target.'
+					},{
+						advanced:true,
+						id:'own',
+						label:'Never stop on Your Monsters',
+						require:'stop!=="Priority List"',
+						checkbox:true,
+						help:'Never stop attacking your own summoned monsters (Ignores Stop option).'
+					},{
+						advanced:true,
+						id:'rescue',
+						require:'stop!=="Priority List"',
+						label:'Rescue failing monsters',
+						checkbox:true,
+						help:'Attempts to rescue failing monsters even if damage is at or above Stop Optionby continuing to attack. Can be used in coordination with Lost-cause monsters setting to give up if monster is too far gone to be rescued.'
+					},{
+						advanced:true,
+						id:'avoid_lost_cause',
+						require:'stop!=="Priority List"',
+						label:'Avoid Lost-cause Monsters',
+						checkbox:true,
+						help:'Do not attack monsters that are a lost cause, i.e. the ETD is longer than the time remaining.'
+					},{
+						advanced:true,
+						id:'lost_cause_hours',
+						require:'avoid_lost_cause',
+						label:'Lost-cause if ETD is',
+						after:'hours late',
+						cols:4,
+						text:true,
+						help:'# of Hours Monster must be behind before preventing attacks.'
+					},{
+						id:'attack_min',
+						label:'Min Stamina Cost',
+						select:[1,5,10,20,50,100,200],
+						help:'Select the minimum stamina for a single attack'
+					},{
+						id:'attack_max',
+						label:'Max Stamina Cost',
+						select:[1,5,10,20,50,100,200],
+						help:'Select the maximum stamina for a single attack'
+					}
+				]
 			}
 		]
 	},{
@@ -11968,7 +12247,7 @@ Monster.display = [
 				id:'defend_active',
 				label:'Defend Active',
 				checkbox:true,
-				help:'Must be checked to defend.'
+				help:'Spend energy to defend monsters.'
 			},{
 		//		id:'defend_group',
 				require:'defend_active',
@@ -12049,6 +12328,17 @@ Monster.display = [
 			}
 		]
 	},{
+		title:'Priority list',
+		group:[
+			{
+				id:'priority',
+				//require:'stop==="Priority List"',
+				label:'Priority List',
+				textarea:true,
+				help:'Prioritized list of which monsters to attack'
+			}
+		]
+	},{
 		title:'Siege Assist Options',
 		group:[
 			{
@@ -12083,6 +12373,7 @@ Monster.types = {
 	// Quest unlocks
 	kull: {
 		name:'Kull, the Orc Captain',
+		brief:'Kull',
 		list:'orc_captain_list.jpg',
 		image:'orc_captain_large.jpg',
 		dead:'orc_captain_dead.jpg',
@@ -12095,6 +12386,7 @@ Monster.types = {
 	},
 	minotaur: {
 		name:'Karn, The Minotaur',
+		brief:'Karn',
 		list:'monster_minotaur_list.jpg',
 		image:'monster_minotaur.jpg',
 		dead:'monster_minotaur_dead.jpg',
@@ -12105,6 +12397,7 @@ Monster.types = {
 		siege:false,
 		attack:[1,6]
 	},
+
 	// Raids
 	raid_easy: {
 		name:'The Deathrune Siege',
@@ -12117,7 +12410,6 @@ Monster.types = {
 		timer2:302400, // 84 hours
 		raid:true
 	},
-
 	raid: {
 		name:'The Deathrune Siege',
 		list:'deathrune_list2.jpg',
@@ -12129,9 +12421,11 @@ Monster.types = {
 		timer2:519960, // 144 hours, 26 minutes
 		raid:true
 	},
-	// Epic Boss
+
+	// Epic Boss (mpool 1)
 	colossus: {
 		name:'Colossus of Terra',
+		brief:'Colossus',
 		list:'stone_giant_list.jpg',
 		image:'stone_giant_large.jpg',
 		dead:'stone_giant_dead.jpg',
@@ -12148,6 +12442,7 @@ Monster.types = {
 	},
 	gildamesh: {
 		name:'Gildamesh, the Orc King',
+		brief:'Gildamesh',
 		list:'orc_boss_list.jpg',
 		image:'orc_boss.jpg',
 		dead:'orc_boss_dead.jpg',
@@ -12164,6 +12459,7 @@ Monster.types = {
 	},
 	keira: {
 		name:'Keira the Dread Knight',
+		brief:'Keira',
 		list:'boss_keira_list.jpg',
 		image:'boss_keira.jpg',
 		dead:'boss_keira_dead.jpg',
@@ -12176,6 +12472,7 @@ Monster.types = {
 	},
 	lotus: {
 		name:'Lotus Ravenmoore',
+		brief:'Lotus',
 		list:'boss_lotus_list.jpg',
 		image:'boss_lotus.jpg',
 		dead:'boss_lotus_big_dead.jpg',
@@ -12204,6 +12501,7 @@ Monster.types = {
 	},
 	skaar: {
 		name:'Skaar Deathrune',
+		brief:'Skaar',
 		list:'death_list.jpg',
 		image:'death_large.jpg',
 		dead:'death_dead.jpg',
@@ -12224,6 +12522,7 @@ Monster.types = {
 	},
 	sylvanus: {
 		name:'Sylvana the Sorceress Queen',
+		brief:'Sylvana',
 		list:'boss_sylvanus_list.jpg',
 		image:'boss_sylvanus_large.jpg',
 		dead:'boss_sylvanus_dead.jpg',
@@ -12236,6 +12535,87 @@ Monster.types = {
 		festival: 'sylvanus',
 		festival_damage: 30000,
 		festival_worth: 150
+	},
+	rebellion: {
+		name:"Aurelius, Lion's Rebellion",
+		brief:"Lion's Rebellion",
+		list:'nm_aurelius_list.jpg',
+		image:'nm_aurelius_large.jpg',
+		dead:'nm_aurelius_large_dead.jpg',
+		achievement:1000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		tactics_button:'input[name="Attack Dragon"][src*="tactics"]',
+		tactics:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100],
+		orcs:true
+	},
+	corvintheus: {
+		name:'Corvintheus',
+		list:'corv_list.jpg',
+		image:'boss_corv.jpg',
+		dead:'boss_corv_dead.jpg',
+		achievement:5000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100],
+		festival: 'boss_corvintheus',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 575
+	},
+	jahanna: {
+		name:'Jahanna, Priestess of Aurora',
+		brief:'Jahanna',
+		list:'boss_jahanna_list.jpg',
+		image:'boss_jahanna_large.jpg',
+		dead:'boss_jahanna_dead.jpg',
+		achievement:5000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[10,20,50,100,200],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[20,40,100,200],
+		festival: 'jahanna',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 400
+	},
+	aurora: {
+		name:'Aurora',
+		list:'boss_aurora_list.jpg',
+		image:'boss_aurora_large.jpg',
+		dead:'boss_aurora_dead.jpg',
+		achievement:5000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[10,20,50,100], // removed 200 attack as per forums post
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[20,40,100,200],
+		festival: 'aurora',
+		festival_timer2: 691200, // 192 hours
+		festival_damage2: 1000000,
+		festival_worth2: 550
 	},
 	ambrosia: {
 		name:'Ambrosia',
@@ -12253,6 +12633,49 @@ Monster.types = {
 		festival_timer2: 691200, // 192 hours
 		festival_damage2: 1000000,
 		festival_worth2: 500
+	},
+	agamemnon: {
+		name:'Agamemnon the Overseer',
+		brief:'Agamemnon',
+		list:'boss_agamemnon_list.jpg',
+		image:'boss_agamemnon_large.jpg',
+		dead:'boss_agamemnon_dead.jpg',  // guess
+		achievement:5000000,
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[10,20,50,100,200],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[20,40,100,200],
+		festival_timer: 691200, // 192 hours
+		festival: 'agamemnon',
+		festival_damage: null,
+		festival_worth: null
+	},
+	azriel: {
+		name:'Azriel, the Angel of Wrath',
+		brief:'Azriel',
+		list:'nm_azriel_list.jpg',
+		image:'nm_azriel_large2.jpg',
+		dead:'nm_azriel_dead.jpg',
+		achievement:6000000, // ~0.5%, 2X = ~1%
+		timer:604800, // 168 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100],
+		festival_timer: 691200, // 192 hours
+		festival: 'boss_azriel',
+		festival_damage: 1000000,
+		festival_worth: 550,
+		festival_worth2: 200
 	},
 	malekus: {
 		name:'Malekus',
@@ -12274,9 +12697,44 @@ Monster.types = {
 		festival_damage2: 1000000,
 		festival_worth2: 550
 	},
+	alexandra: {
+		name:'Alexandra, the Unbreakable',
+		brief:'Alexandra',
+		list:'monster_alexandra_list.jpg',
+		image:'monster_alexandra_large.jpg',
+		dead:'monster_alexandra_dead.jpg',
+		medal:40000000,
+		achievement:25000000,
+		timer:691200, // 192 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100],
+		festival:'alexandra'
+	},
+	azeron: {
+	    name:'Azeron',
+		list:'boss_azeron_list.jpg',
+		image:'boss_azeron_large.jpg',
+		dead:'boss_azeron_dead.jpg',
+		medal:40000000,
+		achievement:25000000,
+		timer:691200, // 192 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
 
-
-	// Epic Team
+	// Epic Team (mpool 2)
 	dragon_emerald: {
 		name:'Emerald Dragon',
 		list:'dragon_list_green.jpg',
@@ -12339,7 +12797,7 @@ Monster.types = {
 		festival_damage: 50000,
 		festival_worth: 250
 	},
-	serpent_amethyst: { 
+	serpent_amethyst: {
 		name:'Amethyst Sea Serpent',
 		list:'seamonster_list_purple.jpg',
 		image:'seamonster_purple.jpg',
@@ -12358,7 +12816,7 @@ Monster.types = {
 		festival_damage: 30000,
 		festival_worth: 300
 	},
-	serpent_ancient: { 
+	serpent_ancient: {
 		name:'Ancient Sea Serpent',
 		list:'seamonster_list_red.jpg',
 		image:'seamonster_red.jpg',
@@ -12377,7 +12835,7 @@ Monster.types = {
 		festival_damage: 30000,
 		festival_worth: [250,300]
 	},
-	serpent_emerald: { 
+	serpent_emerald: {
 		name:'Emerald Sea Serpent',
 		list:'seamonster_list_green.jpg',
 		image:'seamonster_green.jpg',
@@ -12415,9 +12873,11 @@ Monster.types = {
 		festival_damage: 30000,
 		festival_worth: 200
 	},
-	// Epic World
+
+	// Epic World (mpool 3)
 	cronus: {
 		name:'Cronus, The World Hydra',
+		brief:'Cronus',
 		list:'hydra_head.jpg',
 		image:'hydra_large.jpg',
 		dead:'hydra_dead.jpg',
@@ -12435,6 +12895,7 @@ Monster.types = {
 	},
 	legion: {
 		name:'Battle of the Dark Legion',
+		brief:'Dark Legion',
 		list:'castle_siege_list.jpg',
 		image:'castle_siege_large.jpg',
 		dead:'castle_siege_dead.jpg',
@@ -12449,6 +12910,7 @@ Monster.types = {
 	},
 	genesis: {
 		name:'Genesis, The Earth Elemental',
+		brief:'Genesis',
 		list:'earth_element_list.jpg',
 		image:'earth_element_large.jpg',
 		dead:'earth_element_dead.jpg',
@@ -12467,6 +12929,7 @@ Monster.types = {
 	},
 	ragnarok: {
 		name:'Ragnarok, The Ice Elemental',
+		brief:'Ragnarok',
 		list:'water_list.jpg',
 		image:'water_large.jpg',
 		dead:'water_dead.jpg',
@@ -12507,6 +12970,7 @@ Monster.types = {
 	},
 	valhalla: {
 		name:'Valhalla, The Air Elemental',
+		brief:'Valhalla',
 		list:'monster_valhalla_list.jpg',
 		image:'monster_valhalla.jpg',
 		dead:'monster_valhalla_dead.jpg',
@@ -12528,6 +12992,7 @@ Monster.types = {
 	},
 	bahamut: {
 		name:'Bahamut, the Volcanic Dragon',
+		brief:'Bahamut',
 		list:'nm_volcanic_list.jpg',
 		image:'nm_volcanic_large.jpg',
 		dead:'nm_volcanic_dead.jpg',
@@ -12549,6 +13014,7 @@ Monster.types = {
 	},
 	alpha_bahamut: {
 		name:'Alpha Bahamut, the Volcanic Dragon',
+		brief:'Alpha Bahamut',
 		list:'nm_volcanic_list_2.jpg',
 		image:'nm_volcanic_large_2.jpg',
 		dead:'nm_volcanic_dead_2.jpg',
@@ -12567,27 +13033,6 @@ Monster.types = {
 		festival_damage2: 1000000,
 		festival_worth2: 300
 	},
-	azriel: {
-		name:'Azriel, the Angel of Wrath',
-		list:'nm_azriel_list.jpg',
-		image:'nm_azriel_large2.jpg',
-		dead:'nm_azriel_dead.jpg',
-		achievement:6000000, // ~0.5%, 2X = ~1%
-		timer:604800, // 168 hours
-		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"]'
-		  + ',input[name="Attack Dragon"][src*="bolt"]'
-		  + ',input[name="Attack Dragon"][src*="smite"]'
-		  + ',input[name="Attack Dragon"][src*="bash"]',
-		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100],
-		festival_timer: 691200, // 192 hours
-		festival: 'boss_azriel',
-		festival_damage: 1000000,
-		festival_worth: 550,
-		festival_worth2: 200
-	},
 	red_plains: {
 		name:'War of the Red Plains',
 		list:'nm_war_list.jpg',
@@ -12596,105 +13041,6 @@ Monster.types = {
 		achievement:2500,
 		timer:604800, // 168 hours
 		mpool:3,
-		attack_button:'input[name="Attack Dragon"][src*="stab"]'
-		  + ',input[name="Attack Dragon"][src*="bolt"]'
-		  + ',input[name="Attack Dragon"][src*="smite"]'
-		  + ',input[name="Attack Dragon"][src*="bash"]',
-		attack:[5,10,20,50],
-		tactics_button:'input[name="Attack Dragon"][src*="tactics"]',
-		tactics:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100],
-		orcs:true
-	},
-	corvintheus: {
-		name:'Corvintheus',
-		list:'corv_list.jpg',
-		image:'boss_corv.jpg',
-		dead:'boss_corv_dead.jpg',
-		achievement:5000000,
-		timer:604800, // 168 hours
-		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"]'
-		  + ',input[name="Attack Dragon"][src*="bolt"]'
-		  + ',input[name="Attack Dragon"][src*="smite"]'
-		  + ',input[name="Attack Dragon"][src*="bash"]',
-		attack:[5,10,20,50],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[10,20,40,100],
-		festival: 'boss_corvintheus',
-		festival_timer2: 691200, // 192 hours
-		festival_damage2: 1000000,
-		festival_worth2: 575
-	},
-	agamemnon: {
-		name:'Agamemnon the Overseer',
-		list:'boss_agamemnon_list.jpg',
-		image:'boss_agamemnon_large.jpg',
-		dead:'boss_agamemnon_dead.jpg',  // guess
-		achievement:5000000,
-		timer:604800, // 168 hours
-		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"]'
-		  + ',input[name="Attack Dragon"][src*="bolt"]'
-		  + ',input[name="Attack Dragon"][src*="smite"]'
-		  + ',input[name="Attack Dragon"][src*="bash"]',
-		attack:[10,20,50,100,200],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[20,40,100,200],
-		festival_timer: 691200, // 192 hours
-		festival: 'agamemnon',
-		festival_damage: null,
-		festival_worth: null
-	},
-	jahanna: {
-		name:'Jahanna, Priestess of Aurora',
-		list:'boss_jahanna_list.jpg',
-		image:'boss_jahanna_large.jpg',
-		dead:'boss_jahanna_dead.jpg',
-		achievement:5000000,
-		timer:604800, // 168 hours
-		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"]'
-		  + ',input[name="Attack Dragon"][src*="bolt"]'
-		  + ',input[name="Attack Dragon"][src*="smite"]'
-		  + ',input[name="Attack Dragon"][src*="bash"]',
-		attack:[10,20,50,100,200],
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[20,40,100,200],
-		festival: 'jahanna',
-		festival_timer2: 691200, // 192 hours
-		festival_damage2: 1000000,
-		festival_worth2: 400
-	},
-	aurora: {
-		name:'Aurora',
-		list:'boss_aurora_list.jpg',
-		image:'boss_aurora_large.jpg',
-		dead:'boss_aurora_dead.jpg',
-		achievement:5000000,
-		timer:604800, // 168 hours
-		mpool:1,
-		attack_button:'input[name="Attack Dragon"][src*="stab"]'
-		  + ',input[name="Attack Dragon"][src*="bolt"]'
-		  + ',input[name="Attack Dragon"][src*="smite"]'
-		  + ',input[name="Attack Dragon"][src*="bash"]',
-		attack:[10,20,50,100], // removed 200 attack as per forums post
-		defend_button:'input[name="Attack Dragon"][src*="heal"]',
-		defend:[20,40,100,200],
-		festival: 'aurora',
-		festival_timer2: 691200, // 192 hours
-		festival_damage2: 1000000,
-		festival_worth2: 550
-	},
-	rebellion: {
-		name:"Aurelius, Lion's Rebellion",
-		list:'nm_aurelius_list.jpg',
-		image:'nm_aurelius_large.jpg',
-		dead:'nm_aurelius_large_dead.jpg',
-		achievement:1000,
-		timer:604800, // 168 hours
-		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"]'
 		  + ',input[name="Attack Dragon"][src*="bolt"]'
 		  + ',input[name="Attack Dragon"][src*="smite"]'
@@ -12811,6 +13157,7 @@ Monster.types = {
 	},
 	typhonus: {
 		name:'Typhonus, the Chimera',
+		brief:'Typhonus',
 		list:'monster_chimera_list.jpg',
 		image:'monster_chimera_large.jpg',
 		dead:'monster_chimera_dead.jpg',
@@ -12829,8 +13176,49 @@ Monster.types = {
 		festival_damage2: 1000000,
 		festival_worth2: 500
 	},
+	kraken: {
+		name:'Kraken',
+		list:'monster_kraken_list.jpg',
+		image:'monster_kraken_large.jpg',
+		dead:'monster_kraken_dead.jpg',
+		title:'monster_kraken_header.jpg',
+		medal:8000000,
+		loot:4000000,
+		achievement:4000000,
+		timer:604800, // 168 hours ??
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+	alpha_kraken: {
+		name:'Alpha Kraken',
+		list:'monster_kraken_list.jpg',
+		image:'monster_kraken_large.jpg',
+		dead:'monster_kraken_dead.jpg',
+		title:'monster_alpha_kraken_header.jpg',
+		medal:17500000,
+		loot:7500000,
+		achievement:7500000,
+		timer:604800, // 168 hours ??
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+
+	// Castle Age/Heart of Darkness crossover monsters (mpool 100)
 	thanatos: {
-		name:'Thanatos of Fire',
+		name:'Thanatos of Fire & Ice',
+		brief:'Thanatos',
 		list:'monster_thanatos2_list_ca.jpg',
 		image:'monster_thanatos2_large_ca.jpg',
 		dead:'monster_thanatos2_dead_ca.jpg',
@@ -12852,7 +13240,7 @@ Monster.types = {
 // 1.1.1	Colossus of Terra					96		30,000		100
 // 1.1.2	Gildamesh, the Orc King				96		30,000		50
 // 1.1.3	The Emerald Sea Serpent				96		30,000		150
-// 1.1.4	The Frost Dragon					96		30,000		200 
+// 1.1.4	The Frost Dragon					96		30,000		200
 // 1.2: silver
 // 1.2.1	Sylvanas, The Sorceress Queen		72		30,000		150
 // 1.2.2	The Amethyst Sea Serpent			96		30,000		300
@@ -12862,48 +13250,48 @@ Monster.types = {
 // 1.3.1	*Skaar Deathrune					120		1,000,000	500
 // 1.3.2	Mephistopheles						72		50,000		150-200
 // 1.3.3	The Ancient Sea Serpent				96		30,000		250-300
-// 1.3.4	The Ancient Red Dragon				96		50,000		250 
+// 1.3.4	The Ancient Red Dragon				96		50,000		250
 // 1.4: platinum
 // 1.4.1	*Bahamut, The Volcanic Dragon		192		1,000,000	500
 // 1.4.2	*Ragnarok, the Ice Elemental		192		1,000,000	400
 // 1.4.3	*Cronus, The World Hydra			192		500,000		300
-// 1.4.4	*Genesis, The Earth Elemental		192		1,000,000	350 
+// 1.4.4	*Genesis, The Earth Elemental		192		1,000,000	350
 // 1.5: vanguard
 // 1.5.1	*Valhalla, The Air Elemental		192		1,000,000	575
 // 1.5.2	*Gehenna, The Fire Elemental		192		1,000,000	500
 // 1.5.3	*Azriel, the Angel of Wrath			192		1,000,000	550
-// 1.5.4	*Alpha Mephistopheles				192		1,000,000	550 
+// 1.5.4	*Alpha Mephistopheles				192		1,000,000	550
 // 1.6: boss
-// 1.6.1	Agamemnon, the Overseer				192		None		None 
+// 1.6.1	Agamemnon, the Overseer				192		None		None
 
 // festival tower 2:
 // 2.1: bronze
 // 2.1.1	Kromash, the Storm Giant			192		1,000,000	100
 // 2.1.2	Shardros, the Mountain Giant		192		1,000,000	50
 // 2.1.3	*Genesis, The Earth Elemental		192		1,000,000	150
-// 2.1.4	*Cronus, The World Hydra			192		50,000		200 
+// 2.1.4	*Cronus, The World Hydra			192		50,000		200
 // 2.2: silver
 // 2.2.1	*Skaar Deathrune					192		1,000,000	150
 // 2.2.2	*Ragnarok, the Ice Elemental		192		1,000,000	300
 // 2.2.3	*Bahamut, the Volcanic Dragon		192		1,000,000	200
-// 2.2.4	*Gehenna, the Fire Elemental		192		1,000,000	250 
+// 2.2.4	*Gehenna, the Fire Elemental		192		1,000,000	250
 // 2.3: gold
 // 2.3.1	*Alpha Mephistopheles				192		1,000,000	500
 // 2.3.2	*Azriel, the Angel of Wrath			192		1,000,000	200
 // 2.3.3	Alpha Bahamut, the Volcanic King	192		1,000,000	300
-// 2.3.4	*Valhalla, the Air Elemental		192		1,000,000	250 
+// 2.3.4	*Valhalla, the Air Elemental		192		1,000,000	250
 // 2.4: platinum
 // 2.4.1	Typhonus, the Chimera				192		1,000,000	500
 // 2.4.2	Jahanna, Priestess of Aurora		192		1,000,000	400
 // 2.4.3	Magmos, the Lava Giant				192		1,000,000	300
-// 2.4.4	Glacius, the Frost Giant			192		1,000,000	350 
+// 2.4.4	Glacius, the Frost Giant			192		1,000,000	350
 // 2.5: vanguard
 // 2.5.1	Corvintheus							192		1,000,000	575
 // 2.5.2	Ambrosia							192		1,000,000	500
 // 2.5.3	Malekus								192		1,000,000	550
-// 2.5.4	Aurora								192		1,000,000	550 
+// 2.5.4	Aurora								192		1,000,000	550
 // 2.6: boss
-// 2.6.1	Alexandra, the Unbreakable			192		None		None 
+// 2.6.1	Alexandra, the Unbreakable			192		None		None
 
 Monster.health_img = ['img[src$="nm_red.jpg"]', 'img[src$="monster_health_background.jpg"]'];
 Monster.shield_img = ['img[src$="bar_dispel.gif"]'];
@@ -12953,14 +13341,20 @@ Monster.init = function() {
 	// END
 
 	this._watch(Player, 'data.health');
+	this._watch(Player, 'data.energy');
+	this._watch(Player, 'data.maxenergy');
+	this._watch(Player, 'data.stamina');
+	this._watch(Player, 'data.maxstamina');
 	this._watch(LevelUp, 'runtime');
+
 	this._revive(60);
-	this.runtime.limit = 0;
+
+	this.set('runtime.limit', 0);
+
 	if (isNumber(this.runtime.multiplier)) {
-		delete this.runtime.multiplier;
-		this.runtime.multiplier = {defend:1,attack:1}; // General multiplier like Orc King or Barbarus
+		this.set('runtime.multiplier', {defend:1,attack:1}); // General multiplier like Orc King or Barbarus
 	}
-	delete this.runtime.record;
+	this.set('runtime.record');
 
 	// generate a complete primary player/monster name match regexp
 	str = '';
@@ -12973,57 +13367,174 @@ Monster.init = function() {
 		}
 	}
 	this.name_re = new RegExp("^\\s*(.*\\S)\\s*'s\\s+(?:" + str + ')\\s*$', 'im');
+
+	$('a.golem-monster-delete').live('click', function(event){
+		Monster.set(['data',$(this).attr('name')]);
+		return false;
+	});
+	$('a.golem-monster-ignore').live('click', function(event){
+		var x = $(this).attr('name');
+		Monster.set(['data',x,'ignore'], !Monster.get(['data',x,'ignore'], false));
+		return false;
+	});
+	$('a.golem-monster-override').live('click', function(event){
+		var x = $(this).attr('name');
+		Monster.set(['data',x,'override'], !Monster.get(['data',x,'override'], false));
+		return false;
+	});
+	$('#golem-monster-scout').live('click', function(event) {
+		var link = $('#golem-monster-link').val();
+		//log(LOG_INFO, '# scout ' + link);
+		Monster.visit_link(link);
+		return false;
+	});
+	$('#golem-monster-assist').live('click', function(event) {
+		var link = $('#golem-monster-link').val();
+		//log(LOG_INFO, '# assist ' + link);
+		Monster.visit_link(link, true);
+		return false;
+	});
+	$('#golem-monster-clear').live('click', function(event) {
+		var link = $('#golem-monster-link').val();
+		//log(LOG_INFO, '# clear ' + link);
+		$('#golem-monster-link').val('');
+		return false;
+	});
 };
 
 Monster.page = function(page, change) {
-	var now = Date.now(), i, uid, name, type, tmp, txt, dmg, fort, list, el, mid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, timer, ATTACKHISTORY = 20, data = this.data, types = this.types, ensta = ['energy','stamina'], x, festival, parent = $('#'+APPID_+'app_body'), $children;
+	var now = Date.now(), i, j, o, oid, uid, name, code, tower, type, tmp, txt, dmg, fort, list, el, mid, type_label, $health, $defense, $dispel, $secondary, dead = false, monster, ATTACKHISTORY = 20, types = this.types, ensta = ['energy','stamina'], x, festival, parent, $children, owner;
 
+	log(LOG_INFO, '# page ' + page);
 	if (['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(page)>=0) { // In a monster or raid
 		festival = (page === 'festival_battle_monster');
-		uid = $('img[linked][size="square"]').attr('uid') || ($('img[width="52"][height="52"]').attr('src') || '').regex(/facebook\.com\/(\d+)\/picture/i);
-		//log(LOG_WARN, 'Parsing for Monster type');
-		for (i in types) {
-			if (types[i].dead && $('img[src$="'+types[i].dead+'"]', parent).length 
-					&& (!types[i].title || $('div[style*="'+types[i].title+'"]').length 
-						|| $('div[style*="'+types[i].image+'"]', parent).length)) {
-//			if (types[i].dead && $('img[src$="'+types[i].dead+'"]', parent).length) {
-				//log(LOG_WARN, 'Found a dead '+i);
-				type_label = i;
-				timer = (festival ? types[i].festival_timer : 0) || types[i].timer;
-				dead = true;
-				break;
-			} else if (types[i].image && $('img[src$="'+types[i].image+'"],div[style*="'+types[i].image+'"]', parent).length) {
-				//log(LOG_WARN, 'Parsing '+i);
-				type_label = i;
-				timer = (festival ? types[i].festival_timer : 0) || types[i].timer;
-				break;
-			} else if (types[i].image2 && $('img[src$="'+types[i].image2+'"],div[style*="'+types[i].image2+'"]', parent).length) {
-				//log(LOG_WARN, 'Parsing second stage '+i);
-				type_label = i;
-				timer = (festival ? types[i].festival_timer : 0) || types[i].timer2 || types[i].timer;
-				break;
+
+		i = $('div[style*="monster_header_"]'
+		  + ',div[style*="boss_header_"]'
+		  + ',div[style*="festival_monsters_top_"]'
+		  + ',div[style*="dragon_title_owner."]'
+		  + ',div[style*="monster_"][style*="_header."]'); // grrr
+
+		if (!i.length) {
+			log(LOG_WARN, "# can't find monster header div for owner name");
+		} else if (isFacebook) {
+			parent = i;
+			owner = $('img[linked][size="square"]', parent);
+			if (owner.length) {
+				oid = owner.attr('uid');
+			}
+		} else {
+			parent = i;
+			if ((owner = $('img[src*="/picture?type=square"]', parent)).length) {
+				oid = (owner.attr('src') || '').regex(/facebook\.com\/(\d+)\/picture\?type=square/i);
+			} else if ((owner = $('a[href*="facebook.com/profile.php?id="]', parent)).length) {
+				oid = (owner.attr('href') || '').regex(/facebook\.com\/profile\.php\?id=(\d+)/i);
+				if ((x = $('~ div', owner.closest('div')).filter(':colour(white)')).length === 1
+				  && (x = $(x).text().trim(true).match(/^(.*)'s [^']*$/))
+				) {
+					name = x[1].trim();
+				} else if ((x = $('img[src*="fbcdn.net/"][title]', owner)).length === 1) {
+					name = $(x).attr('title').trim(true);
+				}
+			} else {
+				log(LOG_INFO, '# oid failure breakdown: ' + i.length);
+				log(LOG_INFO, '# parent: ' + dom_heritage(parent));
+				log(LOG_INFO, '# a: ' + $('a', parent).length
+				  + ' | ' + dom_heritage($('a', parent))
+				  + ' | href[' + ($('a').attr('href') || '') + ']'
+				);
+				log(LOG_INFO, '# a.fb_profile_pic_rendered: ' + dom_heritage($('a.fb_profile_pic_rendered', parent)));
+				log(LOG_INFO, '# a.fb_link: ' + dom_heritage($('a.fb_link', parent)));
+				log(LOG_INFO, '# a.fb_link[href]: ' + dom_heritage($('a.fb_link[href]', parent)));
 			}
 		}
-		if (!uid || !type_label) {
-			log(LOG_WARN, 'Unable to identify monster' + (!uid ? ' owner' : '') + (!type_label ? ' type' : ''));
+
+		if (parent.length) {
+			// dig out the monster code
+			tmp = null;
+			if ((j = $('div:contains("Monster Code")', parent)).length) {
+				tmp = j.last().text().trim(true);
+			} else if ((j = $('~ div:contains("Monster Code")', parent)).length) {
+				tmp = j.last().text().trim(true);
+			}
+			if (isString(tmp) && isArray(x = tmp.match(/^Monster codes?: (\w+:\w+)\b/i))) {
+				code = x[1];
+			}
+
+			// dig out the summoner's ca name
+			tmp = null;
+			if ((j = $('div:contains("ummoned")', parent)).length) {
+				tmp = $(j.last()).text().trim(true);
+				j = parent.parent();
+			} else if ((j = $('~ div:contains("ummoned")', parent)).length) {
+				tmp = $(j.last()).text().trim(true);
+				j = parent;
+			}
+			if (isString(tmp)
+			  && ((x = tmp.match(/^(.*\S)'s Summoned$/i))
+			  || (x = tmp.match(/^(.*\S) Summoned$/i)))
+			) {
+				name = x[1].trim(true);
+			}
+
+			if (!j || !j.length) {
+				j = parent;
+			}
+			type_label = this.identify(j);
+		}
+
+		if (!oid || !type_label) {
+			log(LOG_WARN, 'Unable to identify monster:'
+			  + (!oid ? ' owner' : '')
+			  + (!type_label ? ' type' : '')
+			);
 			return false;
 		}
-		mid = uid+'_' + (page === 'festival_battle_monster' ? 'f' : (types[i].mpool || 4));
+
+		if (type_label.charAt(0) === '!') {
+			dead = true;
+			type_label = type_label.substr(1);
+		}
+		type = types[type_label];
+
+		if (!(tower = this.get(['data',mid,'tower']))
+		  && $('img[src*="festival_achievement_monster2_"]').length
+		) {
+			tower = 2;
+		}
+
+		uid = oid;
+		if (festival) {
+			mid = uid + '_f';
+		} else if (type.raid) {
+			mid = uid + '_r';
+		} else {
+			mid = uid + '_' + (type.mpool || 4);
+		}
 		if (this.runtime.check === mid) {
 			this.set(['runtime','check'], false);
 		}
 		//log(LOG_WARN, 'MID '+ mid);
 		this.set(['data',mid,'type'], type_label);
+		if (festival) {
+			this.set(['data',mid,'page'], 'festival');
+		}
+		if (tower) {
+			this.set(['data',mid,'tower'], tower);
+		}
 		this.set(['data',mid,'button_fail'], 0);
 		this.set(['data',mid,'last'], now);
-		type = types[type_label];
-		monster = data[mid];
+		monster = this.get(['data',mid]);
 		this.set(['data',mid,'page'], page === 'festival_battle_monster' ? 'festival' : 'keep');
-		this.set(['data',mid,'name'], $('a[href="keep.php?casuser=' + uid + '"]').first().text());
-//		this.set(['data',mid,'name'], $('img[linked][size="square"]').parent().parent().parent().text().replace("'s summoned",'').replace(' Summoned','').replace(/Monster Code: \w+:\d/,'').trim());
+		this.set(['data',mid,'name'], name);
+		if (code) {
+			this.set(['data',mid,'code'], code);
+		}
 		if (dead) {
 			// Will this catch Raid format rewards?
-			if ($('input[src*="collect_reward_button"]').length) {
+			if ($('input[src*="collect_reward_button."]').length
+			  || $('input[src*="monster_buttons_collectreward."]').length
+			) {
 				this.set(['data',mid,'state'], 'reward');
 			} else if ($('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser=' + userID + '"]').length) {
 				if (!this.get(['data',mid,'dead'])) {
@@ -13037,13 +13548,28 @@ Monster.page = function(page, change) {
 			}
 			return false;
 		}
-		this.runtime.monsters[type_label] = this.runtime.monsters[type_label] || {};
-		if ($('span.result_body').text().match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
-			if ($('span.result_body').text().match(/for your help in summoning/i)) {
+
+		if ((j = ($('span.result_body').text() || '').trim()).match(/for your help in summoning|You have already assisted on this objective|You don't have enough stamina assist in summoning/i)) {
+			if (j.match(/for your help in summoning/i)) {
 				this.set(['data',mid,'assist'], now);
 			}
-			this.set(['data',mid,'state'], this.get(['data',mid,'state'], 'assist', 'string'));
+			j = this.get(['data',mid,'state']);
+			if (j !== 'engage' && j !== 'reward' || j !== 'completed') {
+				this.set(['data',mid,'state'], 'assist');
+			}
 		} else {
+			if (!dead && ((j = $('div[style*="nm_bottom."]')).length
+			  && j.text().trim(true).match(/already hit the max number of attacker/i))
+			  || ((j = $('div[style*="monster_layout_2."]')).length
+			  && j.text().trim(true).match(/already hit the max number of attacker/i))
+			) {
+				this.set(['data',mid,'state'], 'full');
+				this.set(['data',mid,'scouted'], now);
+			} else if (!dead && !this.get(['data',mid,'state'])) {
+				this.set(['data',mid,'state'], 'scout');
+				this.set(['data',mid,'scouted'], now);
+			}
+
 			for (i in ensta) {
 				if (this.get(['runtime','used',ensta[i]])) {
 					if ($('span[class="positive"]').length && $('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')) {
@@ -13051,7 +13577,7 @@ Monster.page = function(page, change) {
 								,'damage',Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,''))
 								,ensta[i],this.runtime.used[ensta[i]],10);
 						//log(LOG_WARN, 'Damage per ' + ensta[i] + ' = ' + this.runtime.monsters[type_label]['avg_damage_per_' + ensta[i]]);
-						if (Player.get('general') === 'Banthus Archfiend' 
+						if (Player.get('general') === 'Banthus Archfiend'
 								&& Generals.get(['data','Banthus Archfiend','charge'],1e99) < now) {
 							Generals.set(['data','Banthus Archfiend','charge'],now + 4320000);
 						}
@@ -13120,7 +13646,7 @@ Monster.page = function(page, change) {
 			}
 		}
 		if (!type.defense_img || type.defense_img === 'defense_img') {
-			// If we know this monster should have a defense image and don't find it, 
+			// If we know this monster should have a defense image and don't find it,
 			for (i = 0; i < this.defense_img.length; i++) {
 				if ($(this.defense_img[i]).length){
 					$defense = $(this.defense_img[i]).parent();
@@ -13137,10 +13663,13 @@ Monster.page = function(page, change) {
 		}
 		this.set(['data',mid,'timer'], $('#'+APPID_+'monsterTicker').text().parseTimer());
 		this.set(['data',mid,'finish'], now + (this.get(['data',mid,'timer']) * 1000));
+		// doesn't take raid stage 2 into account yet
+		i = (festival ? (this.get(['data',mid,'tower']) === 2 ? type.festival_timer2 : 0) || type.festival_timer : 0) || type.timer;
+		this.set(['data',mid,'start'], this.get(['data',mid,'finish']) - i * 1000);
 		this.set(['data',mid,'damage','siege'], 0);
 		this.set(['data',mid,'damage','others'], 0);
 		if (!dead &&$('input[name*="help with"]').length && $('input[name*="help with"]').attr('title')) {
-			//log(LOG_WARN, 'Current Siege Phase is: '+ this.data[mid].phase);
+			//log(LOG_WARN, 'Current Siege Phase is: '+ this.get(['data',mid,'phase']);
 			this.set(['data',mid,'phase'], $('input[name*="help with"]').attr('title').regex(/ (.*)/i));
 			//log(LOG_WARN, 'Assisted on '+this.get(['data',mid,'phase'])+'.');
 		}
@@ -13160,23 +13689,23 @@ Monster.page = function(page, change) {
 		}
 		if (tmp.length) {
 			tmp = $('td a[href*="keep.php?casuser="]', tmp);
-		}
-		for (i = 0; i < tmp.length; i++) {
-			uid = $(tmp[i]).attr('href').regex(/user=(\d+)\b/i);
-			txt = ($(tmp[i]).closest('td').next().text() || '').replace(/[^\d\/]+/gm, '');
-			dmg = tmp.regex(/^(\d+)/);
-			fort = tmp.regex(/\/(\d+)/);
-			if (uid === userID){
-				if (!this.get(['data',mid,'state'])
-				  && this.get(['data',mid,'finish'], 0, 'number') > now
-				) {
-					this.set(['data',mid,'state'], 'engage');
+			for (i = 0; i < tmp.length; i++) {
+				uid = $(tmp[i]).attr('href').regex(/user=(\d+)\b/i);
+				txt = ($(tmp[i]).closest('td').next().text() || '').replace(/[^\d\/]+/gm, '');
+				dmg = txt.regex(/^(\d+)/);
+				fort = txt.regex(/\/(\d+)/);
+				if (uid === userID){
+					if (!this.get(['data',mid,'state'])
+					  && this.get(['data',mid,'finish'], 0, 'number') > now
+					) {
+						this.set(['data',mid,'state'], 'engage');
+					}
+					this.set(['data',mid,'damage','user','manual'], dmg - this.get(['data',mid,'damage','user','script'], 0));
+					this.set(['data',mid,'defend','manual'], fort - this.get(['data',mid,'defend','script'], 0));
+					this.set(['data',mid,'stamina','manual'], Math.round(this.get(['data',mid,'damage','user','manual'], 0) / this.get(['runtime','monsters',type_label,'avg_damage_per_stamina'], 1)));
+				} else {
+					this.add(['data',mid,'damage','others'], dmg);
 				}
-				this.set(['data',mid,'damage','user','manual'], dmg - this.get(['data',mid,'damage','user','script'], 0));
-				this.set(['data',mid,'defend','manual'], fort - this.get(['data',mid,'defend','script'], 0));
-				this.set(['data',mid,'stamina','manual'], Math.round(this.get(['data',mid,'damage','user','manual'], 0) / this.get(['runtime','monsters',type_label,'avg_damage_per_stamina'], 1)));
-			} else {
-				this.add(['data',mid,'damage','others'], dmg);
 			}
 		}
 		// If we're doing our first attack then add them without having to visit list
@@ -13186,18 +13715,18 @@ Monster.page = function(page, change) {
 		if (!type.raid && $(type.attack_button).length && sum(this.get(['data',mid,'damage','user'], 0))) {
 			this.set(['data',mid,'state'], this.get(['data',mid,'state'], 'engage', 'string'));
 		}
-		this.set(['data',mid,'dps'], sum(this.get(['data',mid,'damage'], 0)) / (timer - this.get(['data',mid,'timer'])));
+		this.set(['data',mid,'dps'], sum(this.get(['data',mid,'damage'])) / (now - this.get(['data',mid,'start'])) * 1000);
 		if (types[type_label].raid) {
 			this.set(['data',mid,'total'], sum(this.get(['data',mid,'damage'])) + $('div[style*="monster_health_back.jpg"] div:nth-child(2)').text().regex(/(\d+)/));
 		} else {
 			this.set(['data',mid,'total'], Math.ceil(100 * sum(this.get(['data',mid,'damage'])) / (this.get(['data',mid,'health']) === 100 ? 0.1 : (100 - this.get(['data',mid,'health'])))));
 		}
 		this.set(['data',mid,'eta'], now + (Math.floor((this.get(['data',mid,'total']) - sum(this.get(['data',mid,'damage']))) / this.get(['data',mid,'dps'])) * 1000));
-//		this.runtime.used.stamina = 0;
-//		this.runtime.used.energy = 0;
+//		this.set('runtime.used.stamina', 0);
+//		this.set('runtime.used.energy', 0);
 	} else if (page === 'monster_dead') {
 		if (Queue.temp.current === 'Monster' && this.runtime.mid) { // Only if we went here ourselves...
-			log(LOG_WARN, 'Deleting ' + data[this.runtime.mid].name + "'s " + data[this.runtime.mid].type);
+			log(LOG_WARN, 'Deleting ' + this.get(['data',this.runtime.mid,'name']) + "'s " + this.get(['data',this.runtime.mid,'type']));
 //			this.set(['data',this.runtime.mid]);
 			this.set(['data',this.runtime.mid,'remove'], true);
 		} else {
@@ -13206,13 +13735,8 @@ Monster.page = function(page, change) {
 		this.set(['runtime','check'], false);
 // Still need to do battle_raid
 	} else if (page === 'festival_monster_list' || page === 'festival_monster2_list') { // Check monster / raid list
-		for (mid in data) {
-			if (data[mid].page === 'festival' && (data[mid].state !== 'assist' || data[mid].finish < now)) {
-				data[mid].state = null;
-			}
-		}
 		list = $('div[style*="festival_monster_list_middle.jpg"]');
-		for (i=0; i<list.length; i++) {
+		for (i = 0; i < list.length; i++) {
 			el = list[i];
 			$children = $(el).children('div');
 			try {
@@ -13223,13 +13747,14 @@ Monster.page = function(page, change) {
 				assert(name = $children.eq(2).children().eq(0).text().replace(/'s$/i, ''), 'Unknown User Name');
 //				log(LOG_WARN, 'Adding monster - uid: '+uid+', name: '+name+', image: "'+type+'"');
 				mid = uid + '_f';
-				if (page === 'festival_monster2_list') {
-					this.set(['data',mid,'tower'], 2);
-				}
 				this.set(['data',mid,'type'], type);
 				this.set(['data',mid,'name'], name);
 				this.set(['data',mid,'page'], 'festival');
-				switch($children.eq(3).find('img').attr('src').filepart().regex(/(\w+)\.(gif|jpg)/)[0]) {
+				if (page === 'festival_monster2_list') {
+					this.set(['data',mid,'tower'], 2);
+				}
+				this.set(['data',mid,'seen'], now);
+				switch ($children.eq(3).find('img').attr('src').filepart().regex(/(\w+)\.(gif|jpg)/)[0]) {
 				case 'festival_monster_engagebtn':
 					this.set(['data',mid,'state'], 'engage');
 					break;
@@ -13249,15 +13774,26 @@ Monster.page = function(page, change) {
 				log(e, e.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e.message);
 			}
 		}
-	} else if (page === 'monster_monster_list') { // Check monster / raid list
-		for (mid in data) {
-			if (!types[data[mid].type].raid && data[mid].page !== 'festival'
-					&& (data[mid].state !== 'assist' || data[mid].finish < now)) {
-				data[mid].state = null;
+		for (mid in this.data) {
+			o = this.get(['data',mid]);
+			if (o.page === 'festival'
+			  && page === (o.tower === 2 ? 'festival_monster2_list' : 'festival_monster_list')
+			  && this.get(['data',mid,'seen'], 0) < now
+			  && ((o.scouted || Date.HUGE) + 5*60*1000 < now
+			  || (o.finish || Date.HUGE) < now
+			  || (o.state !== 'assist' && o.state !== 'scout'))
+			) {
+				log(LOG_INFO, 'Deleting stale festival '
+				  + o.type + '.' + mid
+				  + (o.tower ? '.' + tower : '')
+				  + ' in state ' + o.state
+				);
+				this.set(['data',mid,'state'], null);
 			}
 		}
+	} else if (page === 'monster_monster_list') { // Check monster / raid list
 		list = $('div[style*="monsterlist_container.gif"]');
-		for (i=0; i<list.length; i++) {
+		for (i = 0; i < list.length; i++) {
 			el = list[i];
 			$children = $(el).children('div');
 			try {
@@ -13265,18 +13801,27 @@ Monster.page = function(page, change) {
 				assert(uid = $children.eq(2).find('input[name="casuser"]').attr('value'), 'Unknown UserID');
 				tmp = $children.eq(0).find('img').eq(0).attr('src').regex(/graphics\/([^.]*\....)/i);
 				assert(type = findInObject(types, tmp, 'list'), 'Unknown monster type: '+tmp);
-				assert(name = $children.eq(1).children().eq(0).text().replace(/'s$/i, ''), 'Unknown User Name');
-//				log(LOG_WARN, 'Adding monster - uid: '+uid+', name: '+name+', image: "'+type+'"');
+				name = $children.eq(1).children().eq(0).text().trim(true);
+				if ((x = name.indexOf("'s " + this.types[type].name)) >= 0
+				  || ((x = this.types[type].brief)
+				  && (x = name.indexOf("'s " + x)) >= 0)
+				) {
+					name = name.substr(0, x);
+				}
+//				log(LOG_INFO, 'Adding monster - uid: '+uid+', name: '+name+', image: "'+type+'"');
 				mid = uid + '_' + (types[type].mpool || 4);
 				this.set(['data',mid,'type'], type);
 				this.set(['data',mid,'name'], name);
+				this.set(['data',mid,'seen'], now);
 				switch($children.eq(2).find('input[type="image"]').attr('src').regex(/(\w+)\.(gif|jpg)/)[0]) {
 				case 'monsterlist_button_engage':
 					this.set(['data',mid,'state'], 'engage');
 					break;
 				case 'monster_button_collect':
 					// Can't tell if complete or reward, so set to complete, and will find reward when next visited
-					this.set(['data',mid,'state'], 'complete');
+					if (!this.get(['data',mid,'collected'])) {
+						this.set(['data',mid,'state'], 'reward');
+					}
 					break;
 				default:
 					this.set(['data',mid,'state'], 'unknown');
@@ -13288,43 +13833,80 @@ Monster.page = function(page, change) {
 				log(e2, e2.name + ' in ' + this.name + '.page(' + page + ', ' + change + '): ' + e2.message);
 			}
 		}
-	} else if (page === 'monster_remove_list') { // Check monster / raid list
-		for (mid in data) {
-			if (!types[data[mid].type].raid && data[mid].page !== 'festival'
-					&& (data[mid].state !== 'assist' || data[mid].finish < now)) {
-				data[mid].state = null;
+		for (mid in this.data) {
+			o = this.get(['data',mid]);
+			if (o.page !== 'festival' && !types[o.type].raid
+			  && this.get(['data',mid,'seen'], 0) < now
+			  && ((o.scouted || Date.HUGE) + 5*60*1000 < now
+			  || (o.finish || Date.HUGE) < now
+			  || (o.state !== 'assist' && o.state !== 'scout'))
+			) {
+				log(LOG_INFO, 'Deleting stale monster '
+				  + o.type + '.' + mid
+				  + ' in state ' + o.state
+				);
+				this.set(['data',mid,'state'], null);
 			}
 		}
+	} else if (page === 'monster_remove_list') { // Check monster / raid list
 		$('#app'+APPID+'_app_body div.imgButton').each(function(a,el) {
 			var link = $('a', el).attr('href'), mid;
+			// this page may not be ours, so only use it to confirm known
+			// monster state, not to learn new ones
 			if (link && link.regex(/casuser=([0-9]+)/i)) {
 				mid = link.regex(/casuser=([0-9]+)/i)+'_'+link.regex(/mpool=([0-9])/i);
+				if (!this.get(['data',mid])) {
+					return;
+				}
 				log(LOG_WARN, 'MID '+ mid);
 				switch($('img', el).attr('src').regex(/dragon_list_btn_([0-9])/)) {
 				case 2:
-					Monster.set(['data',mid,'state'], 'reward');
+					if (Monster.get(['data',mid,'state']) === 'engage') {
+						Monster.set(['data',mid,'state'], 'reward');
+						Monster.set(['data',mid,'seen'], now);
+					}
 					break;
 				case 3:
-					Monster.set(['data',mid,'state'], 'engage');
+					//Monster.set(['data',mid,'state'], 'engage');
+					this.set(['data',mid,'seen'], mid);
 					break;
 				case 4:
-					Monster.set(['data',mid,'state'], 'complete');
-					Monster.set(['data',mid,'remove'], true);
+					if (Monster.get(['data',mid,'state']) === 'engage') {
+						// might need collecting, check that first
+						Monster.set(['data',mid,'state'], 'reward');
+						Monster.set(['data',mid,'seen'], now);
+					}
 					break;
 				default:
-					Monster.set(['data',mid,'state'], 'unknown');
+					//Monster.set(['data',mid,'state'], 'unknown');
 					break; // Should probably delete, but keep it on the list...
 				}
 			}
 		});
+		for (mid in this.data) {
+			o = this.get(['data',mid]);
+			if (o.page !== 'festival' && !types[o.type].raid
+			  && this.get(['data',mid,'seen'], 0) < now
+			  && ((o.scouted || Date.HUGE) + 5*60*1000 < now
+			  || (o.finish || Date.HUGE) < now
+			  || (o.state !== 'assist' && o.state !== 'scout'))
+			) {
+				log(LOG_INFO, 'Possibly stale monster '
+				  + ((j = types[o.type]) ? j : o.type)
+				  + '.' + mid
+				  + ' in state ' + o.state
+				);
+				//this.set(['data',mid,'state'], null);
+			}
+		}
 	}
 	return false;
 };
 
 Monster.resource = function() {
-	if (Monster.runtime.banthus.length && Generals.get(['data','Banthus Archfiend','charge'],1e99) < Date.now()) {
+	if (Monster.get('runtime.banthus').length && Generals.get(['data','Banthus Archfiend','charge'],1e99) < Date.now()) {
 		Monster.set(['runtime','banthusNow'], true);
-		LevelUp.set(['runtime','basehit'], Monster.runtime.banthus.lower(LevelUp.get(['runtime','stamina'], 0)));
+		LevelUp.set(['runtime','basehit'], Monster.get('runtime.banthus').lower(LevelUp.get(['runtime','stamina'], 0)));
 		LevelUp.set(['runtime','general'], 'Banthus Archfiend');
 		return 'stamina';
 	}
@@ -13332,61 +13914,79 @@ Monster.resource = function() {
 	return false;
 };
 
-Monster.update = function(event) {
-	if (event.type === 'runtime' && event.worker.name !== 'LevelUp') {
-		return;
-	}
-	var now = Date.now(), i, j, o, p, mid, uid, type, stat_req, req_stamina, req_health, req_energy, messages = [], fullname = {}, list = {}, listSortFunc, matched_mids = [], min, max, limit, filter, ensta = ['energy','stamina'], defatt = ['defend','attack'], button_count, monster, damage, target, waiting_ok, condition, searchterm, attack_found, defend_found, attack_overach, defend_overach, suborder, defense_kind, button, order;
+Monster.update = function(event, events) {
+	var now = Date.now(), i, j, o, p, mid, uid, type,
+		stat_req, req_stamina, req_health, req_energy,
+		messages = [], fullname = {}, list = {}, listSortFunc,
+		matched_mids = [], min, max, limit, filter,
+		ensta = ['energy','stamina'],
+		defatt = ['defend','attack'],
+		button_count, monster, damage, target, waiting_ok,
+		condition, searchterm, attack_found, defend_found,
+		attack_overach, defend_overach, suborder, defense_kind, button, order,
+		health = Player.get('health');
 
-	this.runtime.mode = this.runtime.stat = this.runtime.check = this.runtime.message = this.runtime.mid = null;
-	this.runtime.big = this.runtime.values.attack = this.runtime.values.defend = [];
-	limit = this.runtime.limit;
-	if(!LevelUp.runtime.running && limit === 100){
+	this.set('runtime.mode', null);
+	this.set('runtime.stat', null);
+	this.set('runtime.check', null);
+	this.set('runtime.message', null);
+	this.set('runtime.mid', null);
+	this.set('runtime.big', []);
+	this.set('runtime.values.attack', []);
+	this.set('runtime.values.defend', []);
+
+	limit = this.get('runtime.limit');
+	if(!LevelUp.get('runtime.running') && limit === 100){
 		limit = 0;
 	}
 	list.defend = [];
 	list.attack = [];
+
 	// Flush stateless monsters
 	for (mid in this.data) {
-		if (!this.data[mid].state) {
-			log(LOG_LOG, 'Deleted monster MID ' + mid + ' because state is ' + this.data[mid].state);
-			delete this.data[mid];
+		o = this.get(['data',mid]);
+		if (!o.state) {
+			log(LOG_LOG, 'Deleted monster MID ' + mid + ' because state is ' + o.state);
+			this.set(['data',mid]);
 		}
 	}
+
 	// Check for unviewed monsters
 	for (mid in this.data) {
-		if (!this.data[mid].last && !this.data[mid].ignore && this.data[mid].state === 'engage') {
+		o = this.get(['data',mid]);
+		if (!o.last && !o.ignore && o.state === 'engage') {
 			this.check(mid, 'Checking new monster ', 'casuser','');
-			this.runtime.defending = true;
-			this.data[mid].last = now; // Force it to only check once
+			this.set('runtime.defending', true);
+			this.set(['data',mid,'last'], now); // Force it to only check once
 			return;
 		}
 	}
+
 	// Some generals use more stamina, but only in certain circumstances...
 	defatt.forEach( function(mode) {
-		Monster.runtime.multiplier[mode] = (Generals.get([LevelUp.runtime.general || (Generals.best(Monster.option['best_' + mode] ? ('monster_' + mode) : Monster.option['general_' + mode])), 'skills'], '').regex(/Increase Power Attacks by (\d+)/i) || 1);
-		//log(LOG_WARN, 'mult ' + mode + ' X ' + Monster.runtime.multiplier[mode]);
+		Monster.set(['runtime','multiplier',mode], (Generals.get([LevelUp.get('runtime.general') || (Generals.best(Monster.option['best_' + mode] ? ('monster_' + mode) : Monster.option['general_' + mode])), 'skills'], '').regex(/Increase Power Attacks by (\d+)/i) || 1));
+		//log(LOG_WARN, 'mult ' + mode + ' X ' + Monster.get(['runtime','multiplier',mode]));
 	});
-	waiting_ok = !this.option.hide && !LevelUp.runtime.force.stamina;
+	waiting_ok = !this.option.hide && !LevelUp.get('runtime.force.stamina');
 	if (this.option.stop === 'Priority List') {
 		attack_found = false;
 		defend_found = false;
 		attack_overach = false;
 		defend_overach = false;
 		order = [];
-		this.runtime.banthus = [];
+		this.set('runtime.banthus', []);
 		if (this.option.priority) {
 			order = this.option.priority.toLowerCase().replace(/ *[\n,]+ */g,',').replace(/[, ]*\|[, ]*/g,'|').split(',');
 		}
 		order.push('your ',"'s"); // Catch all at end in case no other match
-		for (o=0; o<order.length; o++) {
+		for (o = 0; o < order.length; o++) {
 			order[o] = order[o].trim();
 			if (!order[o]) {
 				continue;
 			}
 			if (order[o] === 'levelup') {
-				if ((LevelUp.runtime.force.stamina && !list.attack.length) 
-						|| (LevelUp.runtime.force.energy && !list.defend.length)) {
+				if ((LevelUp.get('runtime.force.stamina') && !list.attack.length)
+						|| (LevelUp.get('runtime.force.energy') && !list.defend.length)) {
 					matched_mids = [];
 					continue;
 				} else {
@@ -13394,7 +13994,7 @@ Monster.update = function(event) {
 				}
 			}
 			suborder = order[o].split('|');
-			for (p=0; p<suborder.length; p++) {
+			for (p = 0; p < suborder.length; p++) {
 				suborder[p] = suborder[p].trim();
 				if (!suborder[p]) {
 					continue;
@@ -13403,7 +14003,7 @@ Monster.update = function(event) {
 				condition = suborder[p].replace(new RegExp("^[^:]+"), '').toString().trim();
 				//log(LOG_WARN, 'Priority order ' + searchterm +' condition ' + condition + ' o ' + o + ' p ' + p);
 				for (mid in this.data) {
-					monster = this.data[mid];
+					monster = this.get(['data',mid]);
 					type = this.types[monster.type];
 					//If this monster does not match, skip to next one
 					// Or if this monster is dead, skip to next one
@@ -13414,113 +14014,110 @@ Monster.update = function(event) {
 						continue;
 					}
 					matched_mids.push(mid);
-					monster.ac = /:ac\b/.test(condition);
+					this.set(['data',mid,'ac'], /:ac\b/.test(condition));
 					if (monster.state !== 'engage') {
 						continue;
 					}
 					//Monster is a match so we set the conditions
-					monster.max = this.conditions('max',condition);
-					monster.ach = this.conditions('ach',condition) || type.achievement;
+					this.set(['data',mid,'max'], this.conditions('max',condition));
+					this.set(['data',mid,'ach'], this.conditions('ach',condition) || type.achievement);
 					// check for min/max stamina/energy overrides
 					if ((i = this.conditions('smin',condition)) && isNumber(i) && !isNaN(i)) {
-						monster.smin = i;
-					} else if (monster.smin) {
-						delete monster.smin;
+						this.set(['data',mid,'smin'], i);
+					} else {
+						this.set(['data',mid,'smin']);
 					}
 					if ((i = this.conditions('smax',condition)) && isNumber(i) && !isNaN(i)) {
-						monster.smax = i;
-					} else if (monster.smax) {
-						delete monster.smax;
+						this.set(['data',mid,'smax'], i);
+					} else {
+						this.set(['data',mid,'smax']);
 					}
 					if ((i = this.conditions('emin',condition)) && isNumber(i) && !isNaN(i)) {
-						monster.emin = i;
-					} else if (monster.emin) {
-						delete monster.emin;
+						this.set(['data',mid,'emin'], i);
+					} else {
+						this.set(['data',mid,'emin']);
 					}
 					if ((i = this.conditions('emax',condition)) && isNumber(i) && !isNaN(i)) {
-						monster.emax = i;
-					} else if (monster.emax) {
-						delete monster.emax;
+						this.set(['data',mid,'emax'], i);
+					} else {
+						this.set(['data',mid,'emax']);
 					}
 
 					// check for pa ach/max overrides
 					if ((i = this.conditions('achpa',condition)) && isNumber(i) && !isNaN(i)) {
-						monster.achpa = i;
-						if (isNumber(j = this.runtime.monsters[monster.type].avg_damage_per_stamina) && !isNaN(j)) {
-							monster.ach = Math.ceil(i * 5 * j);
+						this.set(['data',mid,'achpa'], i);
+						if (isNumber(j = this.get(['runtime','monsters',monster.type,'avg_damage_per_stamina'])) && !isNaN(j)) {
+							this.set(['data',mid,'ach'], Math.ceil(i * 5 * j));
 						}
-					} else if (monster.achpa) {
-						delete monster.achpa;
+					} else {
+						this.set(['data',mid,'achpa']);
 					}
 					if ((i = this.conditions('maxpa',condition)) && isNumber(i) && !isNaN(i)) {
-						monster.maxpa = i;
-						if (isNumber(j = this.runtime.monsters[monster.type].avg_damage_per_stamina) && !isNaN(j)) {
-							monster.max = Math.ceil(i * 5 * j);
+						this.set(['data',mid,'maxpa'], i);
+						if (isNumber(j = this.get(['runtime','monsters',monster.type,'avg_damage_per_stamina'])) && !isNaN(j)) {
+							this.set(['data',mid,'max'], Math.ceil(i * 5 * j));
 						}
-					} else if (monster.maxpa) {
-						delete monster.maxpa;
+					} else {
+						this.set(['data',mid,'maxpa']);
 					}
 
-					monster.attack_min = this.conditions('a%',condition) || this.option.min_to_attack;
+					this.set(['data',mid,'attack_min'], this.conditions('a%',condition) || this.option.min_to_attack);
 					if (isNumber(monster.ach) && !isNaN(monster.ach) && (!isNumber(monster.max) || isNaN(monster.max))) {
-						monster.max = monster.ach;
+						this.set(['data',mid,'max'], monster.ach);
 					}
 					if (isNumber(monster.max) && !isNaN(monster.max) && (!isNumber(monster.ach) || isNaN(monster.ach))) {
-						monster.ach = monster.max;
+						this.set(['data',mid,'ach'], monster.max);
 					}
 					if (isNumber(monster.max) && !isNaN(monster.max)) {
-						monster.ach=Math.min(monster.ach, monster.max);
+						this.set(['data',mid,'ach'], Math.min(monster.ach, monster.max));
 					}
 					if (type.defend) {
-						monster.defend_max = Math.min(this.conditions('f%',condition) || this.option.defend, (monster.strength || 100) - 1);
+						this.set(['data',mid,'defend_max'], Math.min(this.conditions('f%',condition) || this.option.defend, (monster.strength || 100) - 1));
 					}
+					monster = this.get(['data',mid]); // refetch
 					damage = 0;
-					if (monster.damage && monster.damage.user) {
-						damage += sum(monster.damage.user);
-					}
-					if (monster.defend) {
-						damage += sum(monster.defend);
-					}
+					damage += sum(this.get(['data',mid,'damage','user']));
+					damage += sum(this.get(['data',mid,'defend']));
 					target = monster.max || monster.ach || 0;
-					if(!type.raid){
-						button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
+					if (!type.raid){
+						button_count = ((type.attack.length > 2) ? this.get('runtime.button.count') : type.attack.length);
 					}
 					req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
-							: Math.min(type.attack[Math.min(button_count, monster.smax || type.attack.length)-1], Math.max(type.attack[0], LevelUp.runtime.basehit || monster.smin || this.option.attack_min)) * this.runtime.multiplier.attack;
+							: Math.min(type.attack[Math.min(button_count, monster.smax || type.attack.length)-1], Math.max(type.attack[0], LevelUp.get('runtime.basehit') || monster.smin || this.option.attack_min)) * this.get(['runtime','multiplier','attack']);
 					req_health = type.raid ? (this.option.risk ? 13 : 10) : 10;
 // Don't want to die when attacking a raid
-					//log(LOG_WARN, 'monster name ' + type.name + ' basehit ' + LevelUp.runtime.basehit +' min ' + type.attack[Math.min(button_count, monster.smax || type.attack.length)-1]);
+					//log(LOG_WARN, 'monster name ' + type.name + ' basehit ' + LevelUp.get('runtime.basehit') +' min ' + type.attack[Math.min(button_count, monster.smax || type.attack.length)-1]);
 					if ((monster.defense || 100) >= monster.attack_min) {
 // Set up this.values.attack for use in levelup calcs
 						if (type.raid) {
-							this.runtime.values.attack = this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique();
+							this.set('runtime.values.attack', this.get('runtime.values.attack').concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique());
 // If it's a defense monster, never hit for 1 damage.  Otherwise, 1 damage is ok.
 						} else {
 							if (damage < this.conditions('ban',condition)) {
-								this.runtime.banthus = this.runtime.banthus.concat(type.attack).unique();
+								this.set('runtime.banthus', this.get('runtime.banthus').concat(type.attack).unique());
 							}
 							if (type.defend && type.attack.indexOf(1) > -1) {
-								this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)).unique();
+								this.set('runtime.values.attack', this.get('runtime.values.attack').concat(type.attack.slice(1,this.get('runtime.button.count'))).unique());
 							} else {
-								this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
+								this.set('runtime.values.attack', this.get('runtime.values.attack').concat(type.attack.slice(0,this.get('runtime.button.count'))).unique());
 							}
 						}
 						if ((attack_found === false || attack_found === o)
-								&& (waiting_ok || (Player.get('health', 0) >= req_health
-								&& LevelUp.runtime.stamina >= req_stamina))
-								&& (!this.runtime.banthusNow	
+								&& (waiting_ok || (health >= req_health
+								&& LevelUp.get('runtime.stamina') >= req_stamina))
+								&& (!this.get('runtime.banthusNow')
 									|| damage < this.conditions('ban',condition))
-								&& (!LevelUp.runtime.basehit
-									|| type.attack.indexOf(LevelUp.runtime.basehit)>= 0)) {
+								&& (!LevelUp.get('runtime.basehit')
+									|| type.attack.indexOf(LevelUp.get('runtime.basehit'))>= 0)) {
 							button = type.attack_button;
 							if (this.option.use_tactics && type.tactics) {
 								button = type.tactics_button;
 							}
 							if (damage < monster.ach
-									|| (this.runtime.banthusNow	
+									|| (this.get('runtime.banthusNow')
 										&& damage < this.conditions('ban',condition))
-									|| (LevelUp.runtime.basehit
-										&& type.attack.indexOf(LevelUp.runtime.basehit)>= 0)) {
+									|| (LevelUp.get('runtime.basehit')
+										&& type.attack.indexOf(LevelUp.get('runtime.basehit'))>= 0)) {
 								attack_found = o;
 								if (attack_found && attack_overach) {
 									list.attack = [[mid, damage / sum(monster.damage), button, damage, target]];
@@ -13530,7 +14127,7 @@ Monster.update = function(event) {
 								}
 								//log(LOG_WARN, 'ATTACK monster ' + monster.name + ' ' + type.name);
 							} else if ((monster.max === false || damage < monster.max)
-									&& !attack_found 
+									&& !attack_found
 									&& (attack_overach === false || attack_overach === o)) {
 								list.attack.push([mid, damage / sum(monster.damage), button, damage, target]);
 								attack_overach = o;
@@ -13541,7 +14138,7 @@ Monster.update = function(event) {
 					if (!monster.no_heal && type.defend && this.option.defend_active
 							&& (/:big\b/.test(condition)
 								|| ((monster.defense || 100) < monster.defend_max))) {
-						this.runtime.big = this.runtime.big.concat(type.defend.slice(0,this.runtime.button.count)).unique();
+						this.set('runtime.big', this.get('runtime.big').concat(type.defend.slice(0,this.get('runtime.button.count'))).unique());
 					}
 					if (this.option.defend_active && (defend_found === false || defend_found === o)) {
 						defense_kind = false;
@@ -13550,16 +14147,16 @@ Monster.update = function(event) {
 							defense_kind = Monster.secondary_on;
 						} else if (monster.warrior && (monster.strength || 100) < 100 && monster.defense < monster.strength - 1) {
 							defense_kind = Monster.warrior;
-						} else if (!monster.no_heal 
-								&& ((/:big\b/.test(condition) && LevelUp.runtime.big)
+						} else if (!monster.no_heal
+								&& ((/:big\b/.test(condition) && LevelUp.get('runtime.big'))
 									|| (monster.defense || 100) < monster.defend_max)) {
 							defense_kind = type.defend_button;
 						}
 						if (defense_kind) {
-							this.runtime.values.defend = this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)).unique();
-							//log(LOG_WARN, 'defend ok' + damage + ' ' + LevelUp.runtime.basehit+ ' ' + type.defend.indexOf(LevelUp.runtime.basehit));
-							if (!LevelUp.runtime.basehit 
-									|| type.defend.indexOf(LevelUp.runtime.basehit)>= 0) {
+							this.set('runtime.values.defend', this.get('runtime.values.defend').concat(type.defend.slice(0,this.get('runtime.button.count'))).unique());
+							//log(LOG_WARN, 'defend ok' + damage + ' ' + LevelUp.get('runtime.basehit')+ ' ' + type.defend.indexOf(LevelUp.get('runtime.basehit')));
+							if (!LevelUp.get('runtime.basehit')
+									|| type.defend.indexOf(LevelUp.get('runtime.basehit'))>= 0) {
 								if (damage < monster.ach
 										|| (/:sec\b/.test(condition)
 											&& defense_kind === Monster.secondary_on)) {
@@ -13590,24 +14187,22 @@ Monster.update = function(event) {
 			monster = this.data[mid];
 			type = this.types[monster.type];
                         if(!type.raid){
-                                button_count = ((type.attack.length > 2) ? this.runtime.button.count : type.attack.length);
+                                button_count = ((type.attack.length > 2) ? this.get('runtime.button.count') : type.attack.length);
                         }
 			req_stamina = type.raid ? (this.option.raid.search('x5') === -1 ? 1	: 5)
-					: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], LevelUp.runtime.basehit || monster.smin || this.option.attack_min)) * this.runtime.multiplier.attack;
+					: Math.min(type.attack[Math.min(button_count,type.attack.length)-1], Math.max(type.attack[0], LevelUp.get('runtime.basehit') || monster.smin || this.option.attack_min)) * this.get('runtime.multiplier.attack');
 			req_health = type.raid ? (this.option.risk ? 13 : 10) : 10; // Don't want to die when attacking a raid
 			monster.ach = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement : (this.option.stop === 'Continuous') ? type.achievement :0;
-			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : (this.option.stop === 'Continuous') ? type.achievement*this.runtime.limit :0;
+			monster.max = (this.option.stop === 'Achievement') ? type.achievement : (this.option.stop === '2X Achievement') ? type.achievement*2 : (this.option.stop === 'Continuous') ? type.achievement*this.get('runtime.limit') :0;
 			if (	!monster.ignore
 					&& monster.state === 'engage'
 					&& monster.finish > now	) {
 				uid = mid.replace(/_.+/,'');
-				/*jslint eqeqeq:false*/
-				if (uid == userID && this.option.own) {
-				/*jslint eqeqeq:true*/
+				if (uid === userID && this.option.own) {
 					// add own monster
 				} else if (this.option.avoid_lost_cause
 						&& (monster.eta - monster.finish)/3600000
-							> this.option.lost_cause_hours && (!LevelUp.option.override || !LevelUp.runtime.running) && !monster.override) {
+							> this.option.lost_cause_hours && (!LevelUp.option.override || !LevelUp.get('runtime.running')) && !monster.override) {
 					continue;  // Avoid lost cause monster
 				} else if (this.option.rescue
 						&& (monster.eta
@@ -13633,9 +14228,7 @@ Monster.update = function(event) {
 				if (monster.defend) {
 					damage += sum(monster.defend);
 				}
-				/*jslint eqeqeq:false*/
-				if ((uid == userID && this.option.own) || this.option.stop === 'Never') {
-				/*jslint eqeqeq:true*/
+				if ((uid === userID && this.option.own) || this.option.stop === 'Never') {
 					target = 1e99;
 				} else if (this.option.stop === 'Achievement') {
 					target = type.achievement || 0;
@@ -13647,16 +14240,16 @@ Monster.update = function(event) {
 					target = 0;
 				}
 				// Possible attack target?
-				if ((waiting_ok || (Player.get('health', 0) >= req_health && LevelUp.runtime.stamina >= req_stamina))
+				if ((waiting_ok || (health >= req_health && LevelUp.get('runtime.stamina') >= req_stamina))
 				 && (isNumber(monster.defense) ? monster.defense : 100) >= Math.max(this.option.min_to_attack,0.1)) {
 // Set up this.values.attack for use in levelup calcs
 					if (type.raid) {
-						this.runtime.values.attack = this.runtime.values.attack.concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique();
+						this.set('runtime.values.attack', this.get('runtime.values.attack').concat((this.option.raid.search('x5') < 0) ? 1 : 5).unique());
 // If it's a defense monster, never hit for 1 damage.  Otherwise, 1 damage is ok.
 					} else if (type.defend && type.attack.indexOf(1) > -1) {
-						this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(1,this.runtime.button.count)).unique();
+						this.set('runtime.values.attack', this.get('runtime.values.attack').concat(type.attack.slice(1,this.get('runtime.button.count'))).unique());
 					} else {
-						this.runtime.values.attack = this.runtime.values.attack.concat(type.attack.slice(0,this.runtime.button.count)).unique();
+						this.set('runtime.values.attack', this.get('runtime.values.attack').concat(type.attack.slice(0,this.get('runtime.button.count'))).unique());
 					}
 					if (this.option.use_tactics && type.tactics) {
 						list.attack.push([mid, (sum(monster.damage && monster.damage.user) + sum(monster.defend)) / sum(monster.damage), type.tactics_button, damage, target]);
@@ -13666,8 +14259,8 @@ Monster.update = function(event) {
 				}
 				// Possible defend target?
 				if (this.option.defend_active) {
-					if(type.defend) {
-						this.runtime.values.defend = this.runtime.values.defend.concat(type.defend.slice(0,this.runtime.button.count)).unique();
+					if (type.defend) {
+						this.set('runtime.values.defend', this.get('runtime.values.defend').concat(type.defend.slice(0,this.get('runtime.button.count'))).unique());
 					}
 					if ((monster.secondary || 100) < 100) {
 						list.defend.push([mid, (sum(monster.damage && monster.damage.user) + sum(monster.defend)) / sum(monster.damage), Monster.secondary_on, damage, target]);
@@ -13681,17 +14274,21 @@ Monster.update = function(event) {
 			}
 		}
 	}
-	this.runtime.defending = list.defend && list.defend.length > 0;
+
+	this.set('runtime.defending', list.defend && list.defend.length > 0);
+
 	// If using the priority list and levelup settings, the script may oscillate between having something to defend when in level up, and then forgetting it when it goes to attack something because it doesn't pass levelup in the priority list and tries to quest, and then finds it again.  The following preserves the runtime.defending value even when in force.stamina mode
-	if (LevelUp.runtime.force.stamina) {
-		this.runtime.defending = this.runtime.levelupdefending;
+	if (LevelUp.get('runtime.force.stamina')) {
+		this.set('runtime.defending', this.get('runtime.levelupdefending'));
 	} else {
-		this.runtime.levelupdefending = this.runtime.defending;
+		this.set('runtime.levelupdefending', this.get('runtime.defending'));
 	}
-	
+
 	listSortFunc = function(a,b){
-		var monster_a = Monster.data[a[0]], monster_b = Monster.data[b[0]], late_a, late_b, time_a, time_b, goal_a, goal_b;
-		switch(Monster.option.choice) {
+		var monster_a = Monster.get(['data',a[0]]),
+			monster_b = Monster.get(['data',b[0]]),
+			late_a, late_b, time_a, time_b, goal_a, goal_b;
+		switch (Monster.option.choice) {
 		case 'Any':
 			return (Math.random()-0.5);
 		case 'Strongest':
@@ -13735,63 +14332,64 @@ Monster.update = function(event) {
 			if (list[i].length > 1) {
 				list[i].sort(listSortFunc);
 			}
-			this.runtime[i] = mid = list[i][0][0];
-			this.runtime.button[i].query = list[i][0][2];
+			this.set(['runtime',i], mid = list[i][0][0]);
+			this.set(['runtime','button',i,'query'], list[i][0][2]);
 			uid = mid.replace(/_.+/,'');
 			type = this.types[this.data[mid].type];
-			fullname[i] = (uid === userID ? 'your ': (this.data[mid].name + "'s ")) + type.name;
+			fullname[i] = (uid === userID ? 'your ': (this.get(['data',mid,'name']) + "'s ")) + type.name;
 		} else {
-			this.runtime[i] = false;
+			this.set(['runtime',i], false);
 		}
 	}
 	// Make the * dash messages for current attack and defend targets
 	for (i in ensta) {
-		if (this.runtime[defatt[i]]) {
-			monster = this.data[this.runtime[defatt[i]]];
+		if (this.get(['runtime',defatt[i]])) {
+			monster = this.get(['data',this.get(['runtime',defatt[i]])]);
 			type = this.types[monster.type];
 			// Calculate what button for att/def and how much energy/stamina cost
 			if (ensta[i] === 'stamina' && type.raid) {
-				this.runtime[ensta[i]] = this.option.raid.search('x5') < 0 ? 1 : 5;
+				this.set(['runtime',ensta[i]], this.option.raid.search('x5') < 0 ? 1 : 5);
 			} else {
-				button_count = ((type.attack.length > 2) ? this.runtime.button.count : type[defatt[i]].length);
-				min = Math.min(type[defatt[i]][Math.min(button_count,type[defatt[i]].length)-1], Math.max(type[defatt[i]][0], LevelUp.runtime.basehit || this.option[defatt[i] + '_min']));
-				max = Math.min(type[defatt[i]][Math.min(button_count,type[defatt[i]].length)-1], LevelUp.runtime.basehit || this.option[defatt[i] + '_max'], LevelUp.runtime[ensta[i]] / this.runtime.multiplier[defatt[i]]);
+				button_count = ((type.attack.length > 2) ? this.get('runtime.button.count') : type[defatt[i]].length);
+				min = Math.min(type[defatt[i]][Math.min(button_count,type[defatt[i]].length)-1], Math.max(type[defatt[i]][0], LevelUp.get('runtime.basehit') || this.option[defatt[i] + '_min']));
+				max = Math.min(type[defatt[i]][Math.min(button_count,type[defatt[i]].length)-1], LevelUp.get('runtime.basehit') || this.option[defatt[i] + '_max'], LevelUp.get(['runtime',ensta[i]]) / this.get(['runtime','multiplier',defatt[i]]));
 				damage = sum(monster.damage && monster.damage.user) + sum(monster.defend);
-				limit = (LevelUp.runtime.big ? max : damage < (monster.ach || damage)
+				limit = (LevelUp.get('runtime.big') ? max : damage < (monster.ach || damage)
 						? monster.ach : damage < (monster.max || damage)
 						? monster.max : max);
-				max = Math.min(max,(limit - damage)/(this.runtime.monsters[monster.type]['avg_damage_per_'+ensta[i]] || 1)/this.runtime.multiplier[defatt[i]]);
-				//log(LOG_WARN, 'monster damage ' + damage + ' average damage ' + (this.runtime.monsters[monster.type]['avg_damage_per_'+ensta[i]] || 1).round(0) + ' limit ' + limit + ' max ' + ensta[i] + ' ' + max.round(1));
+				max = Math.min(max,(limit - damage)/(this.get(['runtime','monsters',monster.type,'avg_damage_per_'+ensta[i]]) || 1)/this.get(['runtime','multiplier',defatt[i]]));
+				//log(LOG_WARN, 'monster damage ' + damage + ' average damage ' + (this.get(['runtime','monsters',monster.type,'avg_damage_per_'+ensta[i]]) || 1).round(0) + ' limit ' + limit + ' max ' + ensta[i] + ' ' + max.round(1));
 				filter = function(e) { return (e >= min && e <= max); };
-				this.runtime.button[defatt[i]].pick = bestObjValue(type[defatt[i]], function(e) { return e; }, filter) || type[defatt[i]].indexOf(min);
-				//log(LOG_WARN, ' ad ' + defatt[i] + ' min ' + min + ' max ' + max+ ' pick ' + this.runtime.button[defatt[i]].pick);
-				//log(LOG_WARN, 'min detail '+ defatt[i] + ' # buttons   ' + Math.min(this.runtime.button.count,type[defatt[i]].length) +' button val ' +type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1] + ' max of type[0] ' + type[defatt[i]][0] + ' queue or option ' + (LevelUp.runtime.basehit || this.option[defatt[i] + '_min']));
-				//log(LOG_WARN, 'max detail '+ defatt[i] + ' physical max ' + type[defatt[i]][Math.min(this.runtime.button.count,type[defatt[i]].length)-1] + ' basehit||option ' + (LevelUp.runtime.basehit || this.option[defatt[i]]) + ' stamina avail ' + (LevelUp.runtime[ensta[i]] / this.runtime.multiplier[defatt[i]]));
-				this.runtime[ensta[i]] = type[defatt[i]][this.runtime.button[defatt[i]].pick] * this.runtime.multiplier[defatt[i]];
+				this.set(['runtime','button',defatt[i],'pick'], bestObjValue(type[defatt[i]], function(e) { return e; }, filter) || type[defatt[i]].indexOf(min));
+				//log(LOG_WARN, ' ad ' + defatt[i] + ' min ' + min + ' max ' + max+ ' pick ' + this.get(['runtime','button',defatt[i],'pick']));
+				//log(LOG_WARN, 'min detail '+ defatt[i] + ' # buttons   ' + Math.min(this.get('runtime.button.count'),type[defatt[i]].length) +' button val ' +type[defatt[i]][Math.min(this.get('runtime.button.count'),type[defatt[i]].length)-1] + ' max of type[0] ' + type[defatt[i]][0] + ' queue or option ' + (LevelUp.get('runtime.basehit') || this.option[defatt[i] + '_min']));
+				//log(LOG_WARN, 'max detail '+ defatt[i] + ' physical max ' + type[defatt[i]][Math.min(this.get('runtime.button.count'),type[defatt[i]].length)-1] + ' basehit||option ' + (LevelUp.get('runtime.basehit') || this.option[defatt[i]]) + ' stamina avail ' + (LevelUp.get(['runtime',ensta[i]]) / this.get(['runtime','multiplier',defatt[i]])));
+				this.set(['runtime',ensta[i]], type[defatt[i]][this.get(['runtime','button',defatt[i],'pick']) * this.get(['runtime','multiplier',defatt[i]])]);
 			}
-			this.runtime.health = type.raid ? 13 : 10; // Don't want to die when attacking a raid
-			req_health = (defatt[i] === 'attack' ? Math.max(0, this.runtime.health - Player.get('health', 0)) : 0);
-			stat_req = Math.max(0, (this.runtime[ensta[i]] || 0) - LevelUp.runtime[ensta[i]]);
+			this.set('runtime.health', type.raid ? 13 : 10); // Don't want to die when attacking a raid
+			req_health = (defatt[i] === 'attack' ? Math.max(0, this.get('runtime.health') - health) : 0);
+			stat_req = Math.max(0, (this.get(['runtime',ensta[i]]) || 0) - LevelUp.get(['runtime',ensta[i]]));
 			if (stat_req || req_health) {
 				messages.push('Waiting for ' + (stat_req ? Config.makeImage(ensta[i]) + stat_req : '')
 				+ (stat_req && req_health ? ' &amp; ' : '') + (req_health ? Config.makeImage('health') + req_health : '')
 				+ ' to ' + defatt[i] + ' ' + fullname[defatt[i]]
-				+ ' (' + Config.makeImage(ensta[i]) + (this.runtime[ensta[i]] || 0) + '+' + (stat_req && req_health ? ', ' : '') + (req_health ? Config.makeImage('health') + req_health : '') + ')');
+				+ ' (' + Config.makeImage(ensta[i]) + (this.get(['runtime',ensta[i]]) || 0) + '+' + (stat_req && req_health ? ', ' : '') + (req_health ? Config.makeImage('health') + req_health : '') + ')');
 			} else {
 				messages.push(defatt[i] + ' ' + fullname[defatt[i]] + ' (' + Config.makeImage(ensta[i])
-						+ (this.runtime[ensta[i]] || 0) + '+)');
-				this.runtime.mode = this.runtime.mode || defatt[i];
-				this.runtime.stat = this.runtime.stat || ensta[i];
+						+ (this.get(['runtime',ensta[i]]) || 0) + '+)');
+				this.set('runtime.mode', this.get('runtime.mode') || defatt[i]);
+				this.set('runtime.stat', this.get('runtime.stat') || ensta[i]);
 			}
 		}
 	}
-	if (this.runtime.mode === 'attack' && Battle.runtime.points && this.option.points && Battle.runtime.attacking) {
-		this.runtime.mode = this.runtime.stat = null;
+	if (this.get('runtime.mode') === 'attack' && Battle.get('runtime.points') && this.option.points && Battle.get('runtime.attacking')) {
+		this.set('runtime.mode', null);
+		this.set('runtime.stat', null);
 	}
 	// Nothing to attack, so look for monsters we haven't reviewed for a while.
-	//log(LOG_WARN, 'attack ' + this.runtime.attack + ' stat_req ' + stat_req + ' health ' + req_health);
-	if ((!this.runtime.defend || LevelUp.runtime.energy < this.runtime.energy)
-			&& (!this.runtime.attack || stat_req || req_health)) { // stat_req is last calculated in loop above, so ok
+	//log(LOG_WARN, 'attack ' + this.get('runtime.attack') + ' stat_req ' + stat_req + ' health ' + req_health);
+	if ((!this.get('runtime.defend') || LevelUp.get('runtime.energy') < this.get('runtime.energy'))
+			&& (!this.get('runtime.attack') || stat_req || req_health)) { // stat_req is last calculated in loop above, so ok
 		for (mid in this.data) {
 			monster = this.data[mid];
 			if (!monster.ignore) {
@@ -13806,7 +14404,7 @@ Monster.update = function(event) {
 				} else if (monster.last < now - this.option.check_interval * (monster.remove ? 5 : 1)) {
 					this.check(mid, 'Reviewing ', 'casuser','');
 				}
-				if (this.runtime.message) {
+				if (this.get('runtime.message')) {
 					return;
 				}
 			}
@@ -13817,20 +14415,26 @@ Monster.update = function(event) {
 	} else {
 	    Dashboard.status(this);
 	}
-	if(!Queue.option.pause){
-		if(LevelUp.runtime.running){
-			this.runtime.limit = 100;
-		} else if (!this.runtime.attack){
-			this.runtime.limit = (limit > 30)? 1: (limit + 1|0);
+	if (!Queue.option.pause){
+		if (LevelUp.get('runtime.running')) {
+			this.set('runtime.limit', 100);
+		} else if (!this.get('runtime.attack')) {
+			this.set('runtime.limit', (limit > 30)? 1: (limit + 1|0));
 		}
 	} else {
-		this.runtime.limit = 0;
+		this.set('runtime.limit', 0);
 	}
 	this._notify('data');// Temporary fix for Dashboard updating
+
+	return true;
 };
 
 Monster.work = function(state) {
-	var i, j, target_info = [], battle_list, list = [], mid, uid, type, btn = null, b, mode = this.runtime.mode, stat = this.runtime.stat, monster, title;
+	var i, j, mid, uid, type, btn = null, b, monster, title,
+		target_info = [], battle_list, list = [],
+		mode = this.runtime.mode,
+		stat = this.runtime.stat;
+
 	if (!this.runtime.check && !mode) {
 		return QUEUE_NO_ACTION;
 	}
@@ -13840,12 +14444,15 @@ Monster.work = function(state) {
 	if (this.runtime.check) {
 		log(LOG_WARN, this.runtime.message);
 		Page.to(this.runtime.page, this.runtime.check);
-		this.runtime.check = this.runtime.limit = this.runtime.message = this.runtime.dead = false;
+		this.set('runtime.check', false);
+		this.set('runtime.limit', false);
+		this.set('runtime.message', false);
+		this.set('runtime.dead', false);
 		return QUEUE_RELEASE;
 	}
 	if (mode === 'defend' && LevelUp.get('runtime.quest')) {
 		return QUEUE_NO_ACTION;
-	}	
+	}
 	uid = this.runtime[mode].regex(/^(\d+)/);
 	monster = this.data[this.runtime[mode]];
 	type = this.types[monster.type];
@@ -13854,7 +14461,7 @@ Monster.work = function(state) {
 //		this._remind(0, 'levelup');
 //		return QUEUE_RELEASE;
 //	}
-	if (!Generals.to(Generals.runtime.zin || LevelUp.runtime.general || (this.option['best_'+mode] 
+	if (!Generals.to(Generals.runtime.zin || LevelUp.runtime.general || (this.option['best_'+mode]
 			? (type.raid
 				? ((this.option.raid.search('Invade') === -1) ? 'raid-duel' : 'raid-invade')
 				: 'monster_' + mode)
@@ -13871,7 +14478,7 @@ Monster.work = function(state) {
 		} else {
 //			log(LOG_WARN, ' query ' + $(this.runtime.button[mode].query).length + ' ' + this.runtime.button[mode].pick);
 			btn = $(this.runtime.button[mode].query).eq(this.runtime.button[mode].pick);
-			this.runtime.used[stat] = this.runtime[stat];
+			this.set(['runtime','used',stat], this.get(['runtime',stat]));
 		}
 		if (!btn || !btn.length){
 			monster.button_fail = (monster.button_fail || 0) + 1;
@@ -13882,7 +14489,7 @@ Monster.work = function(state) {
 			}
 		}
 	}
-	if (!btn || !btn.length 
+	if (!btn || !btn.length
 	 || ['keep_monster_active', 'monster_battle_monster', 'festival_battle_monster'].indexOf(Page.temp.page) < 0
 	 || (!$('div[style*="dragon_title_owner"] img[linked][uid="'+uid+'"]').length
 		&& !$('div[style*="nm_top"] img[linked][uid="'+uid+'"]').length
@@ -13893,7 +14500,7 @@ Monster.work = function(state) {
 		//log(LOG_WARN, 'Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
 		this.check(this.runtime[mode],'','casuser','');
 		Page.to(this.runtime.page,this.runtime.check);
-		this.runtime.check = null;
+		this.set('runtime.check', null);
 		return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
 	}
 	if (type.raid) {
@@ -13912,22 +14519,23 @@ Monster.work = function(state) {
 		}
 	}
 	Page.click(btn);
+
 	return QUEUE_RELEASE;
 };
 
 Monster.check = function(mid, message, prefix, suffix) {
 	var uid, type, monster, mpool, mmid;
 	monster = this.data[mid];
-	this.runtime.mid = mid;
+	this.set('runtime.mid', mid);
 	uid = mid.replace(/_.+/,'');
 	type = this.types[monster.type];
 	if (message) {
-		this.runtime.message = message + (monster.name ? (monster.name === 'You' ? 'your' : monster.name.html_escape() + "'s") : '') + ' ' + type.name;
-		Dashboard.status(this, this.runtime.message);
+		this.set('runtime.message', message + (monster.name ? (monster.name === 'You' ? 'your' : monster.name.html_escape() + "'s") : '') + ' ' + type.name);
+		Dashboard.status(this, this.get('runtime.message'));
 	}
-	this.runtime.page = type.raid ? 'battle_raid' 
-			: monster.page === 'festival' ? 'festival_battle_monster' 
-			: 'monster_battle_monster';
+	this.set('runtime.page', type.raid ? 'battle_raid'
+			: monster.page === 'festival' ? 'festival_battle_monster'
+			: 'monster_battle_monster');
 	if (monster.page === 'festival') {
 		mpool = type.festival_mpool || type.mpool;
 		if (type.festival) {
@@ -13942,25 +14550,37 @@ Monster.check = function(mid, message, prefix, suffix) {
 	} else {
 		mpool = type.mpool;
 	}
-	this.runtime.check = prefix + '=' + uid
+	this.set('runtime.check', prefix + '=' + uid
 			+ ((monster.phase && this.option.assist
 				&& !LevelUp.runtime.levelup
 				&& (monster.state === 'engage' || monster.state === 'assist'))
 					? '&action=doObjective' : '')
 			+ (mpool ? '&mpool=' + mpool : '')
 			+ (mmid ? mmid : '')
-			+ suffix;
+			+ suffix);
 };
 
 
 Monster.order = null;
 Monster.dashboard = function(sort, rev) {
-	var i, j, o, type, monster, festival, args, list = [], output = [], sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'], state = {
-		engage:0,
-		assist:1,
-		reward:2,
-		complete:3
-	}, blank, image_url, color, mid, uid, mpool, title, v, vv, tt, cc;
+	var i, j, o, type, monster, festival, args, list, output, page,
+		blank, image_url, color, mid, uid, mpool, title, v, vv, tt, cc,
+		sorttype = [null, 'name', 'health', 'defense', null, 'timer', 'eta'],
+		state = {
+			engage: 1,
+			assist: 2,
+			reward: 3,
+			complete: 4,
+			scout: 5,
+			full: 6
+		},
+		viewable = {
+			engage: true,
+			assist: true,
+			scout: true,
+			full: true
+		};
+
 	if (typeof sort === 'undefined') {
 		this.order = [];
 		for (mid in this.data) {
@@ -13973,8 +14593,8 @@ Monster.dashboard = function(sort, rev) {
 	if (typeof rev === 'undefined'){
 		rev = (this.runtime.rev || false);
 	}
-	this.runtime.sort = sort;
-	this.runtime.rev = rev;
+	this.set('runtime.sort', sort);
+	this.set('runtime.rev', rev);
 	this.order.sort(function(a,b) {
 		var aa, bb, data = Monster.data;
 		if (state[data[a].state] > state[data[b].state]) {
@@ -14006,6 +14626,22 @@ Monster.dashboard = function(sort, rev) {
 		}
 		return (rev ? (aa || 0) - (bb || 0) : (bb || 0) - (aa || 0));
 	});
+
+	list = [];
+	list.push('<table cellspacing="0" style="width:100%;"><thead>');
+
+	output = [];
+	output.push('<td colspan="9" nowrap>');
+	output.push('<span style="display:block;overflow:none;">');
+	output.push('<input id="golem-monster-clear" type="button" value="Clear">');
+	output.push('<input id="golem-monster-assist" type="button" value="Assist">');
+	output.push('<input id="golem-monster-scout" type="button" value="Scout">');
+	output.push('<input id="golem-monster-link" type="text" style="width:75%;" placeholder="Type monster URL here...">');
+	output.push('</span>');
+	output.push('</td>');
+	list.push('<tr>' + output.join('') + '</tr>');
+
+	output = [];
 	if (this.option.stop === 'Continuous'){
 		th(output, '<center>Continuous=' + this.runtime.limit + '</center>', 'title="Stop Multiplier"');
 	} else {
@@ -14020,7 +14656,9 @@ Monster.dashboard = function(sort, rev) {
 	th(output, 'Kill In (ETD)', 'title="(estimated)"');
 //	th(output, '');
 //	th(output, '');
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
+	list.push('<tr>' + output.join('') + '</tr>');
+	list.push('</thead><tbody>');
+
 	for (o=0; o<this.order.length; o++) {
 		mid = this.order[o];
 		uid = mid.replace(/_.+/,'');
@@ -14031,26 +14669,34 @@ Monster.dashboard = function(sort, rev) {
 			continue;
 		}
 		output = [];
-		blank = !((monster.state === 'engage' || monster.state === 'assist') && monster.total);
+		blank = !(viewable[monster.state] && monster.total);
 		// http://apps.facebook.com/castle_age/battle_monster.php?user=00000&mpool=3
 		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
 		// http://apps.facebook.com/castle_age/raid.php?user=00000
 		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
+		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&casuser=100000419529058&action=doObjective&lka=100000419529058&ref=nf
+		//args += '&twt2=' + ???;
 		args = '?casuser=' + uid;
 		mpool = type.mpool ? ('&mpool=' + type.mpool) : '';
-		if (festival) {
-			if (type.festival_mpool) {
-				mpool = '&mpool=' + type.festival_mpool;
-			}
-			mpool += '&mid=' + type.festival;
-			if (monster.tower) {
-				mpool += '&tower=' + monster.tower;
-			}
+		if (festival && monster.tower === 2 && (v = type.festival_mpool2)) {
+			args += '&mpool=' + v;
+		} else if (festival && (v = type.festival_mpool)) {
+			args += '&mpool=' + v;
+		} else if ((v = type.mpool)) {
+			args += '&mpool=' + v;
 		}
-		args += mpool;
+		if ((v = type.festival)) {
+			args += '&mid=' + v;
+		}
+		if (festival && (v = monster.tower)) {
+			args += '&tower=' + v;
+		}
 		if (this.option.assist_links && (monster.state === 'engage' || monster.state === 'assist') && type.siege !== false ) {
 			args += '&action=doObjective';
 		}
+		//args += '&lka=' + uid;
+		//args += '&ref=nf';
+
 		// link icon
 		tt = type.name;
 		if (isNumber(v = monster.ach || type.achievement)) {
@@ -14069,7 +14715,20 @@ Monster.dashboard = function(sort, rev) {
 				tt += v.addCommas();
 			}
 		}
-		td(output, Page.makeLink(type.raid ? 'raid.php' : monster.page === 'festival' ? 'festival_battle_monster.php' : 'battle_monster.php', args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay"' + (monster.page === 'festival' ? ' style="color:#ffff00;"' : '') + '>' + monster.state + '</strong>'), 'title="' + tt + '"');
+		if (type.raid) {
+			page = 'battle_raid';
+			cc = 'red';
+		} else if (festival) {
+			page = 'festival_battle_monster';
+			cc = 'yellow';
+		} else if (monster.page === 'guild') {
+			page = 'guild_monster_battle';
+			cc = 'green';
+		} else {
+			page = 'monster_battle_monster';
+			cc = '';
+		}
+		td(output, Page.makeLink(page, args, '<img src="' + imagepath + type.list + '" style="width:72px;height:20px; position: relative; left: -8px; opacity:.7;" alt="' + type.name + '"><strong class="overlay"' + (cc !== '' ? ' style="color:'+cc+';"' : '') + '>' + monster.state + '</strong>'), 'title="' + tt + '"');
 		image_url = imagepath + type.list;
 		//log(LOG_WARN, image_url);
 
@@ -14136,38 +14795,73 @@ Monster.dashboard = function(sort, rev) {
 				: 'title="' + ( sum(monster.damage && monster.damage.user) / monster.total * 100).round(2) + '% from ' + (sum(monster.stamina)/5 || 'an unknown number of') + ' PAs"');
 
 		// time left
-		td(output,
-			blank
-				? ''
-				: monster.timer
-					? Page.addTimer('monster_'+mid+'_finish', monster.finish)
-					: '?');
+		vv = tt = '';
+		if (!blank && (v = monster.finish)) {
+			vv = Page.addTimer('monster_'+mid+'_finish', v);
+			if ((j = monster.start)) {
+				tt = 'Total: ' + (v - j).toTimespan(1);
+			}
+		}
+		if (tt !== '') {
+			tt = 'title="'+tt+'"';
+		}
+		td(output, vv, tt);
 
 		// etd
-		td(output,
-			blank
-				? ''
-				: Page.addTimer('monster_'+mid+'_eta', monster.health === 100 ? monster.finish : monster.eta));
+		vv = tt = cc = '';
+		if (!blank && (v = monster.eta)) {
+			vv = Page.addTimer('monster_'+mid+'_eta', v);
+			if (monster.start) {
+				j = v - monster.start;
+			} else if ((j = (festival
+			  ? (this.get(['data',mid,'tower']) === 2
+			  ? type.festival_timer2 : 0) || type.festival_timer : 0)
+			  || type.timer)
+			) {
+				j = v - monster.finish + j * 1000;
+			} else {
+				j = Date.HUGE;
+			}
+			if (tt !== '') { tt += ' | '; }
+			tt = 'Total: ' + j.toTimespan(1);
+			if (!festival && isNumber(j) && j < 24*60*60*1000) {
+				tt += ' (Gold status)';
+				cc = 'green';
+			} else if (!festival && isNumber(j) && j < 2*24*60*60*1000) {
+				tt += ' (Silver status)';
+				cc = 'green';
+			} else if (!festival && isNumber(j) && j < 3*24*60*60*1000) {
+				if (tt !== '') { tt += ' | '; }
+				tt += ' (Bronze status)';
+				cc = 'green';
+			} else if (monster.finish < v) {
+				if ((j = monster.start)) {
+					j = (v - j) / (monster.finish - j) * 100 - 100;
+					if (j.round() < 10) {
+						tt += ' (' + j.round(1) + '% behind)';
+					} else {
+						tt += ' (' + j.addCommas() + '% behind)';
+					}
+				}
+				cc = 'red';
+			}
+		}
+		if (cc !== '') {
+			vv = '<span style="color:'+cc+';">' + vv + '</span>';
+		}
+		if (tt !== '') {
+			tt = 'title="'+tt+'"';
+		}
+		td(output, vv, tt);
+
 		th(output, '<a class="golem-monster-delete" name="'+mid+'" title="Delete this Monster from the dashboard">[x]</a>');
 		th(output, '<a class="golem-monster-override" name="'+mid+'" title="Override Lost Cause setting for this monster">'+(monster.override ? '[O]' : '[]')+'</a>');
-                tr(list, output.join(''));
+		tr(list, output.join(''));
 	}
 	list.push('</tbody></table>');
+
 	$('#golem-dashboard-Monster').html(list.join(''));
-	$('a.golem-monster-delete').live('click', function(event){
-		Monster.set(['data',$(this).attr('name')]);
-		return false;
-	});
-	$('a.golem-monster-ignore').live('click', function(event){
-		var x = $(this).attr('name');
-		Monster.set(['data',x,'ignore'], !Monster.get(['data',x,'ignore'], false));
-		return false;
-	});
-	$('a.golem-monster-override').live('click', function(event){
-		var x = $(this).attr('name');
-		Monster.set(['data',x,'override'], !Monster.get(['data',x,'override'], false));
-		return false;
-	});
+
 	if (typeof sort !== 'undefined') {
 		$('#golem-dashboard-Monster thead th:eq('+sort+')').attr('name',(rev ? 'reverse' : 'sort')).append('&nbsp;' + (rev ? '&uarr;' : '&darr;'));
 	}
@@ -14184,6 +14878,171 @@ Monster.conditions = function (type, conditions) {
 		value = parseFloat(value, 10) * 1000 * (first + second * 1000);
 	}
 	return parseInt(value, 10);
+};
+
+Monster.identify = function(root) {
+	var i, o, x, base = root, type, types = this.types, tmp, tested, prefix,
+		serpents = {
+			'Amethyst Sea Serpent':	'serpent_amethyst',
+			'Ancient Sea Serpent':	'serpent_ancient',
+			'Emerald Sea Serpent':	'serpent_emerald',
+			'Sapphire Sea Serpent':	'serpent_sapphire'
+		},
+		trace = {
+			dragon_red:0,
+			azriel:0,
+			skaar:0,
+			kraken:0,
+			alpha_kraken:0,
+			raid_easy:0,
+			raid:0,
+			'*':0
+		};
+
+	//log(LOG_DEBUG, 'identify: ' + dom_heritage(base));
+
+	tested = 0;
+	prefix = '';
+	do {
+		for (i in types) {
+			o = types[i];
+			if (o.dead
+			  && $(prefix+'img[src*="'+o.dead+'"]', base).length
+			  && (!o.title
+			  || $(prefix+'div[style*="'+o.title+'"]').length
+			  || $(prefix+'div[style*="'+o.image+'"]', base).length)
+			) {
+				//log(LOG_INFO, 'Found a dead ' + i);
+				type = '!' + i;
+				break;
+			} else if (o.title
+			  && $(prefix+'div[style*="'+o.title+'"]').length
+			) {
+				//log(LOG_INFO, 'Found a live ' + i + ' (via title)');
+				type = i;
+				break;
+			} else if (o.image && !o.title
+			  && ($(prefix+'img[src*="'+o.image+'"]', base).length
+			  || $(prefix+'div[style*="'+o.image+'"]', base).length)
+			) {
+				//log(LOG_INFO, 'Found a live ' + i);
+				type = i;
+				break;
+			} else if (o.image2 && !o.title
+			  && ($(prefix+'img[src*="'+o.image2+'"]', base).length
+			  || $(prefix+'div[style*="'+o.image2+'"]', base).length)
+			) {
+				//log(LOG_INFO, 'Found a live, second stage ' + i);
+				type = i;
+				break;
+			} else if (trace[i]) {
+				log(LOG_INFO, '# tried ' + i
+				  + '\n - tested = ' + tested
+				  + '\n - prefix = ' + prefix
+				  //+ '\n - base = ' + dom_heritage(base)
+				  + (o.dead ? '\n - dead = ' + o.dead : '')
+				  + (o.title ? '\n - title = ' + o.title : '')
+				  + (o.image ? '\n - image = ' + o.image : '')
+				  + (o.image2 ? '\n - image2 = ' + o.image2 : '')
+				);
+			}
+		}
+
+		if (!type && !(tested & 0x1)
+		  && (o = $('div[style*="monster_back."]')).length
+		) {
+			base = o;
+			tested |= 0x1;
+			continue;
+		} else if (!type && !(tested & 0x2)
+		  && (o = $('div[style*="nm_middle."]')).length
+		) {
+			base = o;
+			tested |= 0x2;
+			continue;
+		} else if (!type && !(tested & 0x4)
+		  && (o = $('div[style*="monster_layout_2."]')).length
+		) {
+			base = o;
+			tested |= 0x4;
+			continue;
+		} else if (!type && !(tested & 0x8)) {
+			base = root;
+			prefix = '~ ';
+			tested |= 0x8;
+			continue;
+		} else {
+			break;
+		}
+	} while (true);
+
+	if (!type) {
+		tmp = $('#'+APPID_+'attack_log > div');
+		for (i = 0; i < tmp.length; i++) {
+			if ((x = ($(tmp[i]).text() || '').regex(/\bThe (\w+ Sea Serpent)\b/m))) {
+				if ((type = serpents[x])) {
+					//log(LOG_DEBUG, '# TYPE is SERPENT: ' + type);
+					if (types[type].dead && $('img[src*="'+types[type].dead+'"]', root)) {
+						//log(LOG_DEBUG, '# serpent is DEAD');
+						type = '!' + type;
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	return type;
+};
+
+Monster.visit_link = function(raw, assist) {
+	var str = raw.replace(/\s+/gm, ''), x, y, z, page, args = {};
+
+	x = '';
+	y = str;
+	while ((z = y.match(/(^.*?)%([0-7][0-9a-fA-F])(.*)$/))) {
+		x += z[1] + z[2].hex().chr();
+		y = z[3];
+	}
+	str = x + y;
+
+	if ((x = str.regex(/\b(battle_monster\.php)\b/))) {
+		page = 'monster_battle_monster';
+	} else if ((x = str.regex(/\b(festival_battle_monster\.php)\b/))) {
+		page = 'festival_battle_monster';
+	} else if ((x = str.regex(/\b(raid\.php)\b/))) {
+		page = 'battle_raid';
+	}
+
+	if (isNumber(x = str.regex(/user=(\d+)\b/))) {
+		args['casuser'] = x;
+	}
+
+	if (isNumber(x = str.regex(/\bmpool=(\d+)\b/))) {
+		args['mpool'] = x;
+	}
+
+	if (isString(x = str.regex(/\bmid=(\w+)\b/))) {
+		args['mid'] = x;
+	}
+
+	if (isNumber(x = str.regex(/\btower=(\d+)\b/))) {
+		args['tower'] = x;
+	}
+
+	if (assist) {
+		args['action'] = 'doObjective';
+	}
+
+	if (page) {
+		log(LOG_INFO, '# visit: page ' + page
+		  + ', args ' + JSON.shallow(args)
+		);
+		x = Page.get('temp.enabled');
+		Page.set('temp.enabled', true);
+		Page.to(page, args);
+		Page.set('temp.enabled', x);
+	}
 };
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
@@ -14347,11 +15206,24 @@ Page.defaults.castle_age = {
 			battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg', skip:true},
 			monster_monster_list:		{url:'player_monster_list.php', image:'monster_button_yourmonster_on.jpg', skip:true},
 			monster_remove_list:		{url:'player_monster_list.php', image:'mp_current_monsters.gif', skip:true},
-			monster_battle_monster:		{url:'battle_monster.php', selector:'div[style*="monster_header"],div[style*="boss_header"]', skip:true},
+			monster_battle_monster:		{
+				url:'battle_monster.php',
+				selector:'div[style*="monster_header_"]'
+				  + ',div[style*="boss_header_"]'
+				  + ',div[style*="dragon_title_owner."]'
+				  + ',div[style*="monster_"][style*="_header."]',
+				skip:true
+			},
 			keep_monster_active:		{url:'raid.php', image:'dragon_view_more.gif', skip:true},
-			festival_monster_list:		{url:'festival_tower.php?tab=monster', selector:'div[style*="festival_monster_list_middle.jpg"]', skip:true},
-			festival_monster2_list:		{url:'festival_tower2.php?tab=monster', selector:'div[style*="festival_monster2_list_middle.jpg"]', skip:true},
-			festival_battle_monster:	{url:'festival_battle_monster.php', image:'festival_monstertag_list.gif', skip:true},
+			festival_monster_list:		{url:'festival_tower.php?tab=monster', image:'festival_monster_towerbutton.jpg', skip:true},
+			festival_monster2_list:		{url:'festival_tower2.php?tab=monster', image:'festival_monster2_towerbutton.jpg', skip:true},
+			festival_battle_monster:	{
+				url:'festival_battle_monster.php',
+				//image:'festival_monstertag_list.gif',
+				selector:'img[src*="festival_achievement_monster_"]'
+				  + ',img[src*="festival_achievement_monster2_"]',
+				skip:true
+			},
 			monster_dead:			{url:'battle_monster.php', selector:'div[style*="no_monster_back.jpg"]', skip:true},
 			monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif', skip:true},
 			monster_class:			{url:'view_class_progress.php', selector:'#'+APPID_+'choose_class_header', skip:true},
@@ -14476,7 +15348,7 @@ Player.page = function(page, change) {
 		this.set('armymax', $('a[href*="army.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/));
 		this.set('army', Math.min(data.armymax, 501)); // XXX Need to check what max army is!
 		this.set('upgrade', $('a[href*="keep.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/) || 0);
-		this.set('general', $('div.general_name_div3').first().text().trim());
+		this.set('general', $('div.general_name_div3').first().text().trim(true).replace(/\*+$/, ''));
 		this.set('imagepath', $('#'+APPID_+'globalContainer img:eq(0)').attr('src').pathpart());
 		if (page === 'keep_stats') {
 			keep = $('.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
@@ -14520,11 +15392,11 @@ Player.page = function(page, change) {
 				o = {};
 				$('div', $tmp.last().parent()).each(function(a, el) {
 					if (!o[a]) { o[a] = {}; }
-					o[a].label = ($(el).text() || '').trim();
+					o[a].label = ($(el).text() || '').trim(true);
 				});
 				$('div', $tmp.last().parent().next()).each(function(a, el) {
 					if (!o[a]) { o[a] = {}; }
-					o[a].value = ($(el).text() || '').trim();
+					o[a].value = ($(el).text() || '').trim(true);
 				});
 				//log(LOG_WARN, 'Land.income: ' + JSON.shallow(o, 2));
 				for (i in o) {
@@ -14788,13 +15660,13 @@ Potions.work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Workers, Worker, Config, Dashboard, Page, Resources,
-	Alchemy, Bank, Generals, LevelUp, Monster, Player, Town,
-	APP, APPID, PREFIX, userID, imagepath,
-	isRelease, version, revision, Images, window, browser, console,
+	$, Worker, Workers, Config, Dashboard, Page, Resources,
+	Alchemy, Bank, Generals, Idle, LevelUp, Monster, Player, Town,
+	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	isRelease, version, revision, Images, window, browser,
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
-	isObject, isFunction, isNumber, isString, isWorker, isArray,
+	isArray, isFunction, isNumber, isObject, isString, isWorker,
 	tr, th, td, assert, isEvent
 */
 /********** Worker.Quest **********
@@ -14828,6 +15700,7 @@ Quest.option = {
 };
 
 Quest.runtime = {
+	page:null,
 	best:null,
 	energy:0
 };
@@ -14930,18 +15803,25 @@ Quest.setup = function() {
 	Resources.use('Energy');
 };
 
-Quest.init = function(old_revision) {
-	var i, x;
-	// BEGIN: No longer needed per-worker revision watching
-	if (old_revision <= 1131) {
-		this.set(['runtime','revision']);
+Quest.init = function(old_revision, fresh) {
+	var i, x, list;
+
+	// BEGIN: Fix for *old* bad page loads
+	for (i in this.data) {
+		if (i.indexOf('\t') !== -1) {
+			this.set(['data',i]);
+		}
 	}
 	// END
-	// BEGIN: fix up "under level 4" generals
-	if (old_revision <= 1100 && this.get(['option','general_choice']) === 'under level 4') {
-		this.set('option.general_choice', 'under max level');
+
+	// BEGIN: Fix for option type changes
+	if (this.option.monster === true) {
+		this.set(['option','monster'], 'When able');
+	} else if (this.option.monster === false) {
+		this.set(['option','monster'], 'Never');
 	}
 	// END
+
 	// BEGIN: one time pre-r845 fix for erroneous values in m_c, m_d, reps, eff
 	if (old_revision < 845) {
 		for (i in this.data) {
@@ -14958,34 +15838,78 @@ Quest.init = function(old_revision) {
 		}
 	}
 	// END
+
 	// BEGIN: one time pre-r850 fix to map data by id instead of name
 	if (old_revision < 850) {
 		this.set(['runtime','best'], null);
 		this.set(['runtime','energy'], 0);
 		this.set(['runtime','quest']);
-		if (!('id' in this.data) && ('Pursuing Orcs' in this.data)) {
+		if (!this.data.hasOwnProperty('id') && this.data.hasOwnProperty('Pursuing Orcs')) {
+			list = {};
 			for (i in this.data) {
-				if (i !== 'id') {
-					if ('id' in this.data[i]) {
-						this.set(['data','id',this.data[i].id], this.data[i]);
-						this.set(['data',i,'id']);
-					}
-					this.set(['data',i]);
+				if (i === 'id' || i === 'q') {
+					continue;
 				}
+				if (this.data[i].hasOwnProperty('id')) {
+					// map name indexed data to id indexed
+					this.set(['data','id',this.data[i].id], this.data[i]);
+					this.set(['data','id',this.data[i].id,'id']);
+				} else {
+					// map other data into a temporary holding pen
+					this.set(['data','q',i], this.data[i]);
+				}
+				list[i] = true;
+			}
+			// removed old name indexed data
+			for (i in list) {
+				this.set(['data',i]);
 			}
 		}
 	}
 	// END
-	this._watch(this, 'runtime.best');
-	this._watch(Player, 'data.exp');
-	this._watch(LevelUp, 'runtime.energy');
-	this._watch(LevelUp, 'runtime.quest');
-	this._watch(Alchemy, 'data.summons');
-	this._watch(Alchemy, 'data.ingredients');
+
+	// BEGIN: fix up "under level 4" generals
+	if (old_revision <= 1100 && this.get(['option','general_choice']) === 'under level 4') {
+		this.set('option.general_choice', 'under max level');
+	}
+	// END
+
+	// BEGIN: No longer needed per-worker revision watching
+	if (old_revision <= 1131) {
+		this.set(['runtime','revision']);
+	}
+	// END
+
+//	this._watch(this, 'runtime.page');				// for stale pages
+//	this._watch(this, 'runtime.best');				// for best quest
+	this._watch(Player, 'data.energy');				// for available energy
+	this._watch(Player, 'data.maxenergy');          // to aid Generals.test()
+	this._watch(Player, 'data.stamina');            // to aid Generals.test()
+	this._watch(Player, 'data.maxstamina');         // to aid Generals.test()
+	this._watch(LevelUp, 'option._disabled');		// to detect when active
+	this._watch(LevelUp, 'runtime.quest');			// for forced quest
+	this._watch(LevelUp, 'runtime.force.energy');	// for forced energy
+	this._watch(LevelUp, 'runtime.energy');			// for forced energy amount
+	this._watch(LevelUp, 'runtime.general');		// for forced general
+	this._watch(Alchemy, 'data.summons');			// for orbs
+	this._watch(Alchemy, 'data.ingredients');		// for orbs/uniques
+	this._watch(Monster, 'runtime.defending');		// for monster defense
+	this._watch(Town, 'data');						// for quest prereqs
+};
+
+Quest.menu = function(worker, key) {
+	if (worker === this) {
+		if (!key) {
+			return ['scan:Scan Quests at Idle'];
+		} else if (key === 'scan') {
+			Idle.set('temp.scan.quests', Date.now());
+		}
+	}
 };
 
 Quest.page = function(page, change) {
-	var data = this.data, last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units, item, icon, c;
+	var now = Date.now(), last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units, item, icon, c;
+
 	if (page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
 	} else if (page === 'quests_demiquests') {
@@ -14996,15 +15920,22 @@ Quest.page = function(page, change) {
 		area = 'quest';
 		land = page.regex(/quests_quest(\d+)/i) - 1;
 	}
-	for (i in data.id) {
-		if (data.id[i].area === area && (area !== 'quest' || data.id[i].land === land)) {
+
+	for (i in this.data.id) {
+		j = this.get(['data','id',i]) || {};
+		if (j.area === area && (area !== 'quest' || j.land === land)) {
 			purge[i] = true;
 		}
 	}
+
 	if ($('div.quests_background,div.quests_background_sub').length !== $('div.quests_background .quest_progress,div.quests_background_sub .quest_sub_progress').length) {
-		Page.to(page, '');// Force a page reload as we're pretty sure it's a bad page load!
+		// Force a page reload as we're pretty sure it's a bad page load!
+		// Note: reloading in parse is bad, so mark it stale and scoot
+		Page.setStale(page, now);
+		//Page.to(page, '');
 		return false;
 	}
+
 	quests = $('div.quests_background,div.quests_background_sub,div.quests_background_special');
 	for (i=0; i<quests.length; i++) {
 		el = quests[i];
@@ -15024,7 +15955,7 @@ Quest.page = function(page, change) {
 			exp = undefined;
 			reward = undefined;
 			if ($(el).hasClass('quests_background_sub')) { // Subquest
-				name = $('.quest_sub_title', el).text().trim();
+				name = $('.quest_sub_title', el).text().trim(true);
 				assert((tmp = $('.qd_2_sub', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000')), 'Unknown rewards');
 				exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
 				reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
@@ -15034,7 +15965,7 @@ Quest.page = function(page, change) {
 				influence = tmp.regex(/\bINFLUENCE:?\s*(\d+)%/im);
 				type = 2;
 			} else {
-				name = $('.qd_1 b', el).text().trim();
+				name = $('.qd_1 b', el).text().trim(true);
 				assert((tmp = $('.qd_2', el).text().replace(/\s+/gm, ' ').replace(/,/g, '').replace(/mil\b/gi, '000000')), 'Unknown rewards');
 				exp = tmp.regex(/\b(\d+)\s*Exp\b/im);
 				reward = tmp.regex(/\$\s*(\d+)\s*-\s*\$\s*(\d+)\b/im);
@@ -15080,6 +16011,8 @@ Quest.page = function(page, change) {
 					this.set(['data','id',id,'reps'], reps);
 					this.set(['data','id',id,'eff'], energy * reps);
 				}
+			} else {
+				this.set(['data','id',id,'level']);
 			}
 			if (type !== 2) { // That's everything for subquests
 				this.set(['data','id',id,'unique'], type === 3 ? true : undefined); // Special / boss quests create unique items
@@ -15087,15 +16020,18 @@ Quest.page = function(page, change) {
 				if (tmp.length && (item = tmp.attr('title'))) {
 					item = item.trim(true);
 					icon = (tmp.attr('src') || '').filepart();
-					this.set(['data','id',id,'item'], Town.qualify(item, icon));
+					item = Town.qualify(item, icon);
+					this.set(['data','id',id,'item'], item);
 					this.set(['data','id',id,'itemimg'], icon);
+					Alchemy.set(['data','source',icon,'quest',id], energy);
 				}
 				units = $('.quest_req >div >div >div', el);
 				for (j=0; j<units.length; j++) {
 					item = ($('img', units[j]).attr('title') || '').trim(true);
 					icon = ($('img', units[j]).attr('src') || '').filepart();
 					c = ($(units[j]).text() || '').regex(/\bx\s*(\d+)\b/im);
-					this.set(['data','id',id,'units',Town.qualify(item, icon)], c);
+					item = Town.qualify(item, icon);
+					this.set(['data','id',id,'units',item], c);
 				}
 				tmp = $('.quest_act_gen img', el).attr('title');
 				this.set(['data','id',id,'general'], tmp || undefined);
@@ -15107,7 +16043,8 @@ Quest.page = function(page, change) {
 		}
 	}
 	for (i in purge) {
-		log(LOG_WARN, 'Deleting ' + i + '(' + (this.land[data.id[i].land] || data.id[i].area) + ')');
+		j = this.get(['data','id',i]) || {};
+		log(LOG_WARN, 'Deleting ' + i + '(' + (this.land[j.land] || j.area) + ')');
 		this.set(['data','id',i]); // Delete unseen quests...
 	}
 	return false;
@@ -15119,20 +16056,21 @@ Quest.page = function(page, change) {
   // watch Town if we passed up a preferred quest due to a missing req.
 
 Quest.update = function(event, events) {
-	var i, s, x, unit, oi, ob, list, items, ok, best = null,
-		data = this.data,
-		energy = Player.get('energy', 0),
-		maxenergy = Player.get('maxenergy', 9999),
-		diag = this.option.diag || 0, usable_energy;
+	var now = Date.now(), i, s, x, oi, ob, ok, levelup, best,
+		list, items, unit, usable_energy,
+		energy = Player.get('energy', 0, 'number'),
+		maxenergy = Player.get('maxenergy', 1e9, 'number'),
+		diag = this.option.diag || 0;
 
-	//log(LOG_INFO, '# events: ' + JSON.shallow(events,3));
+	//log(LOG_INFO, '# events: ' + JSON.shallow(events,2));
 
+	// First let's update the Quest dropdown list(s)...
 	if (events.findEvent(this, 'init') || events.findEvent(this, 'data')) {
 		list = [];
 		items = {};
 
-		for (i in data.id) {
-			oi = data.id[i];
+		for (i in this.data.id) {
+			oi = this.get(['data','id',i]);
 			if (oi.item && oi.type !== 3) {
 				list.push(oi.item);
 			}
@@ -15165,14 +16103,16 @@ Quest.update = function(event, events) {
 	// check that we've seen all available pages at least once
 	list = this.defaults['castle_age'].pages.split(/\s+/);
 	ok = true;
+	this.set(['runtime','page'], null);
 	for (i = 0; i < list.length; i++) {
 		if (list[i] !== 'quests_quest' // old placebo, just in case...
-		  && list[i] !== 'quests_quest16' // pangaea not yet on web3
+		  && list[i] !== 'quests_quest16' // perdition not yet on web3
 		  && /^quests_/.test(list[i])
 		  && !Page.get(list[i])
 		) {
 			this.set(['runtime','best'], null);
 			this.set(['runtime','energy'], 0);
+			this.set(['runtime','page'], list[i]);
 			ok = false;
 			break;
 		}
@@ -15180,20 +16120,21 @@ Quest.update = function(event, events) {
 	if (ok && !Page.get(i = 'keep_alchemy')) {
 		this.set(['runtime','best'], null);
 		this.set(['runtime','energy'], 0);
+		this.set(['runtime','page'], list[i]);
 		ok = false;
 	}
 
 	best = this.runtime.best;
 
-	if (!LevelUp.option._disabled
-	  && (i = LevelUp.get(['runtime','quest']))
-	) {
-		// Only override if it has an actual quest for us
-		best = i;
+	if (!LevelUp.option._disabled && LevelUp.get(['runtime','levelup'])) {
+		levelup = true;
 	}
 
-	// see if there's a reason to recalc the best quest
-	if (ok) {
+	if (levelup && (i = LevelUp.get(['runtime','quest']))) {
+		// Only override if it has an actual quest for us
+		best = i;
+	} else if (ok) {
+		// see if there's a reason to recalc the best quest
 		if (best) {
 			ok = false;
 			for (i = 0; i < events.length; i++) {
@@ -15209,28 +16150,25 @@ Quest.update = function(event, events) {
 			}
 		}
 
-		best = this.getBest(maxenergy);
+		best = this.getBest(this.option.what, maxenergy);
 	}
-
-	/*
-	if (events.findEvent(this, 'watch', 'runtime.best')) {// Only change the display when we change what to do
-		if ((best = this.runtime.best)) {
-			log(LOG_LOG, 'Wanting to perform - ' + data.id[best].name + ' in ' + (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ' (energy: ' + data.id[best].energy + ', experience: ' + data.id[best].exp + ', gold: $' + data.id[best].reward.SI() + ')');
-			Dashboard.status(this, (isNumber(data.id[best].land) ? this.land[data.id[best].land] : this.area[data.id[best].area]) + ': ' + data.id[best].name + ' (' + Config.makeImage('energy') + data.id[best].energy + ' = ' + Config.makeImage('exp') + data.id[best].exp + ' + ' + Config.makeImage('gold') + '$' + data.id[best].reward.SI() + (data.id[best].item ? Town.get([data.id[best].item,'img'], null) ? ' + <img style="width:16px;height:16px;margin-bottom:-4px;" src="' + imagepath + Town.get([data.id[best].item, 'img']) + '" title="' + data.id[best].item + '">' : ' + ' + data.id[best].item : '') + (isNumber(data.id[best].influence) && data.id[best].influence < 100 ? (' @ ' + Config.makeImage('percent','Influence') + data.id[best].influence + '%') : '') + ')');
-		} else {
-			Dashboard.status(this);
-		}
-		best = null;
-	}
-	*/
 
 	if (best !== this.runtime.best) {
 		this.set(['runtime','best'], best);
-		this.set(['runtime','energy'], best ? this.get(['data','id',best,'energy'], 0, 'number') : 0);
+		if (best) {
+			oi = this.get(['data','id',best]);
+			this.set(['runtime','energy'], oi.energy);
+			log(LOG_INFO, 'Wanting to perform - ' + oi.name
+			  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+			  + ', energy ' + oi.energy
+			  + ', exp ' + oi.exp
+			  + ', $' + oi.reward.SI()
+			  + (oi.general ? ', general ' + oi.general : '')
+			);
+		}
 	}
 
 	s = undefined;
-	best = this.get('runtime.best');
 	if (best && (oi = this.get(['data','id',best]))) {
 		s = '';
 		if (isNumber(oi.land)) {
@@ -15269,7 +16207,7 @@ Quest.update = function(event, events) {
 	if (!LevelUp.option._disabled
 	  && (i = LevelUp.get('runtime.force.energy', 0))
 	) {
-		usable_energy = i;
+		usable_energy = LevelUp.get('runtime.energy');
 	} else if (this.option.monster === 'When able'
 	  && Monster.get('runtime.defending')
 	) {
@@ -15280,10 +16218,12 @@ Quest.update = function(event, events) {
 
 	this.set(['option','_sleep'],
 	  ok
+	  && !this.runtime.page
 	  && (!this.runtime.best
-	  || this.get('runtime.energy', 1e10, 'number') > usable_energy)
+	  || this.get('runtime.energy', 1e9, 'number') > usable_energy)
 	);
 
+	/*
 	best = this.get('runtime.best', 0, 'number');
 	log(LOG_INFO, '# sleep ' + this.option._sleep
 	  + ', ok ' + ok
@@ -15292,19 +16232,21 @@ Quest.update = function(event, events) {
 	  + ', energy(' + this.runtime.energy + ')'
 	  + ' > usable_energy(' + usable_energy + ')'
 	);
+	*/
 
 	return true;
 };
 
-Quest.getBest = function(maxenergy) {
-	var i, x, oi, ob, cmp, eff, own, need, unit, noCanDo,
-		has_cartigan, has_vampire,
+Quest.getBest = function(goal, maxenergy) {
+	var i, x, oi, ob, cmp, eff, own, need, unit, noCanDo, ok,
+		has_cartigan, has_vampire, forced_general, badgens = {},
 		best, best_cartigan, best_vampire, best_subquest, best_advancement,
-		best_influence, best_experience, best_land, best_adv_eff, best_inf_eff,
-		data = this.get('data'),
+		best_influence, best_experience, best_land, best_unique,
+		best_adv_eff, best_inf_eff,
 		diag = this.option.diag || 0;
 
 	best = null;
+	best_unique = null;
 	best_cartigan = null;
 	best_vampire = null;
 	best_subquest = null;
@@ -15317,40 +16259,19 @@ Quest.getBest = function(maxenergy) {
 	has_cartigan = false;
 	has_vampire = false;
 
-	// Now choose the next quest...
-
-	if (this.option.unique) {
-		// Boss monster quests first - to unlock the next area
-		for (i in data.id) {
-			oi = data.id[i];
-
-			// Skip quests we can't afford
-			if (oi.energy > maxenergy) {
-				continue;
-			}
-
-			if (oi.type === 3 && (!best || oi.energy < ob.energy)
-			  && !Alchemy.get(['ingredients',oi.itemimg], 0, 'number')
-			) {
-				best = i;
-				ob = oi;
-			}
-		}
-	}
-
-	if (!best && this.option.what !== 'Nothing') {
+	if (!best && (goal !== 'Nothing' || this.option.unique)) {
 		if (diag) {
 			log(LOG_INFO, '# -----[ determining best quest ]-----');
 		}
 
-		if (this.option.what !== 'Vampire Lord'
+		if (goal !== 'Vampire Lord'
 		  || Town.get(['Vampire Lord', 'own'], 0, 'number') >= 24
 		) {
 			// Stop trying once we've got the required number of Vampire Lords
 			has_vampire = true;
 		}
 
-		if (this.option.what !== 'Cartigan'
+		if (goal !== 'Cartigan'
 		  || Generals.get(['data','Cartigan','own'], 0, 'number')
 		  || (Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') >= 3
 		  && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') >= 3
@@ -15362,39 +16283,38 @@ Quest.getBest = function(maxenergy) {
 			has_cartigan = true; // Stop trying once we've got the general or the ingredients
 		}
 
-//		log(LOG_WARN, 'option = ' + this.option.what);
-//		best = (this.runtime.best && data.id[this.runtime.best] && (data.id[this.runtime.best].influence < 100) ? this.runtime.best : null);
+		for (i in this.data.id) {
+			oi = this.get(['data','id',i]);
 
-		for (i in data.id) {
 			// Skip quests we can't afford or can't equip the general for
-			oi = data.id[i];
-
 			x = 'any';
 			if (oi.energy > maxenergy
-			  || !Generals.test(oi.general || 'any')
-			  || ((x = LevelUp.get('runtime.general', 'any')) && oi.general)
+			  || (isNumber(oi.influence) && oi.influence < 100
+			  && oi.general && badgens[oi.general])
 			) {
-				if (diag >= 2) {
+				if (diag >= 3) {
 					log(LOG_INFO, '# skipping ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					  + ' due to energy ' + oi.energy + ' > ' + maxenergy
 					  + ' or general ' + oi.general
-					  + ' or != LevelUp ' + x
 					);
 				}
 				continue;
 			}
 
+			// Check that we have all the prerequisites
 			if (oi.units) {
 				own = 0;
 				need = 0;
 				noCanDo = false;
 				for (unit in oi.units) {
 					need = oi.units[unit];
-					if (!Player.get(['artifact', i]) || need !== 1) {
+					if (!Player.get(['data','artifact', i]) || need !== 1) {
 						own = Town.get([unit, 'own'], 0, 'number');
 						if (need > own) {	// Need more than we own, skip this quest.
 							if (diag >= 2) {
 								log(LOG_INFO, '# skipping ' + i + ':' + oi.name
+								  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 								  + ' due to missing '
 								  + (need - own) + '/' + need + ' ' + unit
 								);
@@ -15414,14 +16334,23 @@ Quest.getBest = function(maxenergy) {
 				eff = Math.ceil(eff * (100 - oi.influence) / 100);
 			}
 
-			// Automatically fallback on type - but without changing option
-			switch (this.option.what) {
+			if (this.option.unique) {
+				ob = this.get(['data','id',best_unique]);
+				if (oi.type === 3
+				  && (!best_unique || oi.energy < ob.energy)
+				  && !Alchemy.get(['ingredients',oi.itemimg], 0, 'number')
+				) {
+					best_unique = i;
+				}
+			}
+
+			// Automatically fallback on type - but without changing options
+			switch (goal) {
 			case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
-				ob = data.id[best_vampire];
+				ob = this.get(['data','id',best_vampire]);
 				// order: inf<100, <energy, >exp, >cash (vampire)
 				ok = false;
-				if (!has_vampire && isNumber(oi.land)
-				  && oi.land === 5 && oi.type === 1
+				if (!has_vampire && oi.land === 5 && oi.type === 1
 				  && (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100))
 				) {
 					ok = true;
@@ -15436,23 +16365,27 @@ Quest.getBest = function(maxenergy) {
 				) {
 					if (diag) {
 						log(LOG_INFO, '# best vampire ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 						  + ' > ' + best_vampire
 						);
 					}
 					best_vampire = i;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# skipping vampire ' + i + ':' + oi.name);
+					log(LOG_INFO, '# skipping vampire ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+					);
 				}
 				// Deliberate fallthrough
 			case 'Cartigan': // Random Encounters in various Underworld Quests
-				ob = data.id[best_cartigan];
+				ob = this.get(['data','id',best_cartigan]);
 				// order: inf<100, <energy, >exp, >cash (cartigan)
 				ok = false;
-				if (!has_cartigan && isNumber(oi.land) && data.id[i].land === 6
+				x = this.get(['data','id',oi.main || i,'name']);
+				if (!has_cartigan && oi.land === 6
 				  && (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100))
-				  && (((data.id[oi.main || i].name === 'The Long Path' || data.id[oi.main || i].name === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') < 3)
-				  || ((data.id[oi.main || i].name === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') < 3)
-				  || ((data.id[oi.main || i].name === 'Fire and Brimstone' || data.id[oi.main || i].name === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') < 3))
+				  && (((x === 'The Long Path' || x === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') < 3)
+				  || ((x === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') < 3)
+				  || ((x === 'Fire and Brimstone' || x === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') < 3))
 				) {
 					ok = true;
 				} else if (diag >= 3) {
@@ -15466,21 +16399,22 @@ Quest.getBest = function(maxenergy) {
 				) {
 					if (diag) {
 						log(LOG_INFO, '# best cartigan ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 						  + ' > ' + best_cartigan
 						);
 					}
 					best_cartigan = i;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# skipping cartigan ' + i + ':' + oi.name);
+					log(LOG_INFO, '# skipping cartigan ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+					);
 				}
 				// Deliberate fallthrough
 			case 'Subquests': // Find the cheapest energy cost *sub*quest with influence under 100%
-				ob = data.id[best_subquest];
+				ob = this.get(['data','id',best_subquest]);
 				// order: <energy, >exp, >cash (subquests)
 				ok = false;
-				if (oi.type === 2
-				  && isNumber(oi.influence) && oi.influence < 100
-				) {
+				if (oi.type === 2 && isNumber(oi.influence) && oi.influence < 100) {
 					ok = true;
 				} else if (diag >= 3) {
 					log(LOG_INFO, '# failed subquest reqs ' + i + ':' + oi.name);
@@ -15492,40 +16426,44 @@ Quest.getBest = function(maxenergy) {
 				) {
 					if (diag) {
 						log(LOG_INFO, '# best subquest ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 						  + ' > ' + best_cartigan
 						);
 					}
 					best_subquest = i;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# skipping subquest ' + i + ':' + oi.name);
+					log(LOG_INFO, '# skipping subquest ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+					);
 				}
 				// Deliberate fallthrough
 			case 'Advancement': // Complete all required main / boss quests in an area to unlock the next one (type === 2 means subquest)
 				// No need to revisit old lands - leave them to Influence
 				if (isNumber(oi.land) && oi.land > best_land) {
 					if (diag && best_advancement) {
+						ob = this.get(['data','id',best_advancement]);
 						log(LOG_INFO, '# found a higher land ' + this.land[oi.land]
-						  + ', skipping advancement ' + best_advancement + ':' + this.data.id[best_advancement].name
-						  + ' in ' + this.land[best_land]
+						  + ', skipping advancement ' + best_advancement + ':' + ob.name
+						  + ' in ' + (isNumber(ob.land) ? this.land[ob.land] : this.area[ob.area])
 						);
 					}
 					best_land = oi.land;
 					best_advancement = null;
 					best_adv_eff = 1e10;
 				}
-				ob = data.id[best_advancement];
+				ob = this.get(['data','id',best_advancement]);
 				// order: <effort, >exp, >cash, <energy (advancement)
 				ok = false;
 				if (oi.type !== 2 && isNumber(oi.land)
 				  //&& oi.level === 1 // Need to check if necessary to do boss to unlock next land without requiring orb
 				  && oi.land >= best_land
-				  && ((isNumber(oi.influence) && oi.influence < 100 && Generals.test(oi.general) && oi.level <= 1)
+				  && ((isNumber(oi.influence) && oi.influence < 100 && oi.level <= 1 && (!oi.general || badgens[oi.general]))
 				  || (oi.type === 3 && Alchemy.get(['summons',oi.itemimg]) && !Alchemy.get(['ingredients',oi.itemimg], 0, 'number')))
 				) {
 					if (diag) {
 						log(LOG_INFO, '# artifact ' + oi.item
 						  + ' [' + oi.itemimg + '] = '
-						  + JSON.shallow(Alchemy.get(['ingredients',oi.itemimg]))
+						  + JSON.shallow(Alchemy.get(['ingredients',oi.itemimg]),2)
 						);
 					}
 					ok = true;
@@ -15538,9 +16476,22 @@ Quest.getBest = function(maxenergy) {
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0))
 				) {
+					if (isNumber(oi.influence) && oi.influence < 100
+					  && oi.level <= 1
+					  && (x = oi.general) && !badgens.hasOwnProperty(x)
+					  && (badgens[x] = Generals.test(x))
+					) {
+						if (diag >= 1) {
+							log(LOG_INFO, '# skipping ' + i + ':' + oi.name
+							  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+							  + ' due to general ' + x
+							);
+						}
+						continue;
+					}
 					if (diag) {
 						log(LOG_INFO, '# best advancement ' + i + ':' + oi.name
-						  + ' in ' + this.land[oi.land]
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 						  + ' > ' + best_advancement
 						);
 					}
@@ -15548,16 +16499,17 @@ Quest.getBest = function(maxenergy) {
 					best_advancement = i;
 					best_adv_eff = eff;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# skipping advancement ' + i + ':' + oi.name);
+					log(LOG_INFO, '# skipping advancement ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+					);
 				}
 				// Deliberate fallthrough
 			case 'Influence': // Find the cheapest energy cost quest with influence under 100%
-				ob = data.id[best_influence];
+				ob = this.get(['data','id',best_influence]);
 				// order: <effort, >exp, >cash, <energy (influence)
 				ok = false;
-				if (isNumber(oi.influence)
-				  && (!oi.general || Generals.test(oi.general))
-				  && oi.influence < 100
+				if (isNumber(oi.influence) && oi.influence < 100
+				  && (!oi.general || badgens[oi.general])
 				) {
 					ok = true;
 				} else if (diag >= 3) {
@@ -15569,19 +16521,34 @@ Quest.getBest = function(maxenergy) {
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0))
 				) {
+					if (isNumber(oi.influence) && oi.influence < 100
+					  && (x = oi.general) && !badgens.hasOwnProperty(x)
+					  && (badgens[x] = Generals.test(x))
+					) {
+						if (diag >= 1) {
+							log(LOG_INFO, '# skipping ' + i + ':' + oi.name
+							  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+							  + ' due to general ' + x
+							);
+						}
+						continue;
+					}
 					if (diag) {
 						log(LOG_INFO, '# best influence ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 						  + ' > ' + best_influence
 						);
 					}
 					best_influence = i;
 					best_inf_eff = eff;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# skipping influence ' + i + ':' + oi.name);
+					log(LOG_INFO, '# skipping influence ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+					);
 				}
 				// Deliberate fallthrough
 			case 'Experience': // Find the best exp per energy quest
-				ob = data.id[best_experience];
+				ob = this.get(['data','id',best_experience]);
 				// order: >exp, inf<100, >cash, <energy (experience)
 				if (!best_experience
 				  || (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0
@@ -15591,16 +16558,19 @@ Quest.getBest = function(maxenergy) {
 				) {
 					if (diag) {
 						log(LOG_INFO, '# best experience ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 						  + ' > ' + best_experience
 						);
 					}
 					best_experience = i;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# skipping experience ' + i + ':' + oi.name);
+					log(LOG_INFO, '# skipping experience ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+					);
 				}
 				break;
 			case 'Inf+Exp': // Find the best exp per energy quest, favouring quests needing influence
-				ob = data.id[best_experience];
+				ob = this.get(['data','id',best_experience]);
 				// order: inf<100, >exp, >cash, <energy (inf+exp)
 				if (!best_experience
 				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
@@ -15610,16 +16580,19 @@ Quest.getBest = function(maxenergy) {
 				) {
 					if (diag) {
 						log(LOG_INFO, '# best inf+exp ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 						  + ' > ' + best_experience
 						);
 					}
 					best_experience = i;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# skipping inf+exp ' + i + ':' + oi.name);
+					log(LOG_INFO, '# skipping inf+exp ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+					);
 				}
 				break;
 			case 'Inf+Cash': // Find the best (average) cash per energy quest, favouring quests needing influence
-				ob = data.id[best];
+				ob = this.get(['data','id',best]);
 				// order: inf<100, >cash, >exp, <energy (inf+cash)
 				if (!best
 				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
@@ -15629,16 +16602,19 @@ Quest.getBest = function(maxenergy) {
 				) {
 					if (diag) {
 						log(LOG_INFO, '# best inf+cash ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 						  + ' > ' + best
 						);
 					}
 					best = i;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# skipping inf+cash ' + i + ':' + oi.name);
+					log(LOG_INFO, '# skipping inf+cash ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+					);
 				}
 				break;
 			case 'Cash': // Find the best (average) cash per energy quest
-				ob = data.id[best];
+				ob = this.get(['data','id',best]);
 				// order: >cash, inf<100, >exp, <energy (cash)
 				if (!best
 				  || (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0
@@ -15648,22 +16624,25 @@ Quest.getBest = function(maxenergy) {
 				) {
 					if (diag) {
 						log(LOG_INFO, '# best cash ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 						  + ' > ' + best
 						);
 					}
 					best = i;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# skipping cash ' + i + ':' + oi.name);
+					log(LOG_INFO, '# skipping cash ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+					);
 				}
 				break;
 			default: // For everything else, there's (cheap energy) items...
-				ob = data.id[best];
+				ob = this.get(['data','id',best]);
 				// order: <energy, inf<100, >exp, >cash (item)
 				ok = false;
-				if (oi.item === this.option.what) {
+				if (oi.item === goal) {
 					ok = true;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# failed ['+this.option.what+'] reqs ' + i + ':' + oi.name);
+					log(LOG_INFO, '# failed ['+goal+'] reqs ' + i + ':' + oi.name);
 				}
 				if (ok && (!best
 				  || (cmp = oi.energy - ob.energy) < 0
@@ -15673,12 +16652,15 @@ Quest.getBest = function(maxenergy) {
 				) {
 					if (diag) {
 						log(LOG_INFO, '# best default ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 						  + ' > ' + best
 						);
 					}
 					best = i;
 				} else if (diag >= 3) {
-					log(LOG_INFO, '# skipping default ' + i + ':' + oi.name);
+					log(LOG_INFO, '# skipping default ' + i + ':' + oi.name
+					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+					);
 				}
 				break;
 			}
@@ -15686,29 +16668,47 @@ Quest.getBest = function(maxenergy) {
 
 		if (diag) {
 			log(LOG_INFO, '# bests'
+			  + (best_unique ? ' | unique ' + best_unique + ':' + this.data.id[best_unique].name : '')
 			  + (best_vampire ? ' | vampire ' + best_vampire + ':' + this.data.id[best_vampire].name : '')
 			  + (best_cartigan ? ' | cartigan ' + best_cartigan + ':' + this.data.id[best_cartigan].name : '')
 			  + (best_subquest ? ' | subquest ' + best_subquest + ':' + this.data.id[best_subquest].name : '')
 			  + (best_advancement ? ' | advancement ' + best_advancement + ':' + this.data.id[best_advancement].name : '')
 			  + (best_influence ? ' | influence ' + best_influence + ':' + this.data.id[best_influence].name : '')
+			  + (best_experience ? ' | experience ' + best_experience + ':' + this.data.id[best_experience].name : '')
 			  + (best ? ' | other ' + best + ':' + this.data.id[best].name : '')
 			);
 		}
 
-		// Automatically fallback on type - but without changing option
-		switch (this.option.what) {
-		case 'Vampire Lord':best = best_vampire || best_advancement || best_influence || best_experience;break;
-		case 'Cartigan':	best = best_cartigan || best_advancement || best_influence || best_experience;break;
-		case 'Subquests':	best = best_subquest || best_advancement || best_influence || best_experience;break;
-		case 'Advancement':	best = best_advancement || best_influence || best_experience;break;
-		case 'Influence':	best = best_influence || best_experience;break;
-		case 'Inf+Exp':		best = best_experience;break;
-		case 'Experience':	best = best_experience;break;
-		default:break;
+		// Automatically fallback on type - but without changing options
+		switch (goal) {
+		case 'Vampire Lord':
+			best = best_unique || best_vampire || best_advancement || best_influence || best_experience;
+			break;
+		case 'Cartigan':
+			best = best_unique || best_cartigan || best_advancement || best_influence || best_experience;
+			break;
+		case 'Subquests':
+			best = best_unique || best_subquest || best_advancement || best_influence || best_experience;
+			break;
+		case 'Advancement':
+			best = best_unique || best_advancement || best_influence || best_experience;
+			break;
+		case 'Influence':
+			best = best_unique || best_influence || best_experience;
+			break;
+		case 'Inf+Exp':
+			best = best_unique || best_experience;
+			break;
+		case 'Experience':
+			best = best_unique || best_experience;
+			break;
 		}
 
 		if (diag) {
-			log(LOG_INFO, '# best pick ' + best + ':' + this.data.id[best].name);
+			ob = this.get(['data','id',best]);
+			log(LOG_INFO, '# best pick ' + best + ':' + ob.name
+			  + ' in ' + (isNumber(ob.land) ? this.land[ob.land] : this.area[ob.area])
+			);
 		}
 	}
 
@@ -15716,52 +16716,33 @@ Quest.getBest = function(maxenergy) {
 };
 
 Quest.work = function(state) {
-	var i, list, mid, quest, button, name,
+	var i, quest, page, button,
+		best = this.runtime.best,
 		general = 'any',
 		energy = Player.get('energy');
 
-	if (!this.runtime.best) {
-		list = this.defaults['castle_age'].pages.split(/\s+/);
-		// looks like stale quest info
-		for (i = 0; i < list.length; i++) {
-			if (list[i] !== 'quests_quest' // old placebo, just in case...
-			  && list[i] !== 'quests_quest16' // pangaea not yet on web3
-			  && /^quests_/.test(list[i])
-			  && !Page.get(list[i])
-			) {
-				if (!state || !Page.to(list[i])) {
-					return QUEUE_CONTINUE;
-				}
-			}
-		}
-		if (!Page.get(i = 'keep_alchemy')) {
-			if (!state || !Page.to(i)) {
-				return QUEUE_CONTINUE;
-			}
+	// Only override if it has an actual quest for us
+	if (!LevelUp.option._disabled
+	  && LevelUp.get(['runtime','levelup'])
+	  && (i = LevelUp.get(['runtime','quest']))
+	) {
+		best = i;
+		// assume levelup already ensured this general wasn't wasteful
+		if ((i = LevelUp.get('runtime.general')) /*&& !Generals.test(i)*/) {
+			general = i;
 		}
 	}
 
-	if (!this.runtime.best
-	  || !(quest = this.get(['data','id',this.runtime.best]))
-	) {
+	if (!best && (i = this.runtime.page) && (!state || !Page.to(i))) {
+		return QUEUE_CONTINUE;
+	}
+
+	if (!best || !(quest = this.get(['data','id',best]))) {
 		return QUEUE_FINISH;
 	}
 
 	if (!state) {
 		return QUEUE_CONTINUE;
-	}
-
-	if (!LevelUp.option._disabled
-	  && (i = LevelUp.get(['runtime','quest']))
-	) {
-		// Only override if it has an actual quest for us
-		best = i;
-		if (this.runtime.best === best
-		  && (i = LevelUp.get('runtime.general'))
-		  && !Generals.test(i)
-		) {
-			general = i;
-		}
 	}
 
 	if ((quest.energy || 1e99) > energy && this.option.bank) {
@@ -15771,118 +16752,94 @@ Quest.work = function(state) {
 		return QUEUE_FINISH;
 	}
 
-//	If holding for fortify, then don't quest if we have a secondary or defend target possible, unless we're forcing energy.
-//	if ((LevelUp.runtime.levelup && !LevelUp.runtime.quest)
-//	|| (!LevelUp.runtime.levelup 
-//		&& ((this.option.monster === 'When able' && Monster.get('runtime.defending')) 
-//			|| (this.option.monster === 'Wait for' && (Monster.get('runtime.defending') || !LevelUp.runtime.force.energy))))) {
-//		return QUEUE_FINISH;
-//	}
-
+	// general selection logic is in work instead of update as it can be spam
+	// logs if we are testing on every data update vs when about to run a quest
+	if (general === 'any' && quest.general && isNumber(quest.influence) && quest.influence < 100) {
+		general = quest.general;
+	}
+	if (general === 'any' && !this.option.general) {
+		general = this.option.general_choice || 'any';
+	}
 	if (general === 'any') {
-		if (!this.option.general) {
-			general = this.option.general_choice || 'any';
-		} else if (quest.general
-		  && isNumber(quest.influence) && quest.influence < 100
-		) {
-			general = quest.general;
-		} else {
-			general = Generals.best('under max level');
-			switch (this.option.what) {
-			case 'Vampire Lord':
-			case 'Cartigan':
-				if (quest.general) {
-					general = quest.general;
-				} else {
-					if (general === 'any' && isNumber(quest.influence) && quest.influence < 100) {
-						general = Generals.best('influence');
-					}
-					if (general === 'any') {
-						general = Generals.best('item');
-					}
-				}
-				break;
-			case 'Subquests':
-			case 'Advancement':
-			case 'Influence':
-			case 'Inf+Exp':
-			case 'Experience':
-			case 'Inf+Cash':
-			case 'Cash':
-				if (isNumber(quest.influence) && quest.influence < 100) {
-					if (quest.general) {
-						general = quest.general;
-					} else if (general === 'any') {
-						general = Generals.best('influence');
-					}
-				}
-				break;
-			default:
-				if (isNumber(quest.influence) && quest.influence < 100) {
-					if (quest.general) {
-						general = quest.general;
-					} else if (general === 'any') {
-						general = Generals.best('influence');
-					}
-				}
-				if (general === 'any') {
-					general = Generals.best('item');
-				}
-				break;
-			}
-			if (general === 'any') {
-				general = 'cash';
-			}
+		general = Generals.best('under max level');
+	}
+	if (general === 'any' && isNumber(quest.influence) && quest.influence < 100) {
+		general = Generals.best('influence');
+	}
+	if (general === 'any') {
+		switch (this.option.what) {
+		case 'Subquests':
+		case 'Advancement':
+		case 'Influence':
+		case 'Inf+Exp':
+		case 'Experience':
+		case 'Inf+Cash':
+		case 'Cash':
+			break;
+		case 'Vampire Lord':
+		case 'Cartigan':
+		default:
+			general = Generals.best('item');
+			break;
 		}
+	}
+	if (general === 'any') {
+		general = Generals.best('cash');
 	}
 
 	if (!Generals.to(general)) {
 		return QUEUE_CONTINUE;
 	}
 
-	button = $('input[name="quest"][value="' + best + '"]').siblings('.imgButton').children('input[type="image"]');
-	log(LOG_WARN, 'Performing - ' + quest.name + ' (energy: ' + quest.energy + ')');
-	//log(LOG_WARN,'Quest ' + quest.name + ' general ' + quest.general + ' test ' + !Generals.test(quest.general || 'any') + ' this.data || '+ (quest.general || 'any') + ' queue ' + (LevelUp.runtime.general && quest.general));
-	if (!button || !button.length) { // Can't find the quest, so either a bad page load, or bad data - delete the quest and reload, which should force it to update ok...
-		this.add(['data','id',best,'button_fail'], 1);
-		if (quest.button_fail > 5) {
-			log(LOG_WARN, "Can't find button for " + quest.name + ', so deleting and re-visiting page...');
-			this.set(['data','id',best]);
-			this.set(['runtime','best'], null);
-			Page.reload();
-			return QUEUE_RELEASE;
-		} else {
-			switch(quest.area) {
-			case 'quest':
-				if (!Page.to('quests_quest' + (quest.land + 1),null,true)) {
-					return QUEUE_CONTINUE;
-				}
-				break;
-			case 'demiquest':
-				if (!Page.to('quests_demiquests',null,true)) {
-					return QUEUE_CONTINUE;
-				}
-			case 'atlantis':
-				if (!Page.to('quests_atlantis',null,true)) {
-					return QUEUE_CONTINUE;
-				}
-			default:
-				log(LOG_LOG, "Can't get to quest area!");
-				return QUEUE_FINISH;
-			}
-		}
+	switch (quest.area) {
+	case 'quest':
+		page = 'quests_quest' + (quest.land + 1);
+		break;
+	case 'demiquest':
+		page = 'quests_demiquests';
+		break;
+	case 'atlantis':
+		page = 'quests_atlantis';
+		break;
+	default:
+		log(LOG_WARN, "Can't get to quest area!");
+		return QUEUE_FINISH;
+	}
+	if (!Page.to(page)) {
+		return QUEUE_CONTINUE;
 	}
 
-	Page.click(button);
-	LevelUp.set(['runtime','quest'], null);
+	// this *should* find either the do again button or the normal one
+	button = $('input[name="quest"][value="'+best+'"]').siblings('.imgButton').children('input[type="image"]');
+	if (!button.length) {
+		this.add(['data','id',best,'button_fail'], 1);
+		if (this.get(['data','id',best,'button_fail'], 0) > 5) {
+			log(LOG_WARN, "Can't find button for " + quest.name + '...');
+			this._remind(60, 'retry');
+			return QUEUE_FINISH;
+		}
+		return QUEUE_CONTINUE;
+	}
+
+	log(LOG_LOG, 'Performing - ' + quest.name
+	  + '; energy: ' + quest.energy
+	  + (general !== 'any' ? '; general: ' + general : '')
+	);
+
+	if (!Page.click(button)) {
+		log(LOG_WARN, "Can't click button for " + quest.name + ' - cooldown?');
+		this._remind(60, 'retry');
+		return QUEUE_FINISH;
+	}
+
+	if (best === LevelUp.get(['runtime','quest'])) {
+		LevelUp.set(['runtime','quest']);
+	}
 
 	if (quest.type === 3) { // Just completed a boss quest
-		if (!Alchemy.get(['ingredients', quest.itemimg], 0, 'number')) { // Add one as we've just gained it...
+		if (!Alchemy.get(['ingredients', quest.itemimg], 0, 'number')) {
+			// Add one as we've just gained it...
 			Alchemy.set(['ingredients', quest.itemimg], 1);
-		}
-		// This won't work since we just clicked the quest above.
-		if (this.option.what === 'Advancement' && Page.pageNames['quests_quest' + (quest.land + 2)]) {// If we just completed a boss quest, check for a new quest land.
-			Page.to('quests_quest' + (quest.land + 2));// Go visit the next land as we've just unlocked it...
 		}
 	}
 
@@ -16207,15 +17164,16 @@ Quest.wiki_reps = function(quest, pure) {
 /*jslint
 */
 
-Quest.rts = 1317205601;	// Wed Sep 28 10:26:41 2011 UTC
+Quest.rts = 1318744182;		// Sun Oct 16 05:49:42 2011 UTC
 
-Quest.rdata =			// #471
+Quest.rdata =				// #538
 {
 	'a demonic transformation':			{ 'reps_q4':  40 },
 	'a forest in peril':				{ 'reps_d4':   9 },
 	'a kidnapped princess':				{ 'reps_d1':  10 },
 	'a new dawn':						{ 'reps_q12':  7 },
 	'a surprise from terra':			{ 'reps_q12': 12 },
+	'accessing the chamber':			{ 'reps_q16':  0 },
 	'across the sea':					{ 'reps_q11':  8 },
 	'aid corvintheus':					{ 'reps_d3':   9 },
 	'aid the angels':					{ 'reps_q9':  17 },
@@ -16226,6 +17184,7 @@ Quest.rdata =			// #471
 	'attack undead guardians':			{ 'reps_q6':  24 },
 	'aurelius':							{ 'reps_q11': 11 },
 	'aurelius outpost':					{ 'reps_q11':  9 },
+	'avatar of vengeance':				{ 'reps_q16':  0 },
 	'avoid an avalanche':				{ 'reps_q14':  0 },
 	'avoid detection':					{ 'reps_q12':  0 },
 	'avoid ensnarements':				{ 'reps_q3':  34 },
@@ -16236,9 +17195,10 @@ Quest.rdata =			// #471
 	'avoid the guards':					{ 'reps_q8':  14 },
 	'avoid the patrols':				{ 'reps_q9':  17 },
 	'banish the horde':					{ 'reps_q9':  17 },
+	'banish undead':					{ 'reps_q15':  0 },
 	'battle a wraith':					{ 'reps_q2':  16 },
 	'battle earth and fire demons':		{ 'reps_q4':  16 },
-	'battle gang of bandits':			{ 'reps_q1':  10 },
+	'battle gang of bandits':			{ 'reps_q1':   8 },
 	'battle orc captain':				{ 'reps_q3':  15 },
 	'battle the black dragon':			{ 'reps_q4':  14 },
 	'battle the ent':					{ 'reps_d4':  12 },
@@ -16252,16 +17212,21 @@ Quest.rdata =			// #471
 	'breaching the gates':				{ 'reps_q7':  15 },
 	'break aurelius guard':				{ 'reps_q11':  0 },
 	'break evil seal':					{ 'reps_q7':  17 },
+	'break front line':					{ 'reps_q15':  0 },
+	'break magic barrier':				{ 'reps_q16':  0 },
 	'break the lichs spell':			{ 'reps_d3':  12 },
 	'break the line':					{ 'reps_q10':  0 },
+	'break through':					{ 'reps_q15':  0 },
 	'breaking through the guard':		{ 'reps_q9':  15 },
 	'bridge of elim':					{ 'reps_q8':  11 },
 	'bridge of fire':					{ 'reps_q14': 11 },
 	'burn barracks':					{ 'reps_q14':  0 },
 	'burning gates':					{ 'reps_q7':  10 },
 	'burning of karth':					{ 'reps_q14': 15 },
+	'bury corpses':						{ 'reps_q15':  0 },
 	'call of arms':						{ 'reps_q6':  25 },
 	'calm before the storm':			{ 'reps_q13': 10 },
+	'calm your soul':					{ 'reps_q15':  0 },
 	'capture army':						{ 'reps_q14':  0 },
 	'cast aura of night':				{ 'reps_q5':  32 },
 	'cast barrier':						{ 'reps_q14':  0 },
@@ -16270,19 +17235,23 @@ Quest.rdata =			// #471
 	'cast holy light':					{ 'reps_q6':  24 },
 	'cast holy light spell':			{ 'reps_q5':  24 },
 	'cast holy shield':					{ 'reps_d3':  12 },
+	'cast illuminating light':			{ 'reps_q16':  0 },
 	'cast meteor':						{ 'reps_q5':  32 },
 	'cast poison shield':				{ 'reps_q13':  0 },
 	'cast regrowth':					{ 'reps_q13':  0 },
 	'castle of the black lion':			{ 'reps_d5':  13 },
 	'castle of the damn':				{ 'reps_d3':  21 },
+	'caverns of eternity':				{ 'reps_q16':  9 },
 	'channel excalibur':				{ 'reps_q8':  14 },
 	'channel runestones':				{ 'reps_q12':  0 },
 	'charge ahead':						{ 'reps_q10':  0 },
 	'charge the castle':				{ 'reps_q7':  15 },
 	'chasm of fire':					{ 'reps_q10': 10 },
 	'city of clouds':					{ 'reps_q8':  11 },
+	'cleanse your soul':				{ 'reps_q16':  0 },
 	'clear haze':						{ 'reps_q13':  0 },
 	'clear the rocks':					{ 'reps_q11':  0 },
+	'cliffs of despair':				{ 'reps_q16':  0 },
 	'climb castle cliffs':				{ 'reps_q11':  0 },
 	'climb the mountain':				{ 'reps_q8':  14 },
 	'climb walls':						{ 'reps_q14':  0 },
@@ -16300,9 +17269,12 @@ Quest.rdata =			// #471
 	'cover tracks':						{ 'reps_q7':  19 },
 	'create artifact relic':			{ 'reps_q13':  0 },
 	'create wall':						{ 'reps_q12':  0 },
+	'cross astral bridge':				{ 'reps_q16':  0 },
+	'cross chasm':						{ 'reps_q15':  0 },
 	'cross lava pools':					{ 'reps_q14':  0 },
 	'cross lava river':					{ 'reps_q7':  20 },
 	'cross the bridge':					{ 'reps_q8':  14, 'reps_q10':  0 },
+	'cross the chasm':					{ 'reps_q16':  0 },
 	'cross the falls':					{ 'reps_q13':  0 },
 	'cross the moat':					{ 'reps_q11':  0 },
 	'crossing the chasm':				{ 'reps_q2':  13, 'reps_q8':  14 },
@@ -16313,6 +17285,7 @@ Quest.rdata =			// #471
 	'deal final blow to bloodwing':		{ 'reps_d2':  12 },
 	'death of a forest':				{ 'reps_q13':  8 },
 	'deathrune castle':					{ 'reps_q7':  12 },
+	'decipher magic':					{ 'reps_q15':  0 },
 	'decipher the clues':				{ 'reps_q9':  17 },
 	'defeat and heal feral animals':	{ 'reps_d4':  12 },
 	'defeat angelic sentinels':			{ 'reps_q8':  14 },
@@ -16324,18 +17297,23 @@ Quest.rdata =			// #471
 	'defeat demonic guards':			{ 'reps_q7':  17 },
 	'defeat fire elementals':			{ 'reps_q10':  0 },
 	'defeat frost minions':				{ 'reps_q3':  40 },
+	'defeat ghoul':						{ 'reps_q15':  0 },
 	'defeat guardian':					{ 'reps_q12':  0 },
-	'defeat guards':					{ 'reps_q12':  0 },
+	'defeat guards':					{ 'reps_q12':  0, 'reps_q15':  0 },
+	'defeat keeper':					{ 'reps_q15':  0 },
 	'defeat lion defenders':			{ 'reps_q11':  0 },
 	'defeat lothar':					{ 'reps_q12':  0 },
 	'defeat orc patrol':				{ 'reps_q8':  14 },
 	'defeat paladin':					{ 'reps_q14':  0 },
+	'defeat phalanx':					{ 'reps_q15':  0 },
 	'defeat rebels':					{ 'reps_q10':  0 },
 	'defeat rock elementals':			{ 'reps_q13':  0 },
+	'defeat shadow rays':				{ 'reps_q16':  0 },
+	'defeat shadowstalkers':			{ 'reps_q16':  0 },
 	'defeat snow giants':				{ 'reps_q3':  24 },
 	'defeat spirits':					{ 'reps_q12':  0 },
 	'defeat sylvana':					{ 'reps_q14':  0 },
-	'defeat the bandit leader':			{ 'reps_q1':   6 },
+	'defeat the bandit leader':			{ 'reps_q1':   5 },
 	'defeat the banshees':				{ 'reps_q5':  25 },
 	'defeat the black lion army':		{ 'reps_d5':  12 },
 	'defeat the demonic guards':		{ 'reps_d1':  12 },
@@ -16345,10 +17323,12 @@ Quest.rdata =			// #471
 	'defeat the seraphims':				{ 'reps_q8':  14 },
 	'defeat tiger form':				{ 'reps_q11':  0 },
 	'defeat treants':					{ 'reps_q12':  0 },
+	'defeat wights':					{ 'reps_q15':  0 },
 	'defeat wolverines':				{ 'reps_q13':  0 },
 	'defend the village':				{ 'reps_d3':  12 },
 	'desert temple':					{ 'reps_q11': 12 },
 	'destroy black oozes':				{ 'reps_q11':  0 },
+	'destroy elementals':				{ 'reps_q16':  0 },
 	'destroy fire dragon':				{ 'reps_q4':  10 },
 	'destroy fire elemental':			{ 'reps_q4':  16 },
 	'destroy fire elementals':			{ 'reps_q14':  0 },
@@ -16360,9 +17340,11 @@ Quest.rdata =			// #471
 	'destroy the black gate':			{ 'reps_d1':  12 },
 	'destroy the black portal':			{ 'reps_d1':  12 },
 	'destroy the bolted door':			{ 'reps_d3':  12 },
-	'destroy undead crypt':				{ 'reps_q1':   5 },
+	'destroy undead crypt':				{ 'reps_q1':   4 },
+	'destroy ward':						{ 'reps_q15':  0 },
 	'destruction abound':				{ 'reps_q8':  11 },
 	'determine cause of corruption':	{ 'reps_d5':  12 },
+	'diciphering the message':			{ 'reps_q16':  0 },
 	'dig up star metal':				{ 'reps_d3':  12 },
 	'disarm townspeople':				{ 'reps_q11':  0 },
 	'discover cause of corruption':		{ 'reps_d4':  12 },
@@ -16371,6 +17353,7 @@ Quest.rdata =			// #471
 	'dispatch lothar':					{ 'reps_q12':  0 },
 	'dispatch more cultist guards':		{ 'reps_d1':  12 },
 	'dispatch patrol':					{ 'reps_q14':  0 },
+	'dispel enchantment':				{ 'reps_q16':  0 },
 	'distract the demons':				{ 'reps_q9':  17 },
 	'don armor':						{ 'reps_q14':  0 },
 	'dragon slayer':					{ 'reps_d2':  14 },
@@ -16387,22 +17370,27 @@ Quest.rdata =			// #471
 	'enlist captain morgan':			{ 'reps_q11':  0 },
 	'entrance':							{ 'reps_a2':   0 },
 	'entrance denied':					{ 'reps_q12': 12 },
-	'entrance to terra':				{ 'reps_q1':   9 },
+	'entrance of time':					{ 'reps_q16':  0 },
+	'entrance to terra':				{ 'reps_q1':   7 },
+	'entrap souls':						{ 'reps_q15':  0 },
 	'equip soldiers':					{ 'reps_q6':  25 },
 	'eradicate spores':					{ 'reps_q13':  0 },
 	'escape from trakan':				{ 'reps_q12':  7 },
+	'escape the darkness':				{ 'reps_q16':  0 },
 	'escape trakan':					{ 'reps_q12':  0 },
 	'escape woods':						{ 'reps_q12':  0 },
 	'escaping the chaos':				{ 'reps_q9':  17 },
 	'escaping the stronghold':			{ 'reps_q9':  10 },
+	'exiting the chamber':				{ 'reps_q16':  0 },
 	'explore dead forests':				{ 'reps_q12':  0 },
 	'explore merchant plaza':			{ 'reps_q11': 17 },
 	'explore mist expanse':				{ 'reps_q12':  0 },
 	'explore mist ruins':				{ 'reps_q12':  0 },
+	'explore rodinia':					{ 'reps_q15':  0 },
 	'explore the temple':				{ 'reps_q11':  0 },
 	'extinguish desert basilisks':		{ 'reps_q11':  0 },
 	'extinguish the fires':				{ 'reps_q8':  14 },
-	'falls of jiraya':					{ 'reps_q1':  10 },
+	'falls of jiraya':					{ 'reps_q1':   8 },
 	'family ties':						{ 'reps_d5':  11 },
 	'felthias fields':					{ 'reps_q12': 14 },
 	'fend off demons':					{ 'reps_q7':  20 },
@@ -16410,27 +17398,32 @@ Quest.rdata =			// #471
 	"fight cefka's shadow guard":		{ 'reps_q4':  10 },
 	'fight demonic worshippers':		{ 'reps_q5':  24 },
 	'fight dragon welps':				{ 'reps_q4':  10 },
-	'fight ghoul army':					{ 'reps_q1':   5 },
+	'fight ghoul army':					{ 'reps_q1':   4 },
 	'fight gildamesh':					{ 'reps_q3':  32 },
 	'fight ice beast':					{ 'reps_q3':  40 },
 	'fight infested soldiers':			{ 'reps_q6':  25 },
 	'fight off demons':					{ 'reps_q5':  21 },
 	'fight off zombie infestation':		{ 'reps_d3':  12 },
 	'fight snow king':					{ 'reps_q3':  24 },
+	'fight the guardians':				{ 'reps_q16':  0 },
 	'fight the half-giant sephor':		{ 'reps_q4':   9 },
+	'fight time elementals':			{ 'reps_q16':  0 },
 	'fight treants':					{ 'reps_q2':  27 },
 	'fight undead zombies':				{ 'reps_q2':  16 },
 	'fight water demon lord':			{ 'reps_q2':  31 },
 	'fight water demons':				{ 'reps_q2':  30 },
 	'fight water spirits':				{ 'reps_q2':  40 },
+	'final preparations':				{ 'reps_q15':  0 },
 	'find a way across':				{ 'reps_q13':  0 },
 	'find answers':						{ 'reps_q12':  0 },
+	'find crypt key':					{ 'reps_q15':  0 },
 	'find escape route':				{ 'reps_q12':  0 },
 	'find evidence of dragon attack':	{ 'reps_d2':   8 },
 	'find hidden path':					{ 'reps_d2':  10 },
 	'find nezeals keep':				{ 'reps_d3':  12 },
 	'find prison key':					{ 'reps_q12':  0 },
 	'find rock worms weakness':			{ 'reps_d2':  10 },
+	'find runes':						{ 'reps_q15':  0 },
 	'find shelter from haze':			{ 'reps_q13':  0 },
 	'find shortcut':					{ 'reps_q14':  0 },
 	'find source of the attacks':		{ 'reps_d3':  12 },
@@ -16444,7 +17437,10 @@ Quest.rdata =			// #471
 	'find the safest path':				{ 'reps_q10': 14 },
 	'find the source of corruption':	{ 'reps_d4':  12 },
 	'find the woman? father':			{ 'reps_d5':  12 },
+	'find time key':					{ 'reps_q16':  0 },
+	'find time runes':					{ 'reps_q16':  0 },
 	'find troll weakness':				{ 'reps_q2':  10 },
+	'find way across':					{ 'reps_q16':  0 },
 	'find your way out':				{ 'reps_q7':  15 },
 	'fire and brimstone':				{ 'reps_q7':  12 },
 	'forest of ash':					{ 'reps_d4':  11 },
@@ -16455,6 +17451,7 @@ Quest.rdata =			// #471
 	'gain entry':						{ 'reps_q11': 17 },
 	'gates to the undead':				{ 'reps_q6':  17 },
 	'gateway':							{ 'reps_q8':  11 },
+	'gather crystals':					{ 'reps_q15':  0 },
 	'gather earth essence':				{ 'reps_q13':  0 },
 	'gather life dust':					{ 'reps_q13':  0 },
 	'gather nature essence':			{ 'reps_q13':  0 },
@@ -16467,7 +17464,7 @@ Quest.rdata =			// #471
 	'hakkal woods':						{ 'reps_q13':  7 },
 	'heal arielle':						{ 'reps_q12':  0 },
 	'heal wounds':						{ 'reps_q7':  20 },
-	'heat the villagers':				{ 'reps_q1':   5 },
+	'heat the villagers':				{ 'reps_q1':   4 },
 	'holy fire':						{ 'reps_d4':  11 },
 	'hunt for food':					{ 'reps_q13':  0 },
 	'iapetian gateway':					{ 'reps_q15':  0 },
@@ -16477,7 +17474,9 @@ Quest.rdata =			// #471
 	'interrogate the prisoners':		{ 'reps_q9':  17 },
 	'investigate temple':				{ 'reps_q13':  0 },
 	'investigate the gateway':			{ 'reps_q8':  14 },
+	'inviting vengeance':				{ 'reps_q16': 11 },
 	'ironfist dwarves':					{ 'reps_q10': 10 },
+	'join army':						{ 'reps_q15':  0 },
 	'join up with artanis':				{ 'reps_d1':  12 },
 	'judgement stronghold':				{ 'reps_q8':  11 },
 	'juliean desert':					{ 'reps_q11': 12 },
@@ -16491,6 +17490,8 @@ Quest.rdata =			// #471
 	'kill vampire bats':				{ 'reps_d3':  10 },
 	'koralan coast town':				{ 'reps_q11': 14 },
 	'koralan townspeople':				{ 'reps_q11': 10 },
+	'lands end':						{ 'reps_q16':  0 },
+	'last trial':						{ 'reps_q16':  0 },
 	'learn about death knights':		{ 'reps_d5':  12 },
 	'learn aurelius intentions':		{ 'reps_q11':  0 },
 	'learn counterspell':				{ 'reps_d1':  12 },
@@ -16499,6 +17500,7 @@ Quest.rdata =			// #471
 	'look for clues':					{ 'reps_q8':  14 },
 	'lothar the ranger':				{ 'reps_q12':  9 },
 	'make camp':						{ 'reps_q13':  0, 'reps_q14':  0 },
+	'make leap of faith':				{ 'reps_q16':  0 },
 	'make preparations':				{ 'reps_q14':  0 },
 	'marauders!':						{ 'reps_d5':   9 },
 	'march into the undead lands':		{ 'reps_q6':  24 },
@@ -16507,30 +17509,37 @@ Quest.rdata =			// #471
 	'misty hills of boralis':			{ 'reps_q3':  20 },
 	'mount aretop':						{ 'reps_d2':  25 },
 	'move supplies':					{ 'reps_q14':  0 },
+	'navigate passage':					{ 'reps_q15':  0 },
+	'navigate the labryrinth':			{ 'reps_q16':  0 },
+	'navigate the waters':				{ 'reps_q16':  0 },
 	'nightfall':						{ 'reps_q12':  9 },
 	'nightmare':						{ 'reps_q6':  20 },
 	'nighttime infiltration':			{ 'reps_q14': 13 },
+	'open portal':						{ 'reps_q15':  0 },
+	'open the shadowgates':				{ 'reps_q16':  0 },
 	'outmaneuver lothar':				{ 'reps_q12':  0 },
 	'outpost entrance':					{ 'reps_q11': 12 },
 	'path':								{ 'reps_a2':   0 },
 	'path to heaven':					{ 'reps_q8':  11 },
+	'perform time alchemy':				{ 'reps_q16':  0 },
 	'persuade terra':					{ 'reps_q12':  0 },
-	'pick up the orc trail':			{ 'reps_q1':   6 },
+	'pick up the orc trail':			{ 'reps_q1':   5 },
 	'plan strategy':					{ 'reps_q14':  0 },
 	'plan the attack':					{ 'reps_d5':  12 },
 	'portal of atlantis':				{ 'reps_a1':  20 },
 	'power of excalibur':				{ 'reps_q8':  11 },
-	'prepare for ambush':				{ 'reps_q1':   6 },
+	'prepare for ambush':				{ 'reps_q1':   5 },
 	'prepare for battle':				{ 'reps_d2':  12, 'reps_q5':  21 },
 	'prepare for dark':					{ 'reps_q13':  0 },
+	'prepare for journey':				{ 'reps_q15':  0, 'reps_q16':  0 },
 	'prepare for the trials':			{ 'reps_q9':  17 },
-	'prepare for war':					{ 'reps_q14':  0 },
+	'prepare for war':					{ 'reps_q14':  0, 'reps_q15':  0 },
 	'prepare tactics':					{ 'reps_q10':  0 },
 	'prepare troops':					{ 'reps_q10':  0 },
 	'prevent dragon? escape':			{ 'reps_d2':  12 },
 	'protect temple from raiders':		{ 'reps_q2':  40 },
 	'purge forest of evil':				{ 'reps_q2':  27 },
-	'pursuing orcs':					{ 'reps_q1':  13 },
+	'pursuing orcs':					{ 'reps_q1':   6 },
 	'put out the fires':				{ 'reps_d2':   8 },
 	'question dark elf prisoners':		{ 'reps_d1':  12 },
 	'question the druidic wolf':		{ 'reps_d4':  12 },
@@ -16538,12 +17547,15 @@ Quest.rdata =			// #471
 	'question vulcan':					{ 'reps_q8':  14 },
 	'ready defenses':					{ 'reps_q12':  0 },
 	'ready soldiers':					{ 'reps_q12':  0 },
-	'ready the horses':					{ 'reps_q1':   6 },
+	'ready the horses':					{ 'reps_q1':   5 },
 	'reason with guards':				{ 'reps_q12':  0 },
 	'recover the key':					{ 'reps_q9':  17 },
 	'recruit allies':					{ 'reps_q10':  0 },
 	'recruit elekin to join you':		{ 'reps_d2':   9 },
 	'recruit furest to join you':		{ 'reps_d3':  12 },
+	'recruit guide':					{ 'reps_q15':  0 },
+	'redeemers message':				{ 'reps_q16':  0 },
+	'regain strength':					{ 'reps_q15':  0 },
 	'repair bridge':					{ 'reps_q13':  0 },
 	'repel gargoyle raid':				{ 'reps_q4':  14 },
 	'request council':					{ 'reps_q10':  0 },
@@ -16556,15 +17568,17 @@ Quest.rdata =			// #471
 	'ride to aretop':					{ 'reps_d2':  12 },
 	'ride towards the palace':			{ 'reps_q9':  17 },
 	'river of lava':					{ 'reps_q10': 10 },
-	'river of light':					{ 'reps_q1':  10, 'reps_q14': 13 },
+	'river of light':					{ 'reps_q1':   5, 'reps_q14': 13 },
 	'save dying creatures':				{ 'reps_q12':  0 },
 	'save lost souls':					{ 'reps_q5':  24 },
 	'save stranded soldiers':			{ 'reps_q10': 15 },
+	'scale the cliffs':					{ 'reps_q16':  0 },
 	'scout karth':						{ 'reps_q14':  0 },
 	'seek out elekin':					{ 'reps_d2':   9 },
 	'seek out furest hellblade':		{ 'reps_d3':  12 },
 	'seek out jeweled heart':			{ 'reps_d5':  12 },
 	'setup siege':						{ 'reps_q14':  0 },
+	'shadowspire':						{ 'reps_q16':  0 },
 	'shield of the stars':				{ 'reps_d3':  20 },
 	'siege on the capital':				{ 'reps_q14':  0 },
 	'signs of the scourge':				{ 'reps_q13':  9 },
@@ -16575,25 +17589,31 @@ Quest.rdata =			// #471
 	'slay the sea serpent':				{ 'reps_d5':  12 },
 	'sneak attack on dragon':			{ 'reps_d2':  12 },
 	'sneak into the city':				{ 'reps_q8':  14 },
-	'sneak up on orcs':					{ 'reps_q1':   7 },
+	'sneak up on orcs':					{ 'reps_q1':   6 },
 	'soldiers of the black lion':		{ 'reps_d5':  10 },
+	'solitude lair':					{ 'reps_q16':  0 },
 	'spire of death':					{ 'reps_q5':  20 },
 	'sporeguard forest':				{ 'reps_q12': 10 },
 	'sporeguard revisited':				{ 'reps_q13':  8 },
 	'spring surprise attack':			{ 'reps_d5':  12 },
 	'stall for time':					{ 'reps_q12':  0 },
+	'stave off evil':					{ 'reps_q15':  0 },
 	'stop the wolf from channeling':	{ 'reps_d4':  12 },
 	'storm the castle':					{ 'reps_d5':  12 },
 	'storm the ivory palace':			{ 'reps_q9':  17 },
 	'sulfurous springs':				{ 'reps_q11': 10 },
 	'summon legendary defenders':		{ 'reps_q6':  25 },
+	'summon shadowpatj':				{ 'reps_q16':  0 },
 	'surround rebels':					{ 'reps_q10':  0 },
 	'survey area':						{ 'reps_q13':  0 },
 	'survey battlefield':				{ 'reps_q10':  0 },
+	'survey landscape':					{ 'reps_q15':  0 },
+	'survey the cliffs':				{ 'reps_q16':  0 },
 	'survey the surroundings':			{ 'reps_q8':  14 },
 	'survive the storm':				{ 'reps_q11':  0 },
 	'survive troll ambush':				{ 'reps_q2':  10 },
 	'surviving the onslaught':			{ 'reps_q9':  17 },
+	'swim ashore':						{ 'reps_q16':  0 },
 	'taubourne falls':					{ 'reps_q13': 10 },
 	'tenvir summit':					{ 'reps_q13': 12 },
 	'test her power':					{ 'reps_q14':  0 },
@@ -16604,6 +17624,7 @@ Quest.rdata =			// #471
 	'the cave of wonder':				{ 'reps_q3':  20 },
 	'the citadel':						{ 'reps_q15':  0 },
 	'the crystal caverns':				{ 'reps_d2':  11 },
+	'the dark labyrinth':				{ 'reps_q16':  0 },
 	'the darkening skies':				{ 'reps_q9':  17 },
 	'the dead forests':					{ 'reps_q12': 11 },
 	'the deep':							{ 'reps_a1':  20 },
@@ -16637,6 +17658,7 @@ Quest.rdata =			// #471
 	'the return home':					{ 'reps_q8':  11 },
 	'the return of the dragon':			{ 'reps_d2':   9 },
 	'the ride south':					{ 'reps_q8':  14 },
+	'the river crossing':				{ 'reps_q16':  0 },
 	'the river of blood':				{ 'reps_q5':  20 },
 	'the scourge':						{ 'reps_q12':  8 },
 	'the sea temple':					{ 'reps_a1':  20 },
@@ -16647,7 +17669,7 @@ Quest.rdata =			// #471
 	'the source of magic':				{ 'reps_d4':  15 },
 	'the southern entrance':			{ 'reps_q12':  9 },
 	'the stairs of terra':				{ 'reps_q2':  10 },
-	'the stone lake':					{ 'reps_q1':  12 },
+	'the stone lake':					{ 'reps_q1':   5 },
 	'the sunken city':					{ 'reps_d5':  17 },
 	'the tree of life':					{ 'reps_d4':  21 },
 	'the vanguard of destruction':		{ 'reps_d1':  21 },
@@ -16668,18 +17690,20 @@ Quest.rdata =			// #471
 	'travel to winterguard':			{ 'reps_d3':  12 },
 	'triste':							{ 'reps_q3':  20 },
 	'undead crusade':					{ 'reps_q6':  17 },
+	'underground entrance':				{ 'reps_q15':  0 },
 	'underground path':					{ 'reps_q12':  8 },
 	'underwater':						{ 'reps_a2':   0 },
 	'underwater ruins':					{ 'reps_a1':  20 },
 	'unholy war':						{ 'reps_q6':  20 },
 	'unlikely alliance':				{ 'reps_q14': 10 },
 	'unlock altar':						{ 'reps_q13':  0 },
+	'unlock gate':						{ 'reps_q15':  0 },
 	'use artifact relic':				{ 'reps_q13':  0 },
 	'use battering ram':				{ 'reps_q11':  0 },
 	'vengeance':						{ 'reps_d2':  17 },
 	'vesuv bridge':						{ 'reps_q10': 10 },
 	'vesuv lookout':					{ 'reps_q2':  17 },
-	'visit the blacksmith':				{ 'reps_q1':  24 },
+	'visit the blacksmith':				{ 'reps_q1':  20 },
 	'vulcans secret':					{ 'reps_q8':  11 },
 	'watch the skies':					{ 'reps_d3':  12 }
 };
@@ -16694,14 +17718,12 @@ Quest.rdata =			// #471
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	isArray, isFunction, isNumber, isObject, isString, isUndefined,
-	length, sum, getAttDef, tr, th, td
+	length, sum, tr, th, td
 */
 /********** Worker.Town **********
 * Sorts and auto-buys all town units (not property)
 */
 var Town = new Worker('Town');
-Town.temp = null;
-
 Town.settings = {
 	taint:true
 };
@@ -16726,6 +17748,9 @@ Town.runtime = {
 	buy:0,
 	sell:0,
 	cost:0
+};
+
+Town.temp = {
 };
 
 Town.display = [
@@ -16976,81 +18001,529 @@ Town.page = function(page, change) {
 
 		// trigger the item type caption pass
 		if (page === 'town_blacksmith') {
-		    modify = true;
+			modify = true;
 		}
 	}
 
 	return modify;
 };
 
-Town.getInvade = function(army, suffix) {
-	var att = 0, def = 0, data = this.get('data');
+// Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
+Town.getAttDef = function(list, unitfunc, x, count, type, suffix) {
+	var units = [], limit = 1e99, attack = 0, defend = 0, i, n, p, w, own, x2,
+		atk, def, val, ascale = 1, dscale = 1, hi = -1e99, lo = 1e99, used = 0;
+
+	this.temp.AttDefMin = 0;
+	this.temp.AttDefMax = 0;
+	this.temp.AttDefAvg = 0;
+
+	x2 = type === 'monster' ? x : 'tot_' + x;
+	if (x === 'att') {
+		dscale = type === 'monster' ? 0 : 0.7;
+	} else if (x === 'def') {
+		ascale = type === 'monster' ? 0 : 0.7;
+	}
+
+	if (unitfunc) {
+		for (i in list) {
+			unitfunc(units, i, list);
+		}
+	} else {
+		units = this.temp.AttDefList || [];
+	}
+
+	units.sort(function(a,b) {
+		return (list[b][x2] || 0) - (list[a][x2] || 0)
+			|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
+			|| (list[a].cost || 0) - (list[b].cost || 0);
+	});
+
 	if (!suffix) { suffix = ''; }
-	att += getAttDef(data, function(list,i,units){if (units[i].page==='soldiers'){list.push(i);}}, 'att', army, 'invade', suffix);
-	def += getAttDef(data, null, 'def', army, 'invade', suffix);
-	att += getAttDef(data, function(list,i,units){if (units[i].type && units[i].type !== 'Weapon'){list.push(i);}}, 'att', army, 'invade', suffix);
-	def += getAttDef(data, null, 'def', army, 'invade', suffix);
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', army, 'invade', suffix);
-	def += getAttDef(data, null, 'def', army, 'invade', suffix);
-	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', army, 'invade', suffix);
-	def += getAttDef(data, null, 'def', army, 'invade', suffix);
-	return {attack:att, defend:def};
+	// hack for limits of 3 on war equipment
+	if (count < 0) {
+		limit = 3;
+		count = Math.abs(count);
+	}
+	for (i = 0; i < units.length; i++) {
+		p = list[units[i]];
+		own = isNumber(p.own) ? p.own : 0;
+		n = Math.min(count, own, limit);
+		if (type) {
+			// note how many we'd like to have used in Resources
+			w = Math.max(0, Math.min(count, limit));
+			/*
+			if (w > 0 && w > n) {
+				log(LOG_INFO, '# would use ' + w + '/' + n + ' ' + units[i]
+				  + ' for ' + type + '.' + x
+				);
+			}
+			*/
+			Resources.set(['data', '_'+units[i], type+suffix+'_'+x], w || undefined);
+			/*
+			if (n > 0) {
+				log(LOG_WARN, 'Utility','Using: '+n+' x '+units[i]+' = '+JSON.stringify(p));
+			}
+			*/
+			this.set(['data',units[i],'use'+suffix,type+suffix+'_'+x], n > 0 ? n : undefined);
+		}
+		if (n > 0) {
+			atk = (p['att'] || 0) + ((p['stats'] && p['stats']['att']) || 0);
+			def = (p['def'] || 0) + ((p['stats'] && p['stats']['def']) || 0);
+			attack += n * atk;
+			defend += n * def;
+			count -= n;
+			used += n;
+			val = atk * ascale + def * dscale;
+			hi = Math.max(hi, val);
+			lo = Math.min(lo, val);
+		}
+	}
+	this.temp.AttDefList = units;
+
+	// count empty slots as zero for min/max
+	if (hi > -1e99) {
+		this.temp.AttDefMax = hi;
+	}
+	if (count <= 0 && lo < 1e99) {
+		this.temp.AttDefMin = lo;
+	}
+	val = attack * ascale + defend * dscale;
+	if (used > 0 && val) {
+		this.temp.AttDefAvg = val / used;
+	}
+
+	return val;
+};
+
+Town.getInvade = function(army, suffix) {
+	var obj = {}, att = 0, def = 0, tag = 'invade',
+		gens = 1 + Math.floor((army - 1) / 5),
+		data = this.get('data'),
+		generals = Generals.get('data');
+
+	if (!suffix) { suffix = ''; }
+
+	try {
+		this._transaction();
+
+		att += this.getAttDef(generals, function(list, i, units) {
+			if (units[i].own) {
+				list.push(i);
+			}
+		}, 'att', gens, tag, suffix);
+		obj['attack_hero_max'] = this.temp.AttDefMax;
+		obj['attack_hero_min'] = this.temp.AttDefMin;
+		obj['attack_hero_avg'] = this.temp.AttDefAvg;
+		def += this.getAttDef(generals, null, 'def', gens, tag, suffix);
+		obj['defend_hero_max'] = this.temp.AttDefMax;
+		obj['defend_hero_min'] = this.temp.AttDefMin;
+		obj['defend_hero_avg'] = this.temp.AttDefAvg;
+
+		att += this.getAttDef(data, function(list, i, units) {
+			if (units[i].page === 'soldiers') {
+				list.push(i);
+			}
+		}, 'att', army, tag, suffix);
+		obj['attack_unit_max'] = this.temp.AttDefMax;
+		obj['attack_unit_min'] = this.temp.AttDefMin;
+		obj['attack_unit_avg'] = this.temp.AttDefAvg;
+		def += this.getAttDef(data, null, 'def', army, tag, suffix);
+		obj['defend_unit_max'] = this.temp.AttDefMax;
+		obj['defend_unit_min'] = this.temp.AttDefMin;
+		obj['defend_unit_avg'] = this.temp.AttDefAvg;
+
+		att += this.getAttDef(data, function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Weapon') {
+				list.push(i);
+			}
+		}, 'att', army, tag, suffix);
+		obj['attack_weapon_max'] = this.temp.AttDefMax;
+		obj['attack_weapon_min'] = this.temp.AttDefMin;
+		obj['attack_weapon_avg'] = this.temp.AttDefAvg;
+		def += this.getAttDef(data, null, 'def', army, tag, suffix);
+		obj['defend_weapon_max'] = this.temp.AttDefMax;
+		obj['defend_weapon_min'] = this.temp.AttDefMin;
+		obj['defend_weapon_avg'] = this.temp.AttDefAvg;
+
+		att += this.getAttDef(data, function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type !== 'Weapon') {
+				list.push(i);
+			}
+		}, 'att', army, tag, suffix);
+		obj['attack_equip_max'] = this.temp.AttDefMax;
+		obj['attack_equip_min'] = this.temp.AttDefMin;
+		obj['attack_equip_avg'] = this.temp.AttDefAvg;
+		def += this.getAttDef(data, null, 'def', army, tag, suffix);
+		obj['defend_equip_max'] = this.temp.AttDefMax;
+		obj['defend_equip_min'] = this.temp.AttDefMin;
+		obj['defend_equip_avg'] = this.temp.AttDefAvg;
+
+		att += this.getAttDef(data, function(list, i, units) {
+			if (units[i].page === 'magic') {
+				list.push(i);
+			}
+		}, 'att', army, tag, suffix);
+		obj['attack_magic_max'] = this.temp.AttDefMax;
+		obj['attack_magic_min'] = this.temp.AttDefMin;
+		obj['attack_magic_avg'] = this.temp.AttDefAvg;
+		def += this.getAttDef(data, null, 'def', army, tag, suffix);
+		obj['defend_magic_max'] = this.temp.AttDefMax;
+		obj['defend_magic_min'] = this.temp.AttDefMin;
+		obj['defend_magic_avg'] = this.temp.AttDefAvg;
+
+		obj.attack = att;
+		obj.defend = def;
+
+		this._transaction(true);
+	} catch (e) {
+		log(LOG_ERROR, e.name + ' in ' + this.name + '.getInvade(): ' + e.message);
+		this._transaction(false);
+		obj.attack = obj.defend = 0;
+	}
+
+	return obj;
 };
 
 Town.getDuel = function() {
-	var att = 0, def = 0, data = this.get('data');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Shield'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Helmet'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Gloves'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Armor'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Amulet'){list.push(i);}}, 'att', 1, 'duel');
-	def += getAttDef(data, null, 'def', 1, 'duel');
-	return {attack:att, defend:def};
+	var obj = {}, att = 0, def = 0, tag = 'duel', data = this.get('data');
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Weapon') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_weapon_max'] = this.temp.AttDefMax;
+	obj['attack_weapon_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_weapon_max'] = this.temp.AttDefMax;
+	obj['defend_weapon_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Shield') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_shield_max'] = this.temp.AttDefMax;
+	obj['attack_shield_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_shield_max'] = this.temp.AttDefMax;
+	obj['defend_shield_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Armor') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_armor_max'] = this.temp.AttDefMax;
+	obj['attack_armor_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_armor_max'] = this.temp.AttDefMax;
+	obj['defend_armor_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Helmet') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_helmet_max'] = this.temp.AttDefMax;
+	obj['attack_helmet_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_helmet_max'] = this.temp.AttDefMax;
+	obj['defend_helmet_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Amulet') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_amulet_max'] = this.temp.AttDefMax;
+	obj['attack_amulet_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_amulet_max'] = this.temp.AttDefMax;
+	obj['defend_amulet_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Gloves') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_gloves_max'] = this.temp.AttDefMax;
+	obj['attack_gloves_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_gloves_max'] = this.temp.AttDefMax;
+	obj['defend_gloves_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'magic') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_magic_max'] = this.temp.AttDefMax;
+	obj['attack_magic_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_magic_max'] = this.temp.AttDefMax;
+	obj['defend_magic_min'] = this.temp.AttDefMin;
+
+	obj.attack = att;
+	obj.defend = def;
+
+	return obj;
 };
 
 Town.getWar = function() {
-	var att = 0, def = 0, data = this.get('data');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Weapon'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Shield'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Armor'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Helmet'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Amulet'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].type === 'Gloves'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	att += getAttDef(data, function(list,i,units){if (units[i].page === 'magic'){list.push(i);}}, 'att', -7, 'war');
-	def += getAttDef(data, null, 'def', -7, 'war');
-	return {attack:att, defend:def};
+	var obj = {}, att = 0, def = 0, tag = 'war',
+		data = this.get('data'),
+		generals = Generals.get('data');
+
+	att += this.getAttDef(generals, function(list, i, units) {
+		if (units[i].own) {
+			list.push(i);
+		}
+	}, 'att', 6, tag);
+	obj['attack_hero_max'] = this.temp.AttDefMax;
+	obj['attack_hero_min'] = this.temp.AttDefMin;
+	obj['attack_hero_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(generals, null, 'def', 6, tag);
+	obj['defend_hero_max'] = this.temp.AttDefMax;
+	obj['defend_hero_min'] = this.temp.AttDefMin;
+	obj['defend_hero_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Weapon') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_weapon_max'] = this.temp.AttDefMax;
+	obj['attack_weapon_min'] = this.temp.AttDefMin;
+	obj['attack_weapon_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_weapon_max'] = this.temp.AttDefMax;
+	obj['defend_weapon_min'] = this.temp.AttDefMin;
+	obj['defend_weapon_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Shield') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_shield_max'] = this.temp.AttDefMax;
+	obj['attack_shield_min'] = this.temp.AttDefMin;
+	obj['attack_shield_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_shield_max'] = this.temp.AttDefMax;
+	obj['defend_shield_min'] = this.temp.AttDefMin;
+	obj['defend_shield_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Armor') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_armor_max'] = this.temp.AttDefMax;
+	obj['attack_armor_min'] = this.temp.AttDefMin;
+	obj['attack_armor_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_armor_max'] = this.temp.AttDefMax;
+	obj['defend_armor_min'] = this.temp.AttDefMin;
+	obj['defend_armor_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Helmet') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_helmet_max'] = this.temp.AttDefMax;
+	obj['attack_helmet_min'] = this.temp.AttDefMin;
+	obj['attack_helmet_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_helmet_max'] = this.temp.AttDefMax;
+	obj['defend_helmet_min'] = this.temp.AttDefMin;
+	obj['defend_helmet_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Amulet') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_amulet_max'] = this.temp.AttDefMax;
+	obj['attack_amulet_min'] = this.temp.AttDefMin;
+	obj['attack_amulet_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_amulet_max'] = this.temp.AttDefMax;
+	obj['defend_amulet_min'] = this.temp.AttDefMin;
+	obj['defend_amulet_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Gloves') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_gloves_max'] = this.temp.AttDefMax;
+	obj['attack_gloves_min'] = this.temp.AttDefMin;
+	obj['attack_gloves_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_gloves_max'] = this.temp.AttDefMax;
+	obj['defend_gloves_min'] = this.temp.AttDefMin;
+	obj['defend_gloves_avg'] = this.temp.AttDefAvg;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'magic') {
+			list.push(i);
+		}
+	}, 'att', -7, tag);
+	obj['attack_magic_max'] = this.temp.AttDefMax;
+	obj['attack_magic_min'] = this.temp.AttDefMin;
+	obj['attack_magic_avg'] = this.temp.AttDefAvg;
+	def += this.getAttDef(data, null, 'def', -7, tag);
+	obj['defend_magic_max'] = this.temp.AttDefMax;
+	obj['defend_magic_min'] = this.temp.AttDefMin;
+	obj['defend_magic_avg'] = this.temp.AttDefAvg;
+
+	obj.attack = att;
+	obj.defend = def;
+
+	return obj;
+};
+
+Town.getMonster = function() {
+	var obj = {}, att = 0, def = 0, tag = 'monster', data = this.get('data');
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Weapon') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_weapon_max'] = this.temp.AttDefMax;
+	obj['attack_weapon_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_weapon_max'] = this.temp.AttDefMax;
+	obj['defend_weapon_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Shield') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_shield_max'] = this.temp.AttDefMax;
+	obj['attack_shield_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_shield_max'] = this.temp.AttDefMax;
+	obj['defend_shield_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Armor') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_armor_max'] = this.temp.AttDefMax;
+	obj['attack_armor_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_armor_max'] = this.temp.AttDefMax;
+	obj['defend_armor_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Helmet') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_helmet_max'] = this.temp.AttDefMax;
+	obj['attack_helmet_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_helmet_max'] = this.temp.AttDefMax;
+	obj['defend_helmet_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Amulet') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_amulet_max'] = this.temp.AttDefMax;
+	obj['attack_amulet_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_amulet_max'] = this.temp.AttDefMax;
+	obj['defend_amulet_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Gloves') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_gloves_max'] = this.temp.AttDefMax;
+	obj['attack_gloves_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_gloves_max'] = this.temp.AttDefMax;
+	obj['defend_gloves_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'blacksmith' && units[i].type === 'Boots') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_boots_max'] = this.temp.AttDefMax;
+	obj['attack_boots_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_boots_max'] = this.temp.AttDefMax;
+	obj['defend_boots_min'] = this.temp.AttDefMin;
+
+	att += this.getAttDef(data, function(list, i, units) {
+		if (units[i].page === 'magic') {
+			list.push(i);
+		}
+	}, 'att', 1, tag);
+	obj['attack_magic_max'] = this.temp.AttDefMax;
+	obj['attack_magic_min'] = this.temp.AttDefMin;
+	def += this.getAttDef(data, null, 'def', 1, tag);
+	obj['defend_magic_max'] = this.temp.AttDefMax;
+	obj['defend_magic_min'] = this.temp.AttDefMin;
+
+	obj.attack = att;
+	obj.defend = def;
+
+	return obj;
 };
 
 Town.update = function(event, events) {
-	var now = Date.now(), i, j, k, p, u, need, want, have, best_buy = null, buy_pref = 0, best_sell = null, sell_pref = 0, best_quest = false, buy = 0, sell = 0, cost,
-		data = this.data,
+	var now = Date.now(), c, i, j, k, n, o, p, v, u, x, y,
+		need, want, have, cost, upkeep, cmp,
+		data = this.data, x1, x2, x3, x4,
+		best_buy = null, buy_pref = 0, best_sell = null,
+		best_in_class = {}, best_in_name = {}, good_buy,
+		sell_pref = 0, best_quest = false, buy = 0, sell = 0,
 		maxincome = Player.get('maxincome', 1, 'number'), // used as a divisor
-		upkeep = Player.get('upkeep', 0, 'number'),
+		total_upkeep = Player.get('upkeep', 0, 'number'),
 		// largest possible army, including bonus generals
-		armymax = Math.max(541, Generals.get('runtime.armymax', 1, 'number')),
+		armymax = Math.max(501, Generals.get('runtime.armymax', 1, 'number')),
 		// our army size, capped at the largest possible army size above
 		army = Math.min(armymax, Math.max(Generals.get('runtime.army', 1, 'number'), Player.get('armymax', 1, 'number'))),
 		max_buy = 0, max_sell = 0, resource, fixed_cost, max_cost, keep,
 		land_buffer = (Land.get('option.save_ahead') && Land.get('runtime.save_amount', 0, 'number')) || 0,
 		incr = this.runtime.cost_incr || 4,
-		info_str, buy_str = '', sell_str = '', net_cost = 0, net_upkeep = 0;
+		info_str, buy_str = '', sell_str = '', net_cost = 0, net_upkeep = 0,
+		type_map_duel = {
+			weapon: 'weapon',
+			shield: 'shield',
+			helmet: 'helmet',
+			armor: 'armor',
+			amulet: 'amulet',
+			gloves: 'gloves',
+			boots: 'boots',
+			magic: 'magic'
+		},
+		type_map_invade = {
+			soldiers: 'unit',
+			unit: 'unit',
+			weapon: 'weapon',
+			shield: 'equip',
+			helmet: 'equip',
+			armor: 'equip',
+			amulet: 'equip',
+			gloves: 'equip',
+			boots: 'equip',
+			magic: 'magic'
+		}, type, value, types;
 
 	fixed_cost = ({
-	    '$0':   0,
+		'$0':   0,
 		'$10k': 1e4,
 		'$100k':1e5,
 		'$1m':  1e6,
@@ -17066,31 +18539,32 @@ Town.update = function(event, events) {
 	})[this.option.maxcost] || 0;
 
 	switch (this.option.number) {
-		case 'Army':
-			max_buy = max_sell = army;
-			break;
-		case 'Army+':
-			max_buy = army;
-			max_sell = armymax;
-			break;
-		case 'Max Army':
-			max_buy = max_sell = armymax;
-			break;
-		default:
-			max_buy = 0;
-			max_sell = army;
-			break;
+	case 'Army':
+		max_buy = max_sell = army;
+		break;
+	case 'Army+':
+		max_buy = army;
+		max_sell = Math.max(armymax, 541);
+		break;
+	case 'Max Army':
+		max_buy = max_sell = Math.max(armymax, 541);
+		break;
+	default:
+		max_buy = 0;
+		max_sell = army;
+		break;
 	}
 
-	// These three fill in all the data we need for buying / sellings items
-	this.set(['runtime','invade'], this.getInvade(max_buy));
+	// These four fill in all the data we need for buying / sellings items
+	this.set(['runtime','invade'], this.getInvade(army));
 	this.set(['runtime','duel'], this.getDuel());
 	this.set(['runtime','war'], this.getWar());
+	this.set(['runtime','monster'], this.getMonster());
 
 	// Set up a keep set for future army sizes
 	keep = {};
 	if (army < max_sell) {
-		this.getInvade(max_sell, max_sell.toString());
+		this.set(['runtime', 'invade'+max_sell], this.getInvade(max_sell, max_sell.toString()));
 		i = 'invade' + max_sell + '_att';
 		j = 'invade' + max_sell + '_def';
 		for (u in data) {
@@ -17117,6 +18591,7 @@ Town.update = function(event, events) {
 	// 3. buy enough to get there
 	// 4. profit (or something)...
 	for (u in data) {
+		o = data[u];
 		p = Resources.get(['data','_'+u]) || {};
 		want = 0;
 		if (p.quest) {
@@ -17138,7 +18613,7 @@ Town.update = function(event, events) {
 				keep[u] = p.generals || 1e99;
 			}
 		}
-		have = data[u].own || 0;
+		have = o.own || 0;
 		need = 0;
 		if (this.option.units !== 'Best Defense') {
 			need = Math.range(need, Math.max(p.invade_att || 0, p.duel_att || 0, p.war_att || 0), max_buy);
@@ -17146,53 +18621,226 @@ Town.update = function(event, events) {
 		if (this.option.units !== 'Best Offense') {
 			need = Math.range(need, Math.max(p.invade_def || 0, p.duel_def || 0, p.war_def || 0), max_buy);
 		}
-		if (want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
+		// If we're buying for a quest item
+		// then we're only going to buy that item first
+		// though possibly more than specifically needed
+		if (want > have) {
 			max_cost = 1e99; // arbitrarily high value
 			need = want;
 		} else {
 			max_cost = fixed_cost;
 		}
 
-//			log(LOG_WARN, 'Item: '+u+', need: '+need+', want: '+want);
-		if (need > have) { // Want to buy more                                
-			if (!best_quest && data[u].buy && data[u].buy.length) {
-				if (data[u].cost <= max_cost && this.option.upkeep >= (((upkeep + ((data[u].upkeep || 0) * (i = data[u].buy.lower(need - have)))) / maxincome) * 100) && i > 1 && (!best_buy || need > buy)) {
-//						log(LOG_WARN, 'Buy: '+need);
+//		log(LOG_WARN, 'Item: '+u+', need: '+need+', want: '+want);
+		if ((n = need - have) > 0) { // Want to buy more                                
+			if (o.buy && o.buy.length
+			  && o.cost <= max_cost
+			  && (c = o.buy.lower(n))
+			  && (!o.upkeep || this.option.upkeep >= (((total_upkeep + (o.upkeep * c)) / maxincome) * 100))
+			  //&& i > 1 && (!best_buy || need > buy)
+			) {
+				// c is a convenient purchase size
+				// n is the total shortfall
+				if (buy_str !== '') { buy_str += ', '; }
+				buy_str += n + ' &times; ' + u + ' (~$' + (o.cost * n).SI();
+				//buy_str += ' < $' + max_cost.SI();
+				net_cost += o.cost * n;
+				if (isNumber(o.upkeep)) {
+					buy_str += ', upkeep $' + (o.upkeep * n).SI();
+					net_upkeep += o.upkeep * n;
+				}
+				buy_str += ')';
+				// pin the buy to the first quest item, if quest_buy is enabled
+				// order: buys by lowest total cost, then lowest total upkeep
+				// ---
+				// consider best in class also, so we don't buy something only
+				// to replace it immediately with something better when both
+				// are on the list of things to buy
+				log(LOG_INFO, 'Want: ' + c + '/' + n + ' ' + u
+				  + ((k = o.type) ? ' type[' + k + ']' : '')
+				  + ((k = o.page) ? ' page[' + k + ']' : '')
+				  + ((k = (p.duel_att || 0) - have) > 0 ? ' da[' + k + ']' : '')
+				  + ((k = (p.duel_def || 0) - have) > 0 ? ' dd[' + k + ']' : '')
+				  + ((k = (p.invade_att || 0) - have) > 0 ? ' ia[' + k + ']' : '')
+				  + ((k = (p.invade_def || 0) - have) > 0 ? ' id[' + k + ']' : '')
+				  + ((k = (p.war_att || 0) - have) > 0 ? ' wa[' + k + ']' : '')
+				  + ((k = (p.war_def || 0) - have) > 0 ? ' wd[' + k + ']' : '')
+				);
+				good_buy = false;
+				value = {};
+				types = [];
+				for (x in {duel:1, invade:1, war:1}) {
+					for (y in {att:1, def:1}) {
+						if ((k = (p[x+'_'+y] || 0) - have) > 0) {
+							if (x === 'invade') {
+								type = type_map_invade[o.type || o.page];
+							} else {
+								type = type_map_duel[o.type || o.page];
+							}
+							log(LOG_INFO, '# want ' + k + ' ' + type+'.'+u);
+							if ((v = o['tot_'+y])) {
+								value[type] = (value[type] || 0) + v;
+								types[type] = 1;
+							}
+							log(LOG_INFO, '# type[' + type + ']'
+							  + ' v[' + v + ']'
+							  + ' value[' + value[type] + ']'
+							);
+						}
+					}
+				}
+				for (type in types) {
+					if ((best_in_class[type] || 0) < (value[type] || 0)) {
+						if (best_in_name[type] === best_buy) {
+							best_buy = null;
+						}
+						log(LOG_INFO, '# best.' + type
+						  + ' was[' + best_in_name[type]
+						  + ': ' + best_in_class[type] + ']'
+						  + ' now[' + u + ': ' + value[type] + ']'
+						);
+						best_in_class[type] = value[type];
+						best_in_name[type] = u;
+						good_buy = true;
+					}
+				}
+				if ((!best_quest || want) && good_buy && (!best_buy
+				  || (o.cost || 0) * (have + c) < (data[best_buy].cost || 0) * buy
+				  || ((o.cost || 0) * (have + c) === (data[best_buy].cost || 0) * buy
+				  && o.upkeep * (have + c) < (data[best_buy].upkeep || 0) * buy))
+				) {
+//					log(LOG_WARN, 'Buy: ' + c + '/' + n);
 					best_buy = u;
-					buy = have + i; // this.buy() takes an absolute value
+					buy = have + c; // this.buy() takes an absolute value
 					buy_pref = Math.max(need, want);
-					if (want && want > have) {// If we're buying for a quest item then we're only going to buy that item first - though possibly more than specifically needed
+					// If we're buying for a quest item
+					// then we're only going to buy that item first
+					// though possibly more than specifically needed
+					if (want && want > have) {
 						best_quest = true;
 					}
 				}
+			} else if (o.cost) {
+				x1 = need - have;
+				x2 = isArray(o.buy) ? o.buy.lower(x1) : 1e99;
+				x3 = (o.upkeep || 0) * x2;
+				x4 = (total_upkeep + x3) * 100 / maxincome;
+				log(LOG_DEBUG, '# skip: ' + u +
+				  ', have ' + have +
+				  ', need ' + need +
+				  (o.cost ? ', cost $' + o.cost.SI() : '') +
+				  ', max_cost ' + max_cost.SI() +
+				  (o.upkeep ? ', upkeep $' + o.upkeep.SI() : '') +
+				  (o.buy ? ', buy ' + JSON.shallow(o.buy,2) : '') +
+				  (o.buy ? ', sell ' + JSON.shallow(o.sell,2) : '') +
+				  ', x1 ' + x1 +
+				  ', x2 ' + x2 +
+				  ', x3 $' + x3.SI() +
+				  ', x4 ' + x4.SI() + '%'
+				);
 			}
-		} else if (max_buy && this.option.sell && Math.max(need,want) < have && data[u].sell && data[u].sell.length) {// Want to sell off surplus (but never quest stuff)
-			need = data[u].sell.lower(have - (i = Math.max(need,want,keep[u] || 0)));
-			if (need > 0 && (!best_sell || data[u].cost > data[best_sell].cost)) {
-//				log(LOG_WARN, 'Sell: '+need);
-				best_sell = u;
-				sell = need;
-				sell_pref = i;
+		} else if (max_buy && this.option.sell && Math.max(need,want) < have
+		  && o.sell && o.sell.length
+		) {
+			// Want to sell off surplus (but never quest stuff)
+			c = o.sell.lower(n = have - (k = Math.max(need, want, keep[u] || 0)));
+			// c is a convenient sale size
+			// n is the total surplus
+			// k is the total need
+			if (n > 0) {
+				if (sell_str !== '') { sell_str += ', '; }
+				sell_str += n + ' &times; ' + u + ' (~$' + (o.cost * n / 2).SI();
+				net_cost -= o.cost / 2 * n;
+				if (isNumber(o.upkeep)) {
+					sell_str += ', upkeep $' + (o.upkeep * n).SI();
+					net_upkeep -= o.upkeep * n;
+				}
+				sell_str += ')';
+				// order: sells by highest upkeep saved, then highest cash gain
+				if (!best_sell
+				  || (cmp = (o.upkeep || 0) * c - (data[best_sell].upkeep || 0) * sell) > 0
+				  || (!cmp && o.cost * c > data[best_sell].cost * sell)
+				) {
+//					log(LOG_WARN, 'Sell: ' + c + '/' + n);
+					best_sell = u;
+					sell = c;
+					sell_pref = n;
+				}
 			}
 		}
+	}
+
+	info_str = '';
+	//info_str = '[' + new Date(now).format('D Y-m-d H:i:s.u') + ']';
+	if (sell_str !== '' || buy_str !== '') {
+		if (sell_str !== '') {
+			if (info_str !== '') { info_str += '; '; }
+			info_str += 'Sell: ' + sell_str;
+		}
+		if (buy_str !== '') {
+			if (info_str !== '') { info_str += '; '; }
+			info_str += 'Buy: ' + buy_str;
+		}
+		if (net_cost > 0) {
+			info_str += '; net cost $' + net_cost.SI();
+		} else if (net_cost < 0) {
+			info_str += '; net gain $' + (-net_cost).SI();
+		}
+		if (net_upkeep) {
+			info_str += '; net upkeep $' + net_upkeep.SI();
+		}
+		log(LOG_DEBUG, '# action: ' + info_str);
+		info_str = '<span title="' + info_str + '">';
 	}
 
 	if (best_sell) {// Sell before we buy
 		best_buy = null;
 		buy = 0;
 		upkeep = sell * (data[best_sell].upkeep || 0);
-		Dashboard.status(this, (this.option._disabled ? 'Would sell ' : 'Selling ') + sell + ' &times; ' + best_sell + ' for ' + Config.makeImage('gold') + '$' + (sell * data[best_sell].cost / 2).SI() + (upkeep ? ' (Upkeep: -$' + upkeep.SI() + ')': '') + (sell_pref < data[best_sell].own ? ' [' + data[best_sell].own + '/' + sell_pref + ']': ''));
+		Dashboard.status(this, info_str
+		  + (this.option._disabled ? 'Would sell ' : 'Selling ')
+		  + sell + ' &times; ' + best_sell
+		  + ' for ' + Config.makeImage('gold', 'Gold')
+		  + '$' + (sell * data[best_sell].cost / 2).SI()
+		  + (upkeep ? ' (Upkeep: -$' + upkeep.SI() + ')': '')
+		  + (sell_pref < data[best_sell].own ? ' [' + sell_pref + '/' + data[best_sell].own + ']': '')
+		  + (info_str ? '</span>' : '')
+		);
 	} else if (best_buy){
 		best_sell = null;
 		sell = 0;
 		cost = (buy - data[best_buy].own) * data[best_buy].cost;
-		net_upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
+		upkeep = (buy - data[best_buy].own) * (data[best_buy].upkeep || 0);
 		if (land_buffer && !Bank.worth(land_buffer)) {
-			Dashboard.status(this, '<i>Deferring to Land</i>');
+			Dashboard.status(this, info_str
+			  + '<i>Deferring to Land</i>'
+			  + (info_str ? '</span>' : '')
+			);
 		} else if (Bank.worth(cost + land_buffer)) {
-			Dashboard.status(this, (this.option._disabled ? 'Would buy ' : 'Buying ') + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI() + (net_upkeep ? ' (Upkeep: $' + net_upkeep.SI() + ')' : '') + (buy_pref > data[best_buy].own ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : ''));
+			Dashboard.status(this, info_str
+			  + (this.option._disabled ? 'Would buy ' : 'Buying ')
+			  + (buy - data[best_buy].own) + ' &times; ' + best_buy
+			  + ' for ' + Config.makeImage('gold', 'Gold')
+			  + '$' + cost.SI()
+			  + (upkeep ? ' (Upkeep: $' + upkeep.SI() + ')' : '')
+			  + (buy_pref > data[best_buy].own
+			  ? ' [' + data[best_buy].own + '/' + buy_pref + ']' : '')
+			  + (info_str ? '</span>' : '')
+			);
 		} else {
-			Dashboard.status(this, 'Waiting for ' + Config.makeImage('gold') + '$' + (cost + land_buffer - Bank.worth()).SI() + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy + ' for ' + Config.makeImage('gold') + '$' + cost.SI());
+			Dashboard.status(this, info_str
+			  + 'Waiting for ' + Config.makeImage('gold', 'Gold')
+			  + '<span title="$' + cost.SI()
+			  + ' + $' + land_buffer.SI()
+			  + ' - $' + Bank.worth().SI()
+			  + '">'
+			  + '$' + (cost + land_buffer - Bank.worth()).SI()
+			  + '</span>'
+			  + ' to buy ' + (buy - data[best_buy].own) + ' &times; ' + best_buy
+			  + ' for ' + Config.makeImage('gold', 'Gold')
+			  + '$' + cost.SI()
+			  + (info_str ? '</span>' : '')
+			);
 		}
 	} else {
 		if (this.option.maxcost === 'INCR'){
@@ -17202,7 +18850,11 @@ Town.update = function(event, events) {
 			this.set(['runtime','cost_incr'], null);
 			this.set(['runtime','check'], null);
 		}
-		Dashboard.status(this);
+		if (this.option._hide_status === 1 && info_str) {
+			Dashboard.status(this, info_str + '<i>Nothing to do.</i></span>');
+		} else {
+			Dashboard.status(this);
+		}
 	}
 	this.set(['runtime','best_buy'], best_buy);
 	this.set(['runtime','buy'], best_buy ? data[best_buy].buy.lower(buy - data[best_buy].own) : 0);
@@ -17211,11 +18863,12 @@ Town.update = function(event, events) {
 	this.set(['runtime','cost'], best_buy ? this.runtime.buy * data[best_buy].cost : 0);
 
 	this.set(['option','_sleep'],
-	  !this.runtime.best_sell &&
-	  !(this.runtime.best_buy && Bank.worth(this.runtime.cost + land_buffer)) &&
-	  !Page.isStale('town_soldiers') &&
-	  !Page.isStale('town_blacksmith') &&
-	  !Page.isStale('town_magic'));
+	  !this.runtime.best_sell
+	  && !(this.runtime.best_buy && Bank.worth(this.runtime.cost + land_buffer))
+	  && !Page.isStale('town_soldiers')
+	  && !Page.isStale('town_blacksmith')
+	  && !Page.isStale('town_magic')
+	);
 
 	return true;
 };
@@ -17283,7 +18936,7 @@ Town.sell = function(item, number) { // number is absolute including already own
 Town.format_unit_str = function(name) {
     var i, j, k, n, m, p, s, str;
 
-	if (name && ((p = Town.get(['data',name])) || (p = Generals.get(['data',name])))) {
+	if (name && ((p = Generals.get(['data',name])) || (p = Town.get(['data',name])))) {
 		str = name;
 
 		j = p.att || 0;
@@ -17293,7 +18946,7 @@ Town.format_unit_str = function(name) {
 		if ((m = (p.stats && p.stats.att) || 0) > 0) {
 			s += j + '+' + m;
 		} else if (m < 0) {
-			s += j + m;
+			s += j + '' + m;
 		} else {
 			s += j;
 		}
@@ -17303,7 +18956,7 @@ Town.format_unit_str = function(name) {
 		if ((n = (p.stats && p.stats.def) || 0) > 0) {
 			s += k + '+' + n;
 		} else if (n < 0) {
-			s += k + n;
+			s += k + '' + n;
 		} else {
 			s += k;
 		}
@@ -17331,8 +18984,9 @@ Town.format_unit_str = function(name) {
     return str;
 };
 
-var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
-	var units = [], output = [], i, o, p,
+// Find total att(ack) or def(ense) value from a list of objects (with .att and .def)
+Town.makeDash = function(list, unitfunc, x, type, name, count) {
+	var i, j, k, o, p, units = [], output = [], label = [], top = 0, end = 0,
 		order = {
 			Weapon:1,
 			Shield:2,
@@ -17340,8 +18994,21 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 			Armor:4,
 			Amulet:5,
 			Gloves:6,
-			Magic:7
+			Boots:7,
+			magic:8
 		};
+
+	if (name && name.charAt(0) === '*') {
+		p = name.substr(1).split(',');
+		if (p.length >= 2) {
+			top = order[p[0]];
+			end = order[p[1]];
+		} else if (p.length >= 1) {
+			top = 1;
+			end = order[p[0]];
+		}
+		name = null;
+	}
 
 	if (name) {
 		output.push('<div><h3><a>' + name + '</a></h3><div>');
@@ -17351,32 +19018,66 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 		unitfunc(units, i, list);
 	}
 
-	if ((o = list[units[0]])) {
-		if (type === 'duel' && o.type) {
-			units.sort(function(a,b) {
-				return order[list[a].type] - order[list[b].type]
-					|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
-					|| (list[a].cost || 0) - (list[b].cost || 0);
-			});
-		} else {
-			units.sort(function(a,b) {
-				return (list[b]['tot_'+x] - list[a]['tot_'+x])
-					|| (list[a].upkeep || 0) - (list[b].upkeep || 0)
-					|| (list[a].cost || 0) - (list[b].cost || 0);
-			});
+	o = list[units[0]];
+	if (type === 'duel' || type === 'monster') {
+		units.sort(function(a,b) {
+			return (order[list[a]['type'] || list[a]['page']]
+			  - order[list[b]['type'] || list[b]['page']]
+			  || (list[a]['upkeep'] || 0) - (list[b]['upkeep'] || 0)
+			  || (list[a]['cost'] || 0) - (list[b]['cost'] || 0));
+		});
+		if (top) {
+			for (i in order) {
+				label[order[i] - 1] = i.ucfirst();
+			}
 		}
+		if (units.length < end - top + 1) {
+			k = [];
+			while ((j = units.shift())) {
+				p = list[j];
+				while ((order[p.type || p.page] || top) > k.length + 2) {
+					k.push('<i>empty</i>');
+				}
+				if (order[p.type || p.page] === k.length + 1) {
+					k.push(j);
+				}
+			}
+			while (k.length < end - top + 1) {
+				k.push('<i>empty</i>');
+			}
+			units = k;
+		}
+	} else {
+		units.sort(function(a,b) {
+			return ((list[b]['tot_'+x] - list[a]['tot_'+x])
+			  || (list[a]['upkeep'] || 0) - (list[b]['upkeep'] || 0)
+			  || (list[a]['cost'] || 0) - (list[b]['cost'] || 0));
+		});
 	}
-	for (i=0; i<(count ? count : units.length); i++) {
+
+	for (i = 0; i < (count ? count : units.length); i++) {
 		p = list[units[i]];
-		if ((o && o.skills) || (p.use && p.use[type+'_'+x])) {
+		if (!p) {
+			output.push('<div style="height:25px;margin:1px;">');
+			output.push('<img style="width:25px;height:25px;float:left;margin-right:4px;">');
+			if (top) {
+				output.push(' <b>' + label[i + top - 1] + ':</b>');
+			}
+			output.push(' ' + units[i]);
+			output.push('</div>');
+		} else if ((o && o['skills']) || (p['use'] && p['use'][type+'_'+x])) {
 			output.push('<div style="height:25px;margin:1px;">');
 			output.push('<img src="' + imagepath + p.img + '"');
 			output.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
 			output.push(' ');
-			if (p.use) {
-				output.push(p.use[type+'_'+x]+' &times; ');
+			if (type === 'duel' || type === 'monster') {
+				if (top) {
+					output.push('<b>' + label[i + top - 1] + ':</b>');
+				}
+			} else if (name !== 'Heroes' && p['use']) {
+				output.push(' ' + p.use[type+'_'+x]+' &times;');
 			}
-			output.push(this.format_unit_str(units[i]));
+			output.push(' ' + this.format_unit_str(units[i]));
 			output.push('</div>');
 		}
 	}
@@ -17389,179 +19090,232 @@ var makeTownDash = function(list, unitfunc, x, type, name, count) { // Find tota
 };
 
 Town.dashboard = function() {
-	var i, best, tmp, lset = [], rset = [], generals = Generals.get(),
-		fn_own = function(list, i, units) {
+	var i, best, tag, tmp, lset = [], rset = [], generals = Generals.get(),
+		fn_hero = function(list, i, units) {
 			if (units[i].own) {
 				list.push(i);
 			}
 		},
-		fn_page_soldiers = function(list, i, units) {
+		fn_soldier = function(list, i, units) {
 			if (units[i].page === 'soldiers') {
 				list.push(i);
 			}
 		},
-		fn_page_blacksmith = function(list, i, units) {
+		fn_blacksmith = function(list, i, units) {
 			if (units[i].page === 'blacksmith') {
 				list.push(i);
 			}
 		},
-		fn_page_magic = function(list, i, units) {
+		fn_magic = function(list, i, units) {
 			if (units[i].page === 'magic') {
 				list.push(i);
 			}
 		},
-		fn_type_weapon = function(list, i, units) {
-			if (units[i].type === 'Weapon') {
+		fn_weapon = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Weapon') {
 				list.push(i);
 			}
 		},
-		fn_type_not_weapon = function(list, i, units) {
+		fn_equipment = function(list, i, units) {
 			if (units[i].page === 'blacksmith' && units[i].type !== 'Weapon') {
 				list.push(i);
 			}
 		},
-		fn_type_shield = function(list, i, units) {
-			if (units[i].type === 'Shield') {
+		fn_shield = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Shield') {
 				list.push(i);
 			}
 		},
-		fn_type_armor = function(list, i, units) {
-			if (units[i].type === 'Armor') {
+		fn_armor = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Armor') {
 				list.push(i);
 			}
 		},
-		fn_type_helmet = function(list, i, units) {
-			if (units[i].type === 'Helmet') {
+		fn_helmet = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Helmet') {
 				list.push(i);
 			}
 		},
-		fn_type_amulet = function(list, i, units) {
-			if (units[i].type === 'Amulet') {
+		fn_amulet = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Amulet') {
 				list.push(i);
 			}
 		},
-		fn_type_gloves = function(list, i, units) {
-			if (units[i].type === 'Gloves') {
+		fn_gloves = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Gloves') {
+				list.push(i);
+			}
+		},
+		fn_boots = function(list, i, units) {
+			if (units[i].page === 'blacksmith' && units[i].type === 'Boots') {
 				list.push(i);
 			}
 		};
 
 	// invade
+	tag = 'invade';
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.invade_att) {
+		if (this.get(['data',i,'use',tag+'_att'])) {
 			tmp[i] = this.data[i];
 		}
 	}
 
-	lset.push('<div><h3><a>Invade - Attack</a></h3><div>');
-	lset.push(makeTownDash(generals, fn_own, 'att', 'invade', 'Heroes'));
-	lset.push(makeTownDash(tmp, fn_page_soldiers, 'att', 'invade', 'Soldiers'));
-	lset.push(makeTownDash(tmp, fn_type_weapon, 'att', 'invade', 'Weapons'));
-	lset.push(makeTownDash(tmp, fn_type_not_weapon, 'att', 'invade', 'Equipment'));
-	lset.push(makeTownDash(tmp, fn_page_magic, 'att', 'invade', 'Magic'));
+	lset.push('<div><h3><a>'+tag.ucfirst()+' - Attack</a></h3><div>');
+	lset.push(this.makeDash(generals, fn_hero, 'att', tag, 'Heroes'));
+	lset.push(this.makeDash(tmp, fn_soldier, 'att', tag, 'Soldiers'));
+	lset.push(this.makeDash(tmp, fn_weapon, 'att', tag, 'Weapons'));
+	lset.push(this.makeDash(tmp, fn_equipment, 'att', tag, 'Equipment'));
+	lset.push(this.makeDash(tmp, fn_magic, 'att', tag, 'Magic'));
 	lset.push('</div></div>');
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.invade_def) {
+		if (this.get(['data',i,'use',tag+'_def'])) {
 			tmp[i] = this.data[i];
 		}
 	}
 
-	rset.push('<div><h3><a>Invade - Defend</a></h3><div>');
-	rset.push(makeTownDash(generals, fn_own, 'def', 'invade', 'Heroes'));
-	rset.push(makeTownDash(tmp, fn_page_soldiers, 'def', 'invade', 'Soldiers'));
-	rset.push(makeTownDash(tmp, fn_type_weapon, 'def', 'invade', 'Weapons'));
-	rset.push(makeTownDash(tmp, fn_type_not_weapon, 'def', 'invade', 'Equipment'));
-	rset.push(makeTownDash(tmp, fn_page_magic, 'def', 'invade', 'Magic'));
+	rset.push('<div><h3><a>'+tag.ucfirst()+' - Defend</a></h3><div>');
+	rset.push(this.makeDash(generals, fn_hero, 'def', tag, 'Heroes'));
+	rset.push(this.makeDash(tmp, fn_soldier, 'def', tag, 'Soldiers'));
+	rset.push(this.makeDash(tmp, fn_weapon, 'def', tag, 'Weapons'));
+	rset.push(this.makeDash(tmp, fn_equipment, 'def', tag, 'Equipment'));
+	rset.push(this.makeDash(tmp, fn_magic, 'def', tag, 'Magic'));
 	rset.push('</div></div>');
 	
 	// duel
+	tag = 'duel';
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.duel_att) {
+		if (this.get(['data',i,'use',tag+'_att'])) {
 			tmp[i] = this.data[i];
 		}
 	}
 
-	lset.push('<div><h3><a>Duel - Attack</a></h3><div>');
-	if ((best = Generals.best('duel')) !== 'any') {
+	lset.push('<div><h3><a>'+tag.ucfirst()+' - Attack</a></h3><div>');
+	if ((best = Generals.best(tag+'-attack')) !== 'any') {
 		lset.push('<div style="height:25px;margin:1px;">');
 		lset.push('<img src="' + imagepath + generals[best].img + '"');
 		lset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
-		lset.push(this.format_unit_str(best));
+		lset.push(' <b>General:</b> ' + this.format_unit_str(best));
 		lset.push('</div>');
 	}
-	lset.push(makeTownDash(tmp, fn_page_blacksmith, 'att', 'duel'));
-	lset.push(makeTownDash(tmp, fn_page_magic, 'att', 'duel'));
+	lset.push(this.makeDash(tmp, fn_blacksmith, 'att', tag, '*Boots'));
+	lset.push(this.makeDash(tmp, fn_magic, 'att', tag, '*magic,magic'));
 	lset.push('</div></div>');
 	
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.duel_def) {
+		if (this.get(['data',i,'use',tag+'_def'])) {
 			tmp[i] = this.data[i];
 		}
 	}
 
-	rset.push('<div><h3><a>Duel - Defend</a></h3><div>');
-	if ((best = Generals.best('defend')) !== 'any') {
+	rset.push('<div><h3><a>'+tag.ucfirst()+' - Defend</a></h3><div>');
+	if ((best = Generals.best(tag+'-defend')) !== 'any') {
 		rset.push('<div style="height:25px;margin:1px;">');
 		rset.push('<img src="' + imagepath + generals[best].img + '"');
 		rset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
-		rset.push(this.format_unit_str(best));
+		rset.push(' <b>General:</b> ' + this.format_unit_str(best));
 		rset.push('</div>');
 	}
-	rset.push(makeTownDash(tmp, fn_page_blacksmith, 'def', 'duel'));
-	rset.push(makeTownDash(tmp, fn_page_magic, 'def', 'duel'));
+	rset.push(this.makeDash(tmp, fn_blacksmith, 'def', tag, '*Boots'));
+	rset.push(this.makeDash(tmp, fn_magic, 'def', tag, '*magic,magic'));
 	rset.push('</div></div>');
 
 	// war
+	tag = 'war';
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.war_att) {
+		if (this.get(['data',i,'use',tag+'_att'])) {
 			tmp[i] = this.data[i];
-			}
+		}
 	}
 
-	lset.push('<div><h3><a>War - Attack</a></h3><div>');
-	lset.push(makeTownDash(generals, fn_own, 'att', 'war', 'Heroes', 6));
-	lset.push(makeTownDash(tmp, fn_type_weapon, 'att', 'war', 'Weapons'));
-	lset.push(makeTownDash(tmp, fn_type_shield, 'att', 'war', 'Shield'));
-	lset.push(makeTownDash(tmp, fn_type_armor, 'att', 'war', 'Armor'));
-	lset.push(makeTownDash(tmp, fn_type_helmet, 'att', 'war', 'Helmet'));
-	lset.push(makeTownDash(tmp, fn_type_amulet, 'att', 'war', 'Amulet'));
-	lset.push(makeTownDash(tmp, fn_type_gloves, 'att', 'war', 'Gloves'));
-	lset.push(makeTownDash(tmp, fn_page_magic, 'att', 'war', 'Magic'));
+	lset.push('<div><h3><a>'+tag.ucfirst()+' - Attack</a></h3><div>');
+	lset.push(this.makeDash(generals, fn_hero, 'att', tag, 'Heroes', 6));
+	lset.push(this.makeDash(tmp, fn_weapon, 'att', tag, 'Weapons'));
+	lset.push(this.makeDash(tmp, fn_shield, 'att', tag, 'Shield'));
+	lset.push(this.makeDash(tmp, fn_armor, 'att', tag, 'Armor'));
+	lset.push(this.makeDash(tmp, fn_helmet, 'att', tag, 'Helmet'));
+	lset.push(this.makeDash(tmp, fn_amulet, 'att', tag, 'Amulet'));
+	lset.push(this.makeDash(tmp, fn_gloves, 'att', tag, 'Gloves'));
+	lset.push(this.makeDash(tmp, fn_boots, 'att', tag, 'Boots'));
+	lset.push(this.makeDash(tmp, fn_magic, 'att', tag, 'Magic'));
 	lset.push('</div></div>');
 
 	// prepare a short list of items being used
 	tmp = {};
 	for (i in this.data) {
-		if (this.data[i].use && this.data[i].use.war_def) {
+		if (this.get(['data',i,'use',tag+'_def'])) {
 			tmp[i] = this.data[i];
 		}
 	}
 
-	rset.push('<div><h3><a>War - Defend</a></h3><div>');
-	rset.push(makeTownDash(generals, fn_own, 'def', 'war', 'Heroes', 6));
-	rset.push(makeTownDash(tmp, fn_type_weapon, 'def', 'war', 'Weapons'));
-	rset.push(makeTownDash(tmp, fn_type_shield, 'def', 'war', 'Shield'));
-	rset.push(makeTownDash(tmp, fn_type_armor, 'def', 'war', 'Armor'));
-	rset.push(makeTownDash(tmp, fn_type_helmet, 'def', 'war', 'Helmet'));
-	rset.push(makeTownDash(tmp, fn_type_amulet, 'def', 'war', 'Amulet'));
-	rset.push(makeTownDash(tmp, fn_type_gloves, 'def', 'war', 'Gloves'));
-	rset.push(makeTownDash(tmp, fn_page_magic, 'def', 'war', 'Magic'));
+	rset.push('<div><h3><a>'+tag.ucfirst()+' - Defend</a></h3><div>');
+	rset.push(this.makeDash(generals, fn_hero, 'def', tag, 'Heroes', 6));
+	rset.push(this.makeDash(tmp, fn_weapon, 'def', tag, 'Weapons'));
+	rset.push(this.makeDash(tmp, fn_shield, 'def', tag, 'Shield'));
+	rset.push(this.makeDash(tmp, fn_armor, 'def', tag, 'Armor'));
+	rset.push(this.makeDash(tmp, fn_helmet, 'def', tag, 'Helmet'));
+	rset.push(this.makeDash(tmp, fn_amulet, 'def', tag, 'Amulet'));
+	rset.push(this.makeDash(tmp, fn_gloves, 'def', tag, 'Gloves'));
+	rset.push(this.makeDash(tmp, fn_boots, 'def', tag, 'Boots'));
+	rset.push(this.makeDash(tmp, fn_magic, 'def', tag, 'Magic'));
 	rset.push('</div></div>');
 	
+	// monster
+	tag = 'monster';
+
+	// prepare a short list of items being used
+	tmp = {};
+	for (i in this.data) {
+		if (this.get(['data',i,'use',tag+'_att'])) {
+			tmp[i] = this.data[i];
+		}
+	}
+
+	lset.push('<div><h3><a>'+tag.ucfirst()+' - Attack</a></h3><div>');
+	if ((best = Generals.best(tag+'-attack')) !== 'any') {
+		lset.push('<div style="height:25px;margin:1px;">');
+		lset.push('<img src="' + imagepath + generals[best].img + '"');
+		lset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
+		lset.push(' <b>General:</b> ' + this.format_unit_str(best));
+		lset.push('</div>');
+	}
+	lset.push(this.makeDash(tmp, fn_blacksmith, 'att', tag, '*Boots'));
+	lset.push(this.makeDash(tmp, fn_magic, 'att', tag, '*magic,magic'));
+	lset.push('</div></div>');
+	
+	// prepare a short list of items being used
+	tmp = {};
+	for (i in this.data) {
+		if (this.get(['data',i,'use',tag+'_def'])) {
+			tmp[i] = this.data[i];
+		}
+	}
+
+	rset.push('<div><h3><a>'+tag.ucfirst()+' - Defend</a></h3><div>');
+	if ((best = Generals.best(tag+'-defend')) !== 'any') {
+		rset.push('<div style="height:25px;margin:1px;">');
+		rset.push('<img src="' + imagepath + generals[best].img + '"');
+		rset.push(' style="width:25px;height:25px;float:left;margin-right:4px;">');
+		rset.push(' <b>General:</b> ' + this.format_unit_str(best));
+		rset.push('</div>');
+	}
+	rset.push(this.makeDash(tmp, fn_blacksmith, 'def', tag, '*Boots'));
+	rset.push(this.makeDash(tmp, fn_magic, 'def', tag, '*magic,magic'));
+	rset.push('</div></div>');
+
 	// div wrappers
 
 	lset.unshift('<div style="float:left;width:50%;">');
@@ -17625,16 +19379,17 @@ Town.dup_map = {
 /*jslint
 */
 
-Town.rts = 1317951162;	// Fri Oct  7 01:32:42 2011 UTC
+Town.rts = 1318826813;	// Mon Oct 17 04:46:53 2011 UTC
 
-Town.rdata =			// #1017
+Town.rdata =			// #1035
 {
 	'Absolution':					{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_azul_shield.jpg' },
+	"Adjucator's Gauntlets":		{ 'atk':  12, 'def':   8, 'type': 'gloves' },
 	'Adriana':						{ 'atk':  19, 'def':  21, 'type': 'hero', 'img': 'hero_adriana.jpg', 'skills': "Decrease opposing War Council's Defense by -3" },
-	'Aegis of Battle':				{ 'atk':  40, 'def':  35, 'type': 'shield' },
+	'Aegis of Battle':				{ 'atk':  40, 'def':  35, 'type': 'shield', 'img': 'eq_malekus_shield.jpg' },
 	'Aegis of Earth':				{ 'atk':   9, 'def':   7, 'type': 'shield', 'img': 'eq_darius_shield.jpg' },
-	'Aegis of Kings':				{ 'atk':  50, 'def':  40, 'type': 'shield' },
-	'Aegis of Stone':				{ 'atk':  30, 'def':  40, 'type': 'shield' },
+	'Aegis of Kings':				{ 'atk':  50, 'def':  40, 'type': 'shield', 'img': 'eq_agamemnon_shield2.jpg' },
+	'Aegis of Stone':				{ 'atk':  30, 'def':  40, 'type': 'shield', 'img': 'eq_giants_special2.jpg' },
 	'Aegis of the Tower':			{ 'atk':  22, 'def':  26, 'type': 'shield', 'img': 'eq_agamemnon_shield1.jpg' },
 	'Aegis of the Winds':			{ 'atk':  28, 'def':  22, 'type': 'shield', 'img': 'eq_valhalla_shield.jpg' },
 	'Aeris':						{ 'atk':   5, 'def':   5, 'type': 'hero', 'img': 'hero_aeris.jpg' },
@@ -17643,28 +19398,28 @@ Town.rdata =			// #1017
 	'Agamemnon':					{ 'atk':  35, 'def':  28, 'type': 'hero', 'img': 'hero_agamemnon.jpg', 'skills': 'Increase Player Attack by ; +3% vs. Monsters, Increase Critical Hit %' },
 	'Air Elemental':				{ 'atk':  14, 'def':  12, 'type': 'unit', 'img': 'soldier_lightning.jpg' },
 	'Air Orb':						{ 'atk':   3, 'def':   4, 'type': 'amulet', 'img': 'gift_valhalla_complete.jpg' },
-	'Alexandria':					{ 'atk':  21, 'def':  23, 'type': 'hero', 'skills': 'Deal additional damage with Mage passive ability' },
-	'All-Seeing Eye':				{ 'atk':  11, 'def':   8, 'type': 'amulet' },
+	'Alexandria':					{ 'atk':  21, 'def':  23, 'type': 'hero', 'img': 'hero_alexandria.jpg', 'skills': 'Deal additional damage with Mage passive ability' },
+	'All-Seeing Eye':				{ 'atk':  11, 'def':   8, 'type': 'amulet', 'img': 'eq_ogre_eye.jpg' },
 	'Alpha Amethyst Serpent':		{ 'atk':  75, 'def':  75, 'type': 'unit', 'img': 'soldier_serpent_purple.jpg' },
 	'Alpha Emerald Serpent':		{ 'atk':  65, 'def':  65, 'type': 'unit', 'img': 'soldier_serpent_green.jpg' },
 	'Alpha Ragnarok':				{ 'atk': 110, 'def': 110, 'type': 'unit' },
-	'Alpha Red Serpent':			{ 'atk':  80, 'def':  80, 'type': 'unit' },
+	'Alpha Red Serpent':			{ 'atk':  80, 'def':  80, 'type': 'unit', 'img': 'soldier_serpent_red.jpg' },
 	'Alpha Sapphire Serpent':		{ 'atk':  70, 'def':  70, 'type': 'unit', 'img': 'soldier_serpent_blue.jpg' },
-	'Alyzia':						{ 'atk':  31, 'def':  29, 'type': 'hero', 'skills': 'Increase Player Defense by +50' },
+	'Alyzia':						{ 'atk':  31, 'def':  29, 'type': 'hero', 'img': 'hero_alyzia.jpg', 'skills': 'Increase Player Defense by +50' },
 	'Alyzias Crest':				{ 'atk':  19, 'def':  19, 'type': 'shield', 'img': 'eq_alyzia_shield.jpg' },
 	'Alyzias Greatsword':			{ 'atk':  17, 'def':  17, 'type': 'weapon', 'img': 'eq_alyzia_sword.jpg' },
 	'Alyzias Heirloom':				{ 'atk':  14, 'def':  12, 'type': 'amulet', 'img': 'eq_alyzia_ring.jpg' },
-	'Ambitions Guard':				{ 'atk':  20, 'def':  12, 'type': 'armor' },
-	'Ambrosia':						{ 'atk':  26, 'def':  26, 'type': 'hero', 'skills': 'Increase Player Defense by +0.45 per Hero' },
+	'Ambitions Guard':				{ 'atk':  20, 'def':  12, 'type': 'armor', 'img': 'eq_malekus_armor.jpg' },
+	'Ambrosia':						{ 'atk':  26, 'def':  26, 'type': 'hero', 'img': 'boss_ambrosia.jpg', 'skills': 'Increase Player Defense by +0.45 per Hero' },
 	'Ameron':						{ 'atk':  25, 'def':  28, 'type': 'hero', 'img': 'hero_ameron.jpg', 'skills': 'Increase Whirlwind damage' },
-	'Amethyst Ring':				{ 'atk':  10, 'def':  10, 'type': 'amulet' },
+	'Amethyst Ring':				{ 'atk':  10, 'def':  10, 'type': 'amulet', 'img': 'atlantis_reward_3.jpg' },
 	'Amulet of Cefka':				{ 'atk':   6, 'def':  12, 'type': 'amulet', 'img': 'item_cefka.jpg', 'uniq': 1 },
 	'Amulet of Courage':			{ 'atk':  25, 'def':  18, 'type': 'amulet', 'img': 'eq_corv_amulet.jpg' },
 	'Amulet of Despair':			{ 'atk':   6, 'def':   5, 'type': 'amulet', 'img': 'eq_strider_evilamulet.jpg' },
 	'Amulet of Shadows':			{ 'atk':  17, 'def':  20, 'type': 'amulet', 'img': 'eq_raziel_amulet.jpg' },
 	'Amulet of the Tempest':		{ 'atk':  10, 'def':  11, 'type': 'amulet', 'img': 'demi_energy_amu.jpg' },
 	'Ancient Shield':				{ 'atk':  12, 'def':  12, 'type': 'shield', 'img': 'eq_zin_shield.jpg' },
-	'Ancient Tome':					{ 'atk':   7, 'def':  12, 'type': 'shield' },
+	'Ancient Tome':					{ 'atk':   7, 'def':  12, 'type': 'shield', 'img': 'eq_lyra_book.jpg' },
 	'Ancient Veil':					{ 'atk':   9, 'def':   7, 'type': 'helmet', 'img': 'eq_wizard_hood.jpg' },
 	'Angel':						{ 'atk':   7, 'def':   7, 'type': 'unit', 'img': 'upgrade_angel.gif' },
 	'Angel Fire':					{ 'atk':   8, 'def':   7, 'type': 'magic', 'img': 'magic_holy.jpg' },
@@ -17676,19 +19431,19 @@ Town.rdata =			// #1017
 	'Angelica':						{ 'atk':  10, 'def':   8, 'type': 'hero', 'img': 'hero_angelica.jpg', 'skills': 'Increase Demi Bonus by +6%' },
 	'Angels Crusade':				{ 'atk':   6, 'def':  10, 'type': 'magic', 'img': 'eq_azriel_magic.jpg' },
 	'Anwar':						{ 'atk':  16, 'def':  18, 'type': 'hero', 'img': 'hero_anwar.jpg', 'skills': 'Increase Player Defense by +1.0 per 3 Wolf Spirit, max 10' },
-	'Anya':							{ 'atk':  21, 'def':  22, 'type': 'hero', 'skills': 'Increase Polymorph chance' },
+	'Anya':							{ 'atk':  21, 'def':  22, 'type': 'hero', 'img': 'hero_anya.jpg', 'skills': 'Increase Polymorph chance' },
 	'Apocalypse Band':				{ 'atk':  10, 'def':  15, 'type': 'amulet', 'img': 'eq_apocalypse_band.jpg' },
-	'Aquamarine Ring':				{ 'atk':  10, 'def':  10, 'type': 'amulet' },
+	'Aquamarine Ring':				{ 'atk':  10, 'def':  10, 'type': 'amulet', 'img': 'atlantis_reward_1.jpg' },
 	'Arachnid Carapace':			{ 'atk':   0, 'def':   5, 'type': 'armor' },
 	'Arachnid Claw':				{ 'atk':   5, 'def':   0, 'type': 'weapon' },
 	'Arachnid Poison':				{ 'atk':   5, 'def':   5, 'type': 'magic' },
-	'Arachnid Slayer':				{ 'atk':   6, 'def':   4, 'type': 'weapon' },
+	'Arachnid Slayer':				{ 'atk':   6, 'def':   4, 'type': 'weapon', 'img': 'eq_spider_reward_weapon.jpg' },
 	'Araxin Blade':					{ 'atk':   7, 'def':   8, 'type': 'weapon', 'img': 'gift_araxis_complete.jpg' },
 	'Araxis':						{ 'atk':  17, 'def':  19, 'type': 'hero', 'img': 'hero_araxis.jpg' },
 	'Arcane Blast':					{ 'atk':   4, 'def':   4, 'type': 'magic', 'img': 'war_reward_3.jpg' },
 	'Arcane Bow':					{ 'atk':  17, 'def':  14, 'type': 'weapon', 'img': 'eq_sophia_arcanebow.jpg' },
-	'Arcane Defender':				{ 'atk':  23, 'def':  20, 'type': 'shield' },
-	'Arcane Infused Plate':			{ 'atk':  20, 'def':  24, 'type': 'armor' },
+	'Arcane Defender':				{ 'atk':  23, 'def':  20, 'type': 'shield', 'img': 'eq_ambrosia_shield.jpg' },
+	'Arcane Infused Plate':			{ 'atk':  20, 'def':  24, 'type': 'armor', 'img': 'eq_ambrosia_armor.jpg' },
 	'Arcane Infusion':				{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'ingredient_manashield_alchy.jpg' },
 	'Arcane Vortex':				{ 'atk':  15, 'def':  15, 'type': 'magic', 'img': 'eq_dolomar_spell.jpg' },
 	'Arcanist':						{ 'atk':  23, 'def':  20, 'type': 'unit', 'img': 'soldier_arcanis.jpg' },
@@ -17702,6 +19457,7 @@ Town.rdata =			// #1017
 	'Arielle':						{ 'atk':  18, 'def':  16, 'type': 'hero', 'img': 'hero_arielle.jpg' },
 	'Armageddon Pendant':			{ 'atk':  23, 'def':  18, 'type': 'amulet', 'img': 'eq_mephistopheles2_amulet.jpg' },
 	'Armor of Arielle':				{ 'atk':   6, 'def':   6, 'type': 'armor', 'img': 'arielle_armor.jpg' },
+	'Armor of Redemption':			{ 'atk':  45, 'def':  38, 'type': 'armor' },
 	'Armor of Vengeance':			{ 'atk':  13, 'def':  10, 'type': 'armor', 'img': 'demi_aze_8.jpg' },
 	'Armored Spider':				{ 'atk':   7, 'def':   9, 'type': 'unit', 'img': 'soldier_spider_3.jpg' },
 	'Artanis':						{ 'atk':  16, 'def':  17, 'type': 'hero', 'img': 'hero_artanis.jpg', 'skills': 'Increase Max Army Size by +20' },
@@ -17718,7 +19474,7 @@ Town.rdata =			// #1017
 	'Atlantean Spear':				{ 'atk':   7, 'def':   7, 'type': 'weapon', 'img': 'eq_seamonster_spear.jpg' },
 	'Atlantean Sword':				{ 'atk':   7, 'def':   3, 'type': 'weapon', 'img': 'eq_seamonster_sword.jpg' },
 	'Atonement':					{ 'atk':  14, 'def':  18, 'type': 'weapon', 'img': 'eq_azul_weapon.jpg' },
-	'Aurelius':						{ 'atk':  30, 'def':  33, 'type': 'hero', 'skills': 'Increase Player Defense by +1.1' },
+	'Aurelius':						{ 'atk':  30, 'def':  33, 'type': 'hero', 'img': 'hero_aurelius.jpg', 'skills': 'Increase Player Defense by +1.1' },
 	'Aurora':						{ 'atk':  26, 'def':  26, 'type': 'hero', 'img': 'hero_aurora.jpg', 'skills': 'Increase Player Attack by +1.0' },
 	'Avenger':						{ 'atk':  14, 'def':   0, 'type': 'weapon', 'img': 'eq_castle_axe2.jpg' },
 	'Avenger Amulet':				{ 'atk':   5, 'def':   2, 'type': 'amulet', 'img': 'demi_stamina_amu.jpg' },
@@ -17726,13 +19482,13 @@ Town.rdata =			// #1017
 	'Avengers Oath':				{ 'atk':   5, 'def':   4, 'type': 'magic', 'img': 'demi_stamina_spell.jpg' },
 	'Avenging Mace':				{ 'atk':  16, 'def':  13, 'type': 'weapon', 'img': 'eq_zealot_weapon.jpg' },
 	'Azalia':						{ 'atk':  21, 'def':  19, 'type': 'hero', 'img': 'hero_azalia.jpg', 'skills': "Increase your War Council's Attack by +5" },
-	'Azeron':						{ 'atk':  28, 'def':  24, 'type': 'hero', 'skills': 'Increase Player Stamina by +0.20 per Hero' },
+	'Azeron':						{ 'atk':  28, 'def':  24, 'type': 'hero', 'img': 'hero_azeron.jpg', 'skills': 'Increase Player Stamina by +0.20 per Hero' },
 	'Azriel':						{ 'atk':  28, 'def':  22, 'type': 'hero', 'img': 'hero_azriel.jpg', 'skills': 'Increase Player Attack by +1.00 per 50 Archangel, max 40' },
 	'Azul':							{ 'atk':  20, 'def':  20, 'type': 'hero', 'img': 'hero_azul.jpg', 'skills': 'Increase Player Attack by +5 and Player Defense by +5' },
 	'Azure Armor':					{ 'atk':  14, 'def':  10, 'type': 'armor', 'img': 'eq_kaylen_armor.jpg' },
 	'Backdraft':					{ 'atk':  12, 'def':   7, 'type': 'magic', 'img': 'eq_kaiser_magic.jpg' },
 	'Bahamut, the Volcanic Dragon':	{ 'atk':  75, 'def':  75, 'type': 'unit', 'img': 'soldier_volcanic_dragon.jpg' },
-	'Banthus Archfiend':			{ 'atk':  24, 'def':  22, 'type': 'hero', 'skills': 'Increase Monster Crits by +50%, cooldown 12 hours' },
+	'Banthus Archfiend':			{ 'atk':  24, 'def':  22, 'type': 'hero', 'img': 'boss_banthus.jpg', 'skills': 'Increase Monster Crits by +50%, cooldown 12 hours' },
 	'Barbarian':					{ 'atk':  10, 'def':   6, 'type': 'unit', 'img': 'soldier_barbarian.jpg' },
 	'Barbarian Captain':			{ 'atk':  23, 'def':  20, 'type': 'unit', 'img': 'war_reward_2.jpg' },
 	'Barbarus':						{ 'atk':  21, 'def':  18, 'type': 'hero', 'img': 'hero_barbarus.jpg', 'skills': 'Power Attack Multiplier +3 (Monsters)' },
@@ -17748,9 +19504,9 @@ Town.rdata =			// #1017
 	'Berserker Helm':				{ 'atk':  12, 'def':  10, 'type': 'helmet', 'img': 'demi_attack_helm.jpg' },
 	'Berserker Platemail':			{ 'atk':   4, 'def':   2, 'type': 'armor', 'img': 'demi_attack_armor.jpg' },
 	'Berserker Shield':				{ 'atk':   3, 'def':   2, 'type': 'shield', 'img': 'demi_attack_shield.jpg' },
-	'Bestial Plate':				{ 'atk':  28, 'def':  25, 'type': 'armor' },
+	'Bestial Plate':				{ 'atk':  28, 'def':  25, 'type': 'armor', 'img': 'eq_chimera_armor.jpg' },
 	'Binding Will':					{ 'atk':  14, 'def':  15, 'type': 'magic', 'img': 'eq_shivak_spell.jpg' },
-	'Bjorin':						{ 'atk':  27, 'def':  25, 'type': 'hero', 'skills': 'Increase Player Attack by +2 per Valdonian Mystic Mage, max 50' },
+	'Bjorin':						{ 'atk':  27, 'def':  25, 'type': 'hero', 'img': 'hero_bjorin.jpg', 'skills': 'Increase Player Attack by +2 per Valdonian Mystic Mage, max 50' },
 	'Black Knight':					{ 'atk':   5, 'def':   5, 'type': 'unit', 'img': 'soldier_knight_160.jpg' },
 	'Blade of Arielle':				{ 'atk':   9, 'def':   9, 'type': 'weapon', 'img': 'arielle_blade.jpg' },
 	'Blade of Ursus':				{ 'atk':  20, 'def':  17, 'type': 'weapon', 'img': 'eq_maalvus_sword.jpg' },
@@ -17762,32 +19518,32 @@ Town.rdata =			// #1017
 	'Blazerune Ring':				{ 'atk':   7, 'def':  10, 'type': 'amulet', 'img': 'eq_volcanic_ring.jpg' },
 	'Blessing of Nature':			{ 'atk':  12, 'def':  16, 'type': 'magic', 'img': 'demi_aur_8.jpg' },
 	'Blood Amulet of Typhonus':		{ 'atk':  36, 'def':  40, 'type': 'amulet', 'img': 'eq_chimera_amulet.jpg' },
-	'Blood Drinker':				{ 'atk':  21, 'def':  16, 'type': 'weapon' },
+	'Blood Drinker':				{ 'atk':  21, 'def':  16, 'type': 'weapon', 'img': 'eq_jaelle_weapon.jpg' },
 	'Blood Flask':					{ 'atk':  20, 'def':  20, 'type': 'amulet', 'img': 'eq_zealot_amulet.jpg' },
 	'Blood Vestment':				{ 'atk':  10, 'def':  10, 'type': 'armor', 'img': 'eq_slayer_armor.jpg' },
 	'Blood Zealot':					{ 'atk':  40, 'def':  40, 'type': 'unit', 'img': 'soldier_blood_zealot.jpg' },
 	'Bloodblade':					{ 'atk':   5, 'def':   5, 'type': 'weapon', 'img': 'gift_vanquish2_complete.jpg' },
 	'Bloodlord Plate':				{ 'atk':  26, 'def':  14, 'type': 'armor', 'img': 'eq_vincent_armor1.jpg' },
 	'Bloodshadow Robes':			{ 'atk':  16, 'def':  13, 'type': 'armor' },
-	'Bloodshadow Signet':			{ 'atk':  23, 'def':  23, 'type': 'amulet' },
+	'Bloodshadow Signet':			{ 'atk':  23, 'def':  23, 'type': 'amulet', 'img': 'eq_jaelle_amulet.jpg' },
 	'Bloodwell Pendant':			{ 'atk':  28, 'def':  28, 'type': 'amulet', 'img': 'eq_vincent_amulet.jpg' },
 	'Blue Lotus Petal':				{ 'atk':   0, 'def':   0, 'type': 'amulet', 'img': 'eq_frost_lotus.jpg' },
-	'Boar Tusk Helm':				{ 'atk':   7, 'def':  10, 'type': 'helmet' },
+	'Boar Tusk Helm':				{ 'atk':   7, 'def':  10, 'type': 'helmet', 'img': 'eq_barbarian_helm.jpg' },
 	'Bonecrusher':					{ 'atk':  18, 'def':  21, 'type': 'weapon', 'img': 'eq_gehenna_sword_2.jpg' },
 	'Bramble Blade':				{ 'atk':  10, 'def':   8, 'type': 'weapon', 'img': 'eq_earth_rare_sword.jpg' },
 	'Braving the Storm':			{ 'atk':  16, 'def':  14, 'type': 'armor', 'img': 'eq_valhalla_armor.jpg' },
 	'Brawler Band':					{ 'atk':  12, 'def':  10, 'type': 'amulet', 'img': 'arena_reward_1.jpg' },
 	'Brawler Gloves':				{ 'atk':   8, 'def':   8, 'type': 'gloves', 'img': 'arena3_gauntlet.jpg' },
 	'Brazen Handguard':				{ 'atk':  10, 'def':  10, 'type': 'gloves', alias: 'Brazen Handgaurd' },
-	'Breaker Lance':				{ 'atk':  18, 'def':  24, 'type': 'weapon' },
+	'Breaker Lance':				{ 'atk':  18, 'def':  24, 'type': 'weapon', 'img': 'eq_joan_weapon.jpg' },
 	'Breath of Fire':				{ 'atk':  15, 'def':  10, 'type': 'magic', 'img': 'eq_mephistopheles2_magic_1.jpg' },
 	'Buckler':						{ 'atk':   0, 'def':   1, 'type': 'shield', 'img': 'eq_buckler.jpg' },
 	'Burning Blade':				{ 'atk':  16, 'def':  13, 'type': 'weapon', 'img': 'eq_volcanic_weapon3.jpg' },
-	'Caine':						{ 'atk':  22, 'def':  22, 'type': 'hero', 'skills': 'Deal additional damage in exchange for gold' },
+	'Caine':						{ 'atk':  22, 'def':  22, 'type': 'hero', 'img': 'hero_caine.jpg', 'skills': 'Deal additional damage in exchange for gold' },
 	'Caldonian Band':				{ 'atk':  10, 'def':  14, 'type': 'amulet', 'img': 'eq_aurelius_ring2.jpg' },
 	'Caldonian Blade':				{ 'atk':  13, 'def':  16, 'type': 'weapon', 'img': 'eq_aurelius_weapon2.jpg' },
 	'Calista':						{ 'atk':  21, 'def':  19, 'type': 'hero', 'img': 'hero_calista.jpg', 'skills': 'Increase Player Attack by +0.5 per Vampire Lord, max 12' },
-	'Carmine Robes':				{ 'atk':  11, 'def':  14, 'type': 'armor' },
+	'Carmine Robes':				{ 'atk':  11, 'def':  14, 'type': 'armor', 'img': 'eq_scarlet_robe.jpg' },
 	'Cartigan':						{ 'atk':  20, 'def':  18, 'type': 'hero', 'img': 'hero_underworld.jpg', 'skills': 'Increase Player Attack by +4' },
 	'Castle Rampart':				{ 'atk':   0, 'def':   0, 'type': 'armor', 'img': 'gift_castle_wall.jpg' },
 	'Celesta':						{ 'atk':  15, 'def':  15, 'type': 'hero', 'img': 'hero_celesta.jpg' },
@@ -17799,12 +19555,12 @@ Town.rdata =			// #1017
 	'Chaos Staff':					{ 'atk':  18, 'def':  19, 'type': 'weapon', 'img': 'eq_tyxeros_weapon.jpg' },
 	'Chase':						{ 'atk':  20, 'def':  16, 'type': 'hero', 'img': 'hero_chase.jpg', 'skills': 'Increase Max Army Size by +20' },
 	'Chase Family Heirloom':		{ 'atk':   5, 'def':   5, 'type': 'amulet', 'img': 'gift_chase_complete.jpg' },
-	'Chimeric Aegis':				{ 'atk':  20, 'def':  22, 'type': 'shield' },
+	'Chimeric Aegis':				{ 'atk':  20, 'def':  22, 'type': 'shield', 'img': 'eq_chimera_shield.jpg' },
 	'Chimerus':						{ 'atk':  18, 'def':  15, 'type': 'hero', 'img': 'hero_demon.jpg', 'skills': 'Convert -10 Player Stamina to +10 Player Attack' },
 	'Cid':							{ 'atk':   5, 'def':   6, 'type': 'hero', 'img': 'hero_cid.jpg' },
 	'Cid Helm':						{ 'atk':   3, 'def':   7, 'type': 'helmet', 'img': 'gift_cid2_complete.jpg' },
 	'Cid Saber':					{ 'atk':   6, 'def':   5, 'type': 'weapon', 'img': 'eq_cid_complete.jpg' },
-	'Circlet of Light':				{ 'atk':  16, 'def':  19, 'type': 'helmet' },
+	'Circlet of Light':				{ 'atk':  16, 'def':  19, 'type': 'helmet', 'img': 'eq_tefaera_helm.jpg' },
 	'Claymore of Zeventis':			{ 'atk':  28, 'def':  28, 'type': 'weapon', 'img': 'eq_zeventis_weapon.jpg' },
 	'Cleric':						{ 'atk':   1, 'def':   5, 'type': 'unit', 'img': 'upgrade_cleric.jpg' },
 	'Cloudslayer Blade':			{ 'atk':  15, 'def':  15, 'type': 'weapon', 'img': 'eq_cloudslayer_weapon.jpg' },
@@ -17814,12 +19570,12 @@ Town.rdata =			// #1017
 	'Colossal Axe':					{ 'atk':   6, 'def':   1, 'type': 'weapon', 'img': 'stonegiant_axe.jpg' },
 	'Colossal Orb':					{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_colossus_portal.jpg' },
 	'Colossal Sword':				{ 'atk':   3, 'def':   6, 'type': 'weapon', 'img': 'stonegiant_sword.jpg' },
-	'Commander Helm':				{ 'atk':  14, 'def':  21, 'type': 'helmet' },
+	'Commander Helm':				{ 'atk':  14, 'def':  21, 'type': 'helmet', 'img': 'eq_joan_helm.jpg' },
 	'Commanders Battle Plate':		{ 'atk':   7, 'def':   7, 'type': 'armor', 'img': 'battle_rank_reward_plate.jpg', alias: "Commander's Plate" },
-	'Conclave Armor':				{ 'atk':  16, 'def':  19, 'type': 'armor' },
+	'Conclave Armor':				{ 'atk':  16, 'def':  19, 'type': 'armor', 'img': 'eq_meekah_armor.jpg' },
 	'Conflagration Shield':			{ 'atk':   7, 'def':  10, 'type': 'shield', 'img': 'gift_araxis2_complete.jpg' },
-	'Conjurers Wand':				{ 'atk':  19, 'def':  22, 'type': 'weapon' },
-	'Conquerors Axe':				{ 'atk':  30, 'def':  30, 'type': 'weapon' },
+	'Conjurers Wand':				{ 'atk':  19, 'def':  22, 'type': 'weapon', 'img': 'eq_ephraline_weapon.jpg' },
+	'Conquerors Axe':				{ 'atk':  30, 'def':  30, 'type': 'weapon', 'img': 'eq_malekus_weapon.jpg' },
 	'Consecration':					{ 'atk':  14, 'def':  14, 'type': 'magic', 'img': 'eq_azriel_magic_2.jpg' },
 	'Corvintheus':					{ 'atk':  28, 'def':  28, 'type': 'hero', 'img': 'boss_corvintheus.jpg', 'skills': 'Increase Player Defense by +1' },
 	'Cowl of the Avenger':			{ 'atk':  12, 'def':   7, 'type': 'helmet', 'img': 'demi_stamina_helm.jpg' },
@@ -17829,9 +19585,9 @@ Town.rdata =			// #1017
 	'Crimsonguard Cloak':			{ 'atk':  17, 'def':  12, 'type': 'armor', 'img': 'eq_misa_armor.jpg' },
 	'Crimsonguard Halberd':			{ 'atk':  18, 'def':  16, 'type': 'weapon', 'img': 'eq_misa_weapon.jpg' },
 	'Crissana':						{ 'atk':  22, 'def':  18, 'type': 'hero', 'img': 'hero_crissana.jpg', 'skills': 'Increase All Player Stats by +4' },
-	'Crom':							{ 'atk':  17, 'def':  17, 'type': 'hero', 'skills': 'Increase Max Army Size by +20' },
-	'Cronus, the World Hydra':		{ 'atk':  60, 'def':  60, 'type': 'unit' },
-	'Crossgate Shield':				{ 'atk':  20, 'def':  24, 'type': 'shield' },
+	'Crom':							{ 'atk':  17, 'def':  17, 'type': 'hero', 'img': 'crom.jpg', 'skills': 'Increase Max Army Size by +20' },
+	'Cronus, The World Hydra':		{ 'atk':  60, 'def':  60, 'type': 'unit', 'img': 'soldier_hydra_final.jpg' },
+	'Crossgate Shield':				{ 'atk':  20, 'def':  24, 'type': 'shield', 'img': 'eq_kothas_shield.jpg' },
 	'Crown of Darius':				{ 'atk':   8, 'def':   7, 'type': 'helmet', 'img': 'eq_darius_crown.jpg' },
 	'Crown of Deliverance':			{ 'atk':  13, 'def':   9, 'type': 'helmet', 'img': 'eq_elaida_helm.jpg' },
 	'Crown of Flames':				{ 'atk':  33, 'def':  32, 'type': 'helmet', 'img': 'eq_gehenna_helm_2.jpg' },
@@ -17842,14 +19598,14 @@ Town.rdata =			// #1017
 	'Crusader Gauntlet':			{ 'atk':   5, 'def':  11, 'type': 'gloves', 'img': 'crusader_gauntlet.jpg' },
 	'Crusader Helm':				{ 'atk':   8, 'def':   8, 'type': 'helmet', 'img': 'crusader_helm.jpg' },
 	'Crusader Shield':				{ 'atk':   9, 'def':   8, 'type': 'shield', 'img': 'crusader_shield.jpg' },
-	"Crusader's Regalia":			{ 'atk':  19, 'def':  25, 'type': 'armor' },
 	'Crusaders Cross':				{ 'atk':  12, 'def':  12, 'type': 'amulet', 'img': 'eq_sanna_amulet.jpg' },
+	'Crusaders Regalia':			{ 'atk':  19, 'def':  25, 'type': 'armor', 'img': 'eq_joan_armor.jpg' },
 	'Crushing Blade':				{ 'atk':   6, 'def':   6, 'type': 'weapon', 'img': 'eq_darius_weapon.jpg' },
 	'Crystal Rod':					{ 'atk':   9, 'def':   4, 'type': 'weapon', 'img': 'weapon_staff.jpg' },
 	'Crystal of Lament':			{ 'atk':   1, 'def':   3, 'type': 'amulet', 'img': 'eq_underworld_amulet.jpg' },
-	'Crystalline Rod':				{ 'atk':  14, 'def':  14, 'type': 'weapon' },
+	'Crystalline Rod':				{ 'atk':  14, 'def':  14, 'type': 'weapon', 'img': 'eq_scarlet_staff.jpg' },
 	'Cursed Bow':					{ 'atk':   1, 'def':   1, 'type': 'weapon', 'img': 'eq_sophia_cursedbow.jpg' },
-	'Daedalus':						{ 'atk':   9, 'def':   9, 'type': 'weapon' },
+	'Daedalus':						{ 'atk':   9, 'def':   9, 'type': 'weapon', 'img': 'eq_lucius_sword.jpg' },
 	'Dagger':						{ 'atk':   1, 'def':   0, 'type': 'weapon', 'img': 'eq_dagger.jpg' },
 	'Dagger +1':					{ 'atk':   2, 'def':   1, 'type': 'weapon', 'img': 'eq_dagger.jpg' },
 	'Dante':						{ 'atk':  15, 'def':  13, 'type': 'hero', 'img': 'hero_dante.jpg' },
@@ -17872,10 +19628,10 @@ Town.rdata =			// #1017
 	'Deianira':						{ 'atk':  20, 'def':  17, 'type': 'hero', 'img': 'hero_deianira.jpg', 'skills': 'Battle Bonus +2' },
 	'Delfina Cloudslayer':			{ 'atk':  15, 'def':  16, 'type': 'hero', 'img': 'hero_cloudslayer.jpg', 'skills': 'Increase Player Attack by +1 per 20 Platinum Knight, max 10' },
 	'Deliverance':					{ 'atk':  16, 'def':  16, 'type': 'weapon', 'img': 'eq_azriel_weapon.jpg' },
-	'Demon Blade':					{ 'atk':   9, 'def':   5, 'type': 'weapon' },
+	'Demon Blade':					{ 'atk':   9, 'def':   5, 'type': 'weapon', 'img': 'item_demonblade.jpg' },
 	'Demon Strength':				{ 'atk':   8, 'def':   2, 'type': 'magic', 'img': 'boss_keira_magic.jpg' },
-	'Demonguard Helm':				{ 'atk':  30, 'def':  30, 'type': 'helmet' },
-	'Demonguard Plate':				{ 'atk':  20, 'def':  25, 'type': 'armor' },
+	'Demonguard Helm':				{ 'atk':  30, 'def':  30, 'type': 'helmet', 'img': 'eq_tyrant_helm.jpg' },
+	'Demonguard Plate':				{ 'atk':  20, 'def':  25, 'type': 'armor', 'img': 'eq_tyrant_armor.jpg' },
 	'Demonic Armor':				{ 'atk':   5, 'def':   8, 'type': 'armor', 'img': 'eq_araxis_armor.jpg' },
 	'Demonic Circle':				{ 'atk':   9, 'def':   6, 'type': 'magic', 'img': 'magic_demoncircle.jpg' },
 	'Demonic Mask':					{ 'atk':   6, 'def':   5, 'type': 'helmet', 'img': 'eq_araxis_helm.jpg' },
@@ -17884,9 +19640,9 @@ Town.rdata =			// #1017
 	'Deshara':						{ 'atk':  21, 'def':  19, 'type': 'hero', 'img': 'hero_deshara.jpg', 'skills': 'Deal additional damage as Rogue in Guild victories' },
 	'Devout Helm':					{ 'atk':  11, 'def':  12, 'type': 'helmet', 'img': 'eq_severin_helm.jpg' },
 	'Dexter':						{ 'atk':  16, 'def':  22, 'type': 'hero', 'img': 'hero_dexter.jpg', 'skills': 'Increase Player Defense by +6' },
-	'Diamondsoul Plate':			{ 'atk':  18, 'def':  18, 'type': 'armor' },
+	'Diamondsoul Plate':			{ 'atk':  18, 'def':  18, 'type': 'armor', 'img': 'eq_caine_armor.jpg' },
 	'Discombobulate':				{ 'atk':  13, 'def':  17, 'type': 'magic', 'img': 'eq_syren_spell.jpg' },
-	'Divine Blast':					{ 'atk':  32, 'def':  20, 'type': 'magic' },
+	'Divine Blast':					{ 'atk':  32, 'def':  20, 'type': 'magic', 'img': 'eq_corv_magic.jpg' },
 	'Divinity Helm':				{ 'atk':   9, 'def':  10, 'type': 'helmet', 'img': 'eq_gallador_helmet.jpg' },
 	'Divinity Mace':				{ 'atk':  10, 'def':  14, 'type': 'weapon', 'img': 'eq_gallador_weapon.jpg' },
 	'Divinity Plate':				{ 'atk':  12, 'def':  11, 'type': 'armor', 'img': 'eq_gallador_armor.jpg' },
@@ -17902,7 +19658,7 @@ Town.rdata =			// #1017
 	'Dragon Talon':					{ 'atk':   6, 'def':   6, 'type': 'weapon', 'img': 'dragon_reward_dagger.jpg' },
 	'Dragon Tooth Amulet':			{ 'atk':   3, 'def':   1, 'type': 'amulet', 'img': 'eq_drakehelm_3.jpg' },
 	'Dragonbane':					{ 'atk':   5, 'def':   5, 'type': 'weapon', 'img': 'alchemy_weapon_sword_done.jpg' },
-	"Dragonlord's Helm":			{ 'atk':  20, 'def':  24, 'type': 'helmet' },
+	'Dragonlords Helm':				{ 'atk':  20, 'def':  24, 'type': 'helmet', 'img': 'eq_thanatos2_helm_ca.jpg' },
 	'Drake Helm':					{ 'atk':   4, 'def':   3, 'type': 'helmet', 'img': 'eq_drakehelm_complete.jpg' },
 	'Drakken Blade':				{ 'atk':  12, 'def':  12, 'type': 'weapon', 'img': 'eq_draconius_weapon.jpg' },
 	'Drakken Helm':					{ 'atk':   8, 'def':   9, 'type': 'helmet', 'img': 'eq_draconius_helmet.jpg' },
@@ -17930,13 +19686,13 @@ Town.rdata =			// #1017
 	'Elven Crown (Sylvanas)':		{ 'atk':   5, 'def':   4, 'type': 'helmet', 'img': 'eq_sylvanus_crown.jpg', alias: 'Elven Crown' },
 	'Elven Plate':					{ 'atk':   6, 'def':   6, 'type': 'armor', 'img': 'armor_elvenplate.jpg' },
 	'Elven Staff':					{ 'atk':   7, 'def':   1, 'type': 'weapon', 'img': 'eq_sylvanus_staff.jpg' },
-	'Embertorn Gauntlet':			{ 'atk':  12, 'def':   4, 'type': 'gloves' },
-	'Emerald Ring':					{ 'atk':  10, 'def':  10, 'type': 'amulet' },
+	'Embertorn Gauntlet':			{ 'atk':  12, 'def':   4, 'type': 'gloves', 'img': 'eq_thanatos2_gauntlet_ca.jpg' },
+	'Emerald Ring':					{ 'atk':  10, 'def':  10, 'type': 'amulet', 'img': 'atlantis_reward_2.jpg' },
 	'Emerald Saber':				{ 'atk':   9, 'def':  10, 'type': 'weapon', 'img': 'eq_aria_sword.jpg' },
 	'Emperion Helm':				{ 'atk':  12, 'def':  10, 'type': 'helmet', 'img': 'eq_gawain_helm.jpg' },
 	'Emperion Plate':				{ 'atk':  12, 'def':  16, 'type': 'armor', 'img': 'eq_gawain_armor.jpg' },
 	'Emperion Sword':				{ 'atk':  16, 'def':  16, 'type': 'weapon', 'img': 'eq_gawain_weapon.jpg' },
-	'Empowered Arcane':				{ 'atk':  16, 'def':  22, 'type': 'magic' },
+	'Empowered Arcane':				{ 'atk':  16, 'def':  22, 'type': 'magic', 'img': 'eq_ambrosia_spell.jpg' },
 	'Empowering Storm':				{ 'atk':   9, 'def':  10, 'type': 'magic', 'img': 'eq_kromash_spell.jpg' },
 	'Empyrean Plate':				{ 'atk':  10, 'def':   6, 'type': 'armor', 'img': 'eq_empryean_plate.jpg' },
 	'Enchanted Lantern':			{ 'atk':   2, 'def':  12, 'type': 'amulet', 'img': 'eq_sylvanus_lantern.jpg' },
@@ -17944,15 +19700,15 @@ Town.rdata =			// #1017
 	'Energy Bolt':					{ 'atk':   1, 'def':   1, 'type': 'magic', 'img': 'magic_energybolt.jpg' },
 	'Entangling Spider':			{ 'atk':   9, 'def':   7, 'type': 'unit', 'img': 'soldier_spider_2.jpg' },
 	'Epaulets of Might':			{ 'atk':   0, 'def':   4, 'type': 'armor', 'img': 'eq_elin_armor.jpg' },
-	'Ephemeral Shadows':			{ 'atk':  18, 'def':  15, 'type': 'magic' },
-	'Ephraline':					{ 'atk':  23, 'def':  21, 'type': 'hero', 'skills': 'Increase Confuse effect and deal additional damage with Mage passive ability' },
+	'Ephemeral Shadows':			{ 'atk':  18, 'def':  15, 'type': 'magic', 'img': 'eq_esmeralda_spell.jpg' },
+	'Ephraline':					{ 'atk':  23, 'def':  21, 'type': 'hero', 'img': 'hero_ephraline.jpg', 'skills': 'Increase Confuse effect and deal additional damage with Mage passive ability' },
 	'Eradicator Hammer':			{ 'atk':  40, 'def':  30, 'type': 'weapon' },
-	'Esmeralda':					{ 'atk':  35, 'def':  34, 'type': 'hero', 'skills': 'Increase Wound/Lacerate Effect' },
+	'Esmeralda':					{ 'atk':  35, 'def':  34, 'type': 'hero', 'img': 'hero_esmeralda.jpg', 'skills': 'Increase Wound/Lacerate Effect' },
 	'Evalice':						{ 'atk':  23, 'def':  22, 'type': 'hero', 'img': 'hero_evalice.jpg', 'skills': 'Transfer % Player Defense +30% to Player Attack +30%' },
 	'Evergreen Cloak':				{ 'atk':   2, 'def':   6, 'type': 'armor', 'img': 'eq_sylvanus_cape.jpg' },
 	'Excalibur':					{ 'atk':  25, 'def':  12, 'type': 'weapon', 'img': 'eq_excalibur.jpg', 'uniq': 1 },
 	'Exsanguinator':				{ 'atk':  32, 'def':  22, 'type': 'weapon', 'img': 'eq_vincent_weapon.jpg' },
-	'Eye of Transcendence':			{ 'atk':  25, 'def':  28, 'type': 'amulet' },
+	'Eye of Transcendence':			{ 'atk':  25, 'def':  28, 'type': 'amulet', 'img': 'eq_alexandra_amulet.jpg' },
 	'Eye of the Storm':				{ 'atk':  28, 'def':  30, 'type': 'amulet', 'img': 'eq_valhalla_amulet.jpg' },
 	'Eye of the Triangle':			{ 'atk':   3, 'def':   4, 'type': 'amulet', 'img': 'eq_raida1_2.jpg' },
 	'Faerie Band':					{ 'atk':   6, 'def':   7, 'type': 'amulet', 'img': 'gift_aeris3_complete.jpg' },
@@ -17960,13 +19716,13 @@ Town.rdata =			// #1017
 	'Faith Amulet':					{ 'atk':   8, 'def':  11, 'type': 'amulet', 'img': 'eq_penelope_faithamulet.jpg' },
 	'Fangblade':					{ 'atk':  28, 'def':  26, 'type': 'weapon', 'img': 'eq_chimera_weapon.jpg' },
 	'Fear Charm':					{ 'atk':   9, 'def':   8, 'type': 'amulet', 'img': 'eq_barbarian_amulet.jpg' },
-	'Felizia':						{ 'atk':  27, 'def':  27, 'type': 'hero', 'skills': 'Increase Polymorph Effect' },
+	'Felizia':						{ 'atk':  27, 'def':  27, 'type': 'hero', 'img': 'hero_felizia.jpg', 'skills': 'Increase Polymorph Effect' },
 	'Fenris':						{ 'atk':  19, 'def':  19, 'type': 'hero', 'img': 'hero_werewolf.jpg', 'skills': 'Increase Player Attack by +6' },
 	'Feral Armor':					{ 'atk':   1, 'def':   2, 'type': 'armor', 'img': 'eq_druid_armor.jpg' },
 	'Feral Staff':					{ 'atk':   2, 'def':   2, 'type': 'shield', 'img': 'eq_druid_staff.jpg' },
 	'Festivus Sword':				{ 'atk':  33, 'def':  33, 'type': 'weapon', 'img': 'eq_festival_battle_weapon.jpg' },
 	'Fiery Blade':					{ 'atk':   6, 'def':   3, 'type': 'weapon', 'img': 'gift_dante_complete.jpg' },
-	'Fighter Glaive':				{ 'atk':  12, 'def':  11, 'type': 'gloves' },
+	'Fighter Gauntlet':				{ 'atk':  12, 'def':  11, 'type': 'gloves', 'img': 'festival_battle_reward_2.jpg', alias: 'Fighter Glaive' },
 	'Fire Drake Pendant':			{ 'atk':  18, 'def':  18, 'type': 'amulet', 'img': 'eq_thanatos2_amulet_ca.jpg' },
 	'Fire Elemental':				{ 'atk':   8, 'def':   5, 'type': 'unit', 'img': 'soldier_fire_elemental.jpg' },
 	'Fireball':						{ 'atk':   5, 'def':   0, 'type': 'magic', 'img': 'magic_fireball.jpg' },
@@ -17975,12 +19731,12 @@ Town.rdata =			// #1017
 	'Flame Invoker':				{ 'atk':  55, 'def':  45, 'type': 'unit', 'img': 'soldier_gehenna.jpg' },
 	'Flamehide Shield':				{ 'atk':  20, 'def':  32, 'type': 'shield', 'img': 'eq_thanatos2_shield_ca.jpg' },
 	'Flamestrike Amulet':			{ 'atk':   8, 'def':   4, 'type': 'amulet', 'img': 'gift_vanquish3_complete.jpg' },
-	'Flamewaker':					{ 'atk':  20, 'def':  18, 'type': 'weapon' },
-	'Flamewalker Greaves':			{ 'atk':   5, 'def':   5, 'type': 'boots' },
-	'Flamewave Tome':				{ 'atk':  16, 'def':  16, 'type': 'shield' },
-	'Flaminius':					{ 'atk':  23, 'def':  21, 'type': 'hero', 'skills': 'Increase Player Attack by +50' },
+	'Flamewaker':					{ 'atk':  20, 'def':  18, 'type': 'weapon', 'img': 'eq_flaminius_weapon.jpg' },
+	'Flamewalker Greaves':			{ 'atk':   5, 'def':   5, 'type': 'boots', 'img': 'eq_thanatos2_boot_ca.jpg' },
+	'Flamewave Tome':				{ 'atk':  16, 'def':  16, 'type': 'shield', 'img': 'eq_alexandria_shield.jpg' },
+	'Flaminius':					{ 'atk':  23, 'def':  21, 'type': 'hero', 'img': 'hero_flaminius.jpg', 'skills': 'Increase Player Attack by +50' },
 	'Footman':						{ 'atk':   1, 'def':   1, 'type': 'unit', 'img': 'upgrade_footmen.jpg' },
-	'Force of Nature':				{ 'atk':  35, 'def':  50, 'type': 'amulet' },
+	'Force of Nature':				{ 'atk':  35, 'def':  50, 'type': 'amulet', 'img': 'eq_jahanna_amulet.jpg' },
 	'Forsaken Tome':				{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_dolomar_shield.jpg' },
 	'Frost Armor':					{ 'atk':   4, 'def':   3, 'type': 'armor', 'img': 'eq_raida1_1.jpg' },
 	'Frost Bolt':					{ 'atk':  12, 'def':  25, 'type': 'magic', 'img': 'eq_water_epic_magic.jpg' },
@@ -17997,14 +19753,24 @@ Town.rdata =			// #1017
 	'Galvanized Helm':				{ 'atk':  11, 'def':  13, 'type': 'helmet', 'img': 'eq_gehenna_helm_3.jpg' },
 	'Garlan':						{ 'atk':   7, 'def':   6, 'type': 'hero', 'img': 'hero_garlan.jpg' },
 	'Garlans Battlegear':			{ 'atk':   4, 'def':   7, 'type': 'armor', 'img': 'eq_gift_metal_complete.jpg' },
-	'Gatekeeper Blade':				{ 'atk':  32, 'def':  30, 'type': 'weapon' },
+	'Gatekeeper Blade':				{ 'atk':  32, 'def':  30, 'type': 'weapon', 'img': 'eq_tyrant_weapon.jpg' },
 	'Gauntlet of Fire':				{ 'atk':  13, 'def':   9, 'type': 'gloves', 'img': 'eq_gehenna_gauntlet.jpg' },
 	'Gauntlets of Might':			{ 'atk':   2, 'def':   2, 'type': 'gloves', 'img': 'eq_elin_gauntlet.jpg' },
-	'Gauntlets of War':				{ 'atk':  11, 'def':  12, 'type': 'gloves' },
+	'Gauntlets of War':				{ 'atk':  11, 'def':  12, 'type': 'gloves', 'img': 'eq_malekus_gauntlet.jpg' },
 	'Gawain':						{ 'atk':  18, 'def':  22, 'type': 'hero', 'img': 'hero_gawain.jpg', 'skills': 'Increase Player Attack by +10 on next 4 attacks, cooldown 6 hours' },
 	'Gehenna':						{ 'atk': 110, 'def': 110, 'type': 'unit', 'img': 'arena3_gehenna.jpg' },
 	'Genesis Sword':				{ 'atk':  20, 'def':  30, 'type': 'weapon', 'img': 'eq_earth_epic_sword.jpg' },
-	'Genesis, the Earth Elemental':	{ 'atk': 100, 'def': 100, 'type': 'unit' },
+	'Genesis, The Earth Elemental':	{ 'atk': 100, 'def': 100, 'type': 'unit', 'img': 'soldier_genesis.jpg' },
+	'Gift Angel':					{ 'atk':   7, 'def':   7, 'type': 'unit', 'img': 'upgrade_angel.gif' },
+	'Gift Cleric':					{ 'atk':   1, 'def':   5, 'type': 'unit', 'img': 'upgrade_cleric.jpg' },
+	'Gift Dragon':					{ 'atk':  16, 'def':  14, 'type': 'unit', 'img': 'upgrade_dragon.jpg' },
+	'Gift Footman':					{ 'atk':   1, 'def':   1, 'type': 'unit', 'img': 'upgrade_footmen.jpg' },
+	'Gift Knight':					{ 'atk':   3, 'def':   2, 'type': 'unit', 'img': 'upgrade_knight.jpg' },
+	'Gift Paladin':					{ 'atk':   3, 'def':   4, 'type': 'unit', 'img': 'upgrade_paladin.jpg' },
+	'Gift Phoenix':					{ 'atk':  20, 'def':  16, 'type': 'unit', 'img': 'upgrade_phoenix.jpg' },
+	'Gift Ranger':					{ 'atk':   2, 'def':   1, 'type': 'unit', 'img': 'upgrade_ranger.gif' },
+	'Gift Tree Ent':				{ 'atk':   4, 'def':   5, 'type': 'unit', 'img': 'upgrade_tree.jpg' },
+	'Gift Wizard':					{ 'atk':   3, 'def':   5, 'type': 'unit', 'img': 'upgrade_wizard.jpg' },
 	"Gildamesh's Charm":			{ 'atk':   2, 'def':   1, 'type': 'amulet', 'img': 'boss_orc_charm.jpg' },
 	"Gildamesh's Gauntlet":			{ 'atk':   2, 'def':   1, 'type': 'gloves', 'img': 'boss_orc_glove.jpg' },
 	"Gildamesh's War Axe":			{ 'atk':   6, 'def':   0, 'type': 'weapon', 'img': 'boss_orc_axe.jpg' },
@@ -18016,7 +19782,7 @@ Town.rdata =			// #1017
 	'Glacial Fists':				{ 'atk':   9, 'def':  11, 'type': 'gloves', 'img': 'eq_glacius_gauntlet.jpg' },
 	'Glacial Helm':					{ 'atk':  10, 'def':   9, 'type': 'helmet', 'img': 'eq_water_epic_helmet.jpg' },
 	'Glacial Pike':					{ 'atk':  17, 'def':  18, 'type': 'weapon', 'img': 'eq_glacius_weapon.jpg' },
-	'Glacial Plate':				{ 'atk':  33, 'def':  33, 'type': 'armor' },
+	'Glacial Plate':				{ 'atk':  33, 'def':  33, 'type': 'armor', 'img': 'eq_giants_special3.jpg' },
 	'Glacial Raiments':				{ 'atk':  11, 'def':  11, 'type': 'armor', 'img': 'eq_water_rare_armor.jpg' },
 	'Gladiator':					{ 'atk':  35, 'def':  24, 'type': 'unit', 'img': 'soldier_volcanic_gladiator.jpg' },
 	'Gladiator Pendant':			{ 'atk':  30, 'def':  26, 'type': 'amulet', 'img': 'arena3_amulet.jpg' },
@@ -18030,10 +19796,10 @@ Town.rdata =			// #1017
 	'Gold Bar':						{ 'atk':   0, 'def':   0, 'type': 'amulet', 'img': 'eq_drakehelm_2.jpg' },
 	'Golden Fang':					{ 'atk':  14, 'def':  12, 'type': 'unit', 'img': 'hero_wolf.jpg' },
 	'Golden Hand':					{ 'atk':   2, 'def':   5, 'type': 'gloves', 'img': 'mystery_armor_glove.jpg' },
-	'Golden Horn Bow':				{ 'atk':  17, 'def':  15, 'type': 'weapon' },
+	'Golden Horn Bow':				{ 'atk':  17, 'def':  15, 'type': 'weapon', 'img': 'eq_elora_weapon.jpg' },
 	'Gorlak':						{ 'atk':  18, 'def':  18, 'type': 'hero', 'img': 'hero_ogre.jpg', 'skills': 'Increase Player Attack by +2 and Max Stamina by +2' },
 	"Gorlak's Axe":					{ 'atk':  11, 'def':   8, 'type': 'weapon', 'img': 'eq_dexter_axe.jpg' },
-	"Gorlak's Cudgel":				{ 'atk':  10, 'def':  10, 'type': 'weapon' },
+	"Gorlak's Cudgel":				{ 'atk':  10, 'def':  10, 'type': 'weapon', 'img': 'eq_ogre_club.jpg' },
 	'Great Halberd':				{ 'atk':   8, 'def':   7, 'type': 'weapon', 'img': 'eq_raida2_2.jpg' },
 	'Greater Fireball':				{ 'atk':   6, 'def':   1, 'type': 'magic', 'img': 'magic_fireball.jpg' },
 	'Greater Werewolf':				{ 'atk':  27, 'def':  18, 'type': 'unit', 'img': 'soldier_werewolf.jpg' },
@@ -18042,30 +19808,30 @@ Town.rdata =			// #1017
 	'Griffin':						{ 'atk':   6, 'def':   6, 'type': 'unit', 'img': 'soldier_griffin_160.jpg' },
 	'Griffin Rider':				{ 'atk':  33, 'def':  29, 'type': 'unit', 'img': 'soldier_griffinrider.jpg' },
 	'Griffinhyde Armor':			{ 'atk':  16, 'def':  19, 'type': 'armor', 'img': 'eq_oberon_armor.jpg' },
-	'Grimshaw Jewel':				{ 'atk':   9, 'def':   9, 'type': 'amulet' },
-	'Guardian Amulet':				{ 'atk':  32, 'def':  28, 'type': 'amulet' },
+	'Grimshaw Jewel':				{ 'atk':   9, 'def':   9, 'type': 'amulet', 'img': 'eq_aria_amulet.jpg' },
+	'Guardian Amulet':				{ 'atk':  32, 'def':  28, 'type': 'amulet', 'img': 'festival_battle_reward_3.jpg' },
 	'Guardian Helm':				{ 'atk':  10, 'def':  15, 'type': 'helmet', 'img': 'eq_daphne_helm.jpg' },
-	'Guardian of Alyzia':			{ 'atk':  50, 'def':  60, 'type': 'unit' },
-	'Guiding Light':				{ 'atk':  17, 'def':  23, 'type': 'weapon' },
+	'Guardian of Alyzia':			{ 'atk':  50, 'def':  60, 'type': 'unit', 'img': 'soldier_alyzia_guardian.jpg' },
+	'Guiding Light':				{ 'atk':  17, 'def':  23, 'type': 'weapon', 'img': 'eq_anya_weapon.jpg' },
 	'Halcyon':						{ 'atk':  18, 'def':  27, 'type': 'hero', 'img': 'hero_halcyon.jpg', 'skills': 'Transfer % Player Attack +25% to Player Defense +25%' },
-	'Halcyon Glove':				{ 'atk':   8, 'def':   6, 'type': 'gloves' },
+	'Halcyon Glove':				{ 'atk':   8, 'def':   6, 'type': 'gloves', 'img': 'eq_halcyon_glove.jpg' },
 	'Halcyon Grinder':				{ 'atk':  12, 'def':  12, 'type': 'weapon', 'img': 'eq_halcyon_weapon.jpg' },
 	'Halcyon Necklace':				{ 'atk':  12, 'def':   7, 'type': 'amulet', 'img': 'eq_halcyon_amulet.jpg' },
-	'Hammer of Storms':				{ 'atk':  36, 'def':  32, 'type': 'weapon' },
+	'Hammer of Storms':				{ 'atk':  36, 'def':  32, 'type': 'weapon', 'img': 'eq_giants_special1.jpg' },
 	'Hand of Justice':				{ 'atk':   8, 'def':   8, 'type': 'gloves', 'img': 'eq_azul_gauntlet.jpg' },
 	'Hand of Life':					{ 'atk':  10, 'def':  10, 'type': 'gloves', 'img': 'eq_aurora_gauntlet.jpg' },
 	'Hand of Valhalla':				{ 'atk':  17, 'def':  14, 'type': 'gloves', 'img': 'eq_valhalla_gauntlet1.jpg' },
 	'Hand of the Ruler':			{ 'atk':   8, 'def':  12, 'type': 'gloves', 'img': 'eq_agamemnon_gauntlet.jpg' },
-	'Hand of the Tempest':			{ 'atk':  11, 'def':   9, 'type': 'gloves' },
+	'Hand of the Tempest':			{ 'atk':  11, 'def':   9, 'type': 'gloves', 'img': 'eq_ambrosia_gauntlet.jpg' },
 	'Hands of Bounty':				{ 'atk':  10, 'def':   9, 'type': 'gloves', 'img': 'eq_earth_epic_gauntlet.jpg' },
 	'Hands of Darkness':			{ 'atk':   5, 'def':   4, 'type': 'gloves', 'img': 'eq_death_rare_gauntlet.jpg' },
-	'Harmony':						{ 'atk':   8, 'def':  11, 'type': 'shield' },
-	'Heart of Elos':				{ 'atk':  10, 'def':   8, 'type': 'amulet' },
+	'Harmony':						{ 'atk':   8, 'def':  11, 'type': 'shield', 'img': 'eq_lailah_shield.jpg' },
+	'Heart of Elos':				{ 'atk':  10, 'def':   8, 'type': 'amulet', 'img': 'eq_lyra_amulet.jpg' },
 	'Heart of the Pride':			{ 'atk':  20, 'def':  44, 'type': 'shield', 'img': 'eq_aurelius_shield.jpg' },
-	'Heart of the Woods':			{ 'atk':  30, 'def':  44, 'type': 'weapon' },
-	'Heartfire Pendant':			{ 'atk':  12, 'def':  16, 'type': 'amulet' },
-	'Helena':						{ 'atk':  18, 'def':  16, 'type': 'hero', 'skills': 'Convert -14 Player Energy to +12 Player Attack' },
-	"Helena's Inferno":				{ 'atk':   8, 'def':   7, 'type': 'magic' },
+	'Heart of the Woods':			{ 'atk':  30, 'def':  44, 'type': 'weapon', 'img': 'eq_aurora_divinestaff.jpg' },
+	'Heartfire Pendant':			{ 'atk':  12, 'def':  16, 'type': 'amulet', 'img': 'eq_anya_amulet.jpg' },
+	'Helena':						{ 'atk':  18, 'def':  16, 'type': 'hero', 'img': 'hero_twinfire.jpg', 'skills': 'Convert -14 Player Energy to +12 Player Attack' },
+	'Helenas Inferno':				{ 'atk':   8, 'def':   7, 'type': 'magic', 'img': 'magic_inferno.jpg' },
 	'Helenas Memento':				{ 'atk':   1, 'def':   0, 'type': 'amulet', 'img': 'eq_memento.jpg' },
 	'Hellblade':					{ 'atk':  30, 'def':  20, 'type': 'weapon', 'img': 'eq_mephistopheles2_weapon_2.jpg' },
 	'Hellcore Defender':			{ 'atk':  18, 'def':  10, 'type': 'shield', 'img': 'eq_mephistopheles2_shield.jpg' },
@@ -18078,15 +19844,15 @@ Town.rdata =			// #1017
 	'Hellkite Shield':				{ 'atk':   2, 'def':   7, 'type': 'shield', 'img': 'eq_mephisto_shield.jpg' },
 	'Hellkite Sword':				{ 'atk':   5, 'def':   6, 'type': 'weapon', 'img': 'eq_mephisto_sword.jpg' },
 	'Hellslayer Knight':			{ 'atk':  29, 'def':  33, 'type': 'unit', 'img': 'solider_hellslayer.jpg' },
-	'Helm of Arcane Energies':		{ 'atk':  48, 'def':  53, 'type': 'helmet' },
+	'Helm of Arcane Energies':		{ 'atk':  48, 'def':  53, 'type': 'helmet', 'img': 'eq_ambrosia_helm.jpg' },
 	'Helm of Dragon Power':			{ 'atk':  30, 'def':  30, 'type': 'helmet', 'img': 'dragon_reward_helmet.jpg' },
 	'Helm of Fear':					{ 'atk':   9, 'def':   9, 'type': 'helmet', 'img': 'eq_death_rare_helmet.jpg' },
-	'Helm of Frost':				{ 'atk':  33, 'def':  28, 'type': 'helmet' },
+	'Helm of Frost':				{ 'atk':  33, 'def':  28, 'type': 'helmet', 'img': 'eq_glacius_alchemy.jpg' },
 	'Helm of Shards':				{ 'atk':  16, 'def':  18, 'type': 'helmet', 'img': 'eq_shardros_helm.jpg' },
 	'Helm of Zeventis':				{ 'atk':  18, 'def':  23, 'type': 'helmet', 'img': 'eq_zeventis_helm.jpg' },
-	'Helm of the Conqueror':		{ 'atk':  36, 'def':  32, 'type': 'helmet' },
+	'Helm of the Conqueror':		{ 'atk':  36, 'def':  32, 'type': 'helmet', 'img': 'eq_malekus_helm.jpg' },
 	'Helm of the Deep':				{ 'atk':  55, 'def':  60, 'type': 'helmet' },
-	'Helm of the Watch':			{ 'atk':  20, 'def':  26, 'type': 'helmet' },
+	'Helm of the Watch':			{ 'atk':  20, 'def':  26, 'type': 'helmet', 'img': 'eq_chimera_helmet.jpg' },
 	'Hephaestus Sword':				{ 'atk':  28, 'def':  22, 'type': 'weapon', 'img': 'eq_gehenna_sword_1.jpg' },
 	'Hero Insignia':				{ 'atk':  20, 'def':  15, 'type': 'amulet', 'img': 'arena2_vanguard_amulet.jpg' },
 	'Heroes Resolve':				{ 'atk':   2, 'def':   0, 'type': 'magic', alias: 'Heros Resolve' },
@@ -18115,7 +19881,7 @@ Town.rdata =			// #1017
 	'Ice Orb':						{ 'atk':   4, 'def':   4, 'type': 'amulet', 'img': 'gift_water_complete.jpg' },
 	'Icicle Lance':					{ 'atk':  12, 'def':  14, 'type': 'weapon', 'img': 'eq_water_rare_lance.jpg' },
 	'Icy Handguards':				{ 'atk':   5, 'def':   5, 'type': 'gloves', 'img': 'eq_water_rare_gauntlets.jpg' },
-	'Igniting Helm':				{ 'atk':  30, 'def':  28, 'type': 'helmet' },
+	'Igniting Helm':				{ 'atk':  30, 'def':  28, 'type': 'helmet', 'img': 'eq_magmos_helm.jpg' },
 	'Illusia':						{ 'atk':  17, 'def':  18, 'type': 'hero', 'img': 'hero_illusia.jpg', 'skills': 'Convert -14 Player Energy to +12 Player Attack' },
 	"Illusia's Bauble":				{ 'atk':   8, 'def':   9, 'type': 'amulet', 'img': 'eq_bauble_illusia.jpg' },
 	'Illusion Dust':				{ 'atk':   0, 'def':   0, 'type': 'quest' },
@@ -18139,46 +19905,47 @@ Town.rdata =			// #1017
 	'Jadan Robes':					{ 'atk':  11, 'def':  13, 'type': 'armor', 'img': 'eq_jada_armor.jpg' },
 	'Jadan Signet':					{ 'atk':   9, 'def':  12, 'type': 'amulet', 'img': 'eq_jada_amulet.jpg' },
 	'Jadan Wand':					{ 'atk':  10, 'def':  14, 'type': 'weapon', 'img': 'eq_jada_weapon.jpg' },
-	'Jaelle':						{ 'atk':  34, 'def':  34, 'type': 'hero', 'skills': 'Increase Illusion/Mirror Image Effect' },
-	'Jahanna':						{ 'atk':  32, 'def':  32, 'type': 'hero', 'skills': 'Increase Player Attack by +1.1' },
+	'Jaelle':						{ 'atk':  34, 'def':  34, 'type': 'hero', 'img': 'hero_jaelle.jpg', 'skills': 'Increase Illusion/Mirror Image Effect' },
+	'Jahanna':						{ 'atk':  32, 'def':  32, 'type': 'hero', 'img': 'hero_jahanna.jpg', 'skills': 'Increase Player Attack by +1.1' },
 	'Jewel of Fire':				{ 'atk':   7, 'def':   6, 'type': 'amulet', 'img': 'dragon_reward_amulet.jpg' },
-	'Joan':							{ 'atk':  20, 'def':  25, 'type': 'hero', 'skills': 'Increase Sentinal/Guardian Effect' },
+	'Joan':							{ 'atk':  20, 'def':  25, 'type': 'hero', 'img': 'hero_joan.jpg', 'skills': 'Increase Sentinal/Guardian Effect' },
 	'Judgement':					{ 'atk':  10, 'def':   5, 'type': 'weapon', 'img': 'eq_castle_hammer2.jpg' },
-	'Judicators Will':				{ 'atk':  14, 'def':  18, 'type': 'shield' },
-	'Judicators Wrath':				{ 'atk':  20, 'def':  18, 'type': 'weapon' },
+	'Judgement Treads':				{ 'atk':   2, 'def':   2, 'type': 'boots', 'img': 'eq_azeron_boot.jpg' },
+	'Judicators Will':				{ 'atk':  14, 'def':  18, 'type': 'shield', 'img': 'eq_meekah_shield.jpg' },
+	'Judicators Wrath':				{ 'atk':  20, 'def':  18, 'type': 'weapon', 'img': 'eq_meekah_weapon.jpg' },
 	'Juggernaut Medallion':			{ 'atk':  30, 'def':  20, 'type': 'amulet', 'img': 'divinedemi_malk_amulet.jpg' },
 	'Juggernaut Shield':			{ 'atk':  18, 'def':  12, 'type': 'shield', 'img': 'demi_mal_8.jpg' },
 	'Justice':						{ 'atk':  10, 'def':   6, 'type': 'weapon', 'img': 'item_blue_sword.jpg' },
 	'Kaiser':						{ 'atk':  20, 'def':  19, 'type': 'hero', 'img': 'hero_kaiser.jpg', 'skills': 'Increase Monster Crits by +3.0%' },
-	'Karn the Minotaur':			{ 'atk':  20, 'def':  22, 'type': 'hero', 'skills': 'Increase Player Attack by +50, cooldown 10 hours' },
+	'Karn the Minotaur':			{ 'atk':  20, 'def':  22, 'type': 'hero', 'img': 'hero_karn.jpg', 'skills': 'Increase Player Attack by +50, cooldown 10 hours' },
 	'Kataan':						{ 'atk':  22, 'def':  22, 'type': 'hero', 'img': 'hero_kataan.jpg' },
 	'Kaylen':						{ 'atk':  19, 'def':  21, 'type': 'hero', 'img': 'hero_kaylen.jpg', 'skills': 'Increase Player Attack by +0.15 per Hero' },
-	'Keeper of Chaos':				{ 'atk':  50, 'def':  35, 'type': 'amulet' },
+	'Keeper of Chaos':				{ 'atk':  50, 'def':  35, 'type': 'amulet', 'img': 'eq_malekus_amulet.jpg' },
 	'Keira':						{ 'atk':  18, 'def':  26, 'type': 'hero', 'img': 'boss_keira_framed.jpg', 'skills': 'Increase Player Attack by +8 while being attacked' },
 	"Keira's Soul":					{ 'atk':   6, 'def':   2, 'type': 'amulet', 'img': 'boss_keira_amulet.jpg' },
-	'Kilgore':						{ 'atk':  18, 'def':  16, 'type': 'hero', 'skills': 'Increase Max Stamina by +10' },
-	'Kingblade':					{ 'atk':  31, 'def':  24, 'type': 'weapon' },
+	'Kilgore':						{ 'atk':  18, 'def':  16, 'type': 'hero', 'img': 'hero_kilgore.jpg', 'skills': 'Increase Max Stamina by +10' },
+	'Kingblade':					{ 'atk':  31, 'def':  24, 'type': 'weapon', 'img': 'eq_agamemnon_weapon.jpg' },
 	'Knight':						{ 'atk':   3, 'def':   2, 'type': 'unit', 'img': 'upgrade_knight.jpg' },
-	'Kobo':							{ 'atk':   0, 'def':  41, 'type': 'hero', 'skills': 'Goblin Emporium Items +2 Needed for Goblin Emporium' },
-	'Kothas':						{ 'atk':  33, 'def':  36, 'type': 'hero', 'skills': 'Increase Revive/Resurrect Effect' },
-	'Krakenhide Armor':				{ 'atk':  30, 'def':  35, 'type': 'armor' },
-	'Krakens Flail':				{ 'atk':  24, 'def':  22, 'type': 'weapon' },
+	'Kobo':							{ 'atk':   0, 'def':  41, 'type': 'hero', 'img': 'hero_kobo.jpg', 'skills': 'Goblin Emporium Items +2 Needed for Goblin Emporium' },
+	'Kothas':						{ 'atk':  33, 'def':  36, 'type': 'hero', 'img': 'hero_kothas.jpg', 'skills': 'Increase Revive/Resurrect Effect' },
+	'Krakenhide Armor':				{ 'atk':  30, 'def':  35, 'type': 'armor', 'img': 'eq_kraken_armor.jpg' },
+	'Krakens Flail':				{ 'atk':  24, 'def':  22, 'type': 'weapon', 'img': 'eq_kraken_weapon.jpg' },
 	'Kromash Karapace':				{ 'atk':   9, 'def':  12, 'type': 'armor', 'img': 'eq_kromash_armor.jpg' },
 	'Kromash Krown':				{ 'atk':   9, 'def':   9, 'type': 'helmet', 'img': 'eq_kromash_helm.jpg' },
 	'Kromash Krusher':				{ 'atk':   8, 'def':   8, 'type': 'gloves', 'img': 'eq_kromash_gauntlet.jpg' },
 	'Kull':							{ 'atk':  22, 'def':  21, 'type': 'hero', 'img': 'hero_kull.jpg', 'skills': 'Increase Player Attack by +2.0 per Orc Marauder, max 50' },
 	'Lailah':						{ 'atk':  18, 'def':  20, 'type': 'hero', 'img': 'hero_lailah.jpg', 'skills': 'Increase Player Defense by +5 and Max Energy by +6' },
 	'Lance of Valhalla':			{ 'atk':  15, 'def':  15, 'type': 'weapon', 'img': 'eq_valhalla_weapon2.jpg' },
-	'Lava Inferno':					{ 'atk':  35, 'def':  19, 'type': 'magic' },
+	'Lava Inferno':					{ 'atk':  35, 'def':  19, 'type': 'magic', 'img': 'eq_giants_special4.jpg' },
 	'Lava Orb':						{ 'atk':   3, 'def':   4, 'type': 'amulet', 'img': 'gift_gehenna_complete.jpg' },
 	'Lava Plate':					{ 'atk':  15, 'def':  24, 'type': 'armor', 'img': 'eq_gehenna_armor.jpg' },
 	'Lava Surge':					{ 'atk':  22, 'def':  18, 'type': 'weapon', 'img': 'eq_magmos_weapon.jpg' },
-	'Lavaflow Cleaver':				{ 'atk':  34, 'def':  34, 'type': 'weapon' },
+	'Lavaflow Cleaver':				{ 'atk':  34, 'def':  34, 'type': 'weapon', 'img': 'eq_thanatos2_weapon_ca.jpg' },
 	'Lavareign Axe':				{ 'atk':  12, 'def':  17, 'type': 'weapon', 'img': 'eq_volcanic_weapon1.jpg' },
 	'Lavascale Signet':				{ 'atk':  24, 'def':  24, 'type': 'amulet', 'img': 'eq_thanatos2_ring_ca.jpg' },
-	'Lavawave Shield':				{ 'atk':  25, 'def':  25, 'type': 'shield' },
+	'Lavawave Shield':				{ 'atk':  25, 'def':  25, 'type': 'shield', 'img': 'eq_magmos_shield.jpg' },
 	'Leather Armor':				{ 'atk':   0, 'def':   2, 'type': 'armor', 'img': 'eq_jerkin.jpg' },
-	'Legatus Helm':					{ 'atk':  28, 'def':  28, 'type': 'helmet' },
+	'Legatus Helm':					{ 'atk':  28, 'def':  28, 'type': 'helmet', 'img': 'eq_alexnadra_helm.jpg' },
 	'Leon Ironhart':				{ 'atk':  16, 'def':  20, 'type': 'hero', 'img': 'hero_leon.jpg', 'skills': 'Increase Max Stamina by +4' },
 	'Lich':							{ 'atk':   7, 'def':   5, 'type': 'unit', 'img': 'soldier_lich.jpg' },
 	'Lifebane':						{ 'atk':  14, 'def':  16, 'type': 'weapon', 'img': 'eq_adriana_sword.jpg' },
@@ -18188,12 +19955,12 @@ Town.rdata =			// #1017
 	'Lightguard Rapier':			{ 'atk':  17, 'def':  20, 'type': 'weapon', 'img': 'eq_daphne_weapon.jpg' },
 	'Lightning Bolt':				{ 'atk':   8, 'def':   6, 'type': 'magic', 'img': 'magic_lightning.jpg' },
 	'Lightning Storm':				{ 'atk':  15, 'def':   7, 'type': 'magic', 'img': 'lightning_storm.jpg' },
-	'Lightward Gauntlet':			{ 'atk':   8, 'def':  10, 'type': 'gloves' },
-	'Lightward Greatsword':			{ 'atk':  20, 'def':  30, 'type': 'weapon' },
+	'Lightward Gauntlet':			{ 'atk':   8, 'def':  10, 'type': 'gloves', 'img': 'eq_kothas_gauntlet.jpg' },
+	'Lightward Greatsword':			{ 'atk':  20, 'def':  30, 'type': 'weapon', 'img': 'eq_kothas_weapon.jpg' },
 	'Lilith and Riku':				{ 'atk':  11, 'def':  12, 'type': 'hero', 'img': 'hero_riku.jpg' },
 	'Lion Fang':					{ 'atk':  24, 'def':  22, 'type': 'weapon', 'img': 'eq_aurelius_weapon.jpg' },
 	'Lion Scar Helm':				{ 'atk':   9, 'def':  14, 'type': 'helmet', 'img': 'eq_aurelius_helm.jpg' },
-	'Lion Scar Plate':				{ 'atk':  33, 'def':  18, 'type': 'armor' },
+	'Lion Scar Plate':				{ 'atk':  33, 'def':  18, 'type': 'armor', 'img': 'eq_aurelius_armor.jpg' },
 	'Lionheart Amulet':				{ 'atk':   1, 'def':   4, 'type': 'amulet', 'img': 'demi_defense_amu.jpg' },
 	'Lionheart Blade':				{ 'atk':   8, 'def':   7, 'type': 'weapon', 'img': 'demi_defense_weapon.jpg' },
 	'Lionheart Helm':				{ 'atk':   4, 'def':   6, 'type': 'helmet', 'img': 'demi_defense_helm.jpg' },
@@ -18202,20 +19969,20 @@ Town.rdata =			// #1017
 	'Lionheart Shield':				{ 'atk':   7, 'def':  15, 'type': 'shield', 'img': 'demi_defense_shield.jpg' },
 	'Long Sword':					{ 'atk':   3, 'def':   1, 'type': 'weapon', 'img': 'eq_sword.jpg' },
 	'Longsword +1':					{ 'atk':   4, 'def':   4, 'type': 'weapon', 'img': 'eq_sword.jpg' },
-	'Lothar the Ranger':			{ 'atk':  20, 'def':  16, 'type': 'hero', 'skills': 'Increase Monster Crits by +2%' },
+	'Lothar the Ranger':			{ 'atk':  20, 'def':  16, 'type': 'hero', 'img': 'hero_lothar.jpg', 'skills': 'Increase Monster Crits by +2%' },
 	'Lotus Orb':					{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_lotus_portal.jpg' },
-	'Lotus Ravenmoore':				{ 'atk':  26, 'def':  19, 'type': 'hero', 'skills': 'Increase Monster Crits by +4%' },
+	'Lotus Ravenmoore':				{ 'atk':  26, 'def':  19, 'type': 'hero', 'img': 'boss_lotus.jpg', 'skills': 'Increase Monster Crits by +4%' },
 	'Lucius':						{ 'atk':  18, 'def':  17, 'type': 'hero', 'img': 'hero_lucius.jpg', 'skills': 'Decrease Unit Cost by -8%' },
 	'Lycan Armguard':				{ 'atk':  11, 'def':  11, 'type': 'armor', 'img': 'eq_werewolf_armor.jpg' },
 	'Lyra':							{ 'atk':  22, 'def':  16, 'type': 'hero', 'img': 'hero_lyra.jpg', 'skills': 'Increase Player Attack by +6' },
 	'Maalvus':						{ 'atk':  23, 'def':  18, 'type': 'hero', 'img': 'hero_maalvus.jpg', 'skills': 'Power Attack Multiplier by +3%; Increase Monster Crits by +3%' },
-	'Maelstrom (Marina)':			{ 'atk':   7, 'def':   8, 'type': 'magic', 'img': 'magic_maelstrom.jpg' },
-	'Maelstrom (Valhalla)':			{ 'atk':  16, 'def':  16, 'type': 'magic', 'img': 'eq_valhalla_spell.jpg' },
+	'Maelstrom (Marina)':			{ 'atk':   7, 'def':   8, 'type': 'magic', 'img': 'magic_maelstrom.jpg', alias: 'Maelstrom' },
+	'Maelstrom (Valhalla)':			{ 'atk':  16, 'def':  16, 'type': 'magic', 'img': 'eq_valhalla_spell.jpg', alias: 'Maelstrom' },
 	'Magic Missile':				{ 'atk':   1, 'def':   0, 'type': 'magic', 'img': 'magic_magic_missile.jpg' },
 	'Magic Mushrooms':				{ 'atk':   0, 'def':   0, 'type': 'amulet', 'img': 'eq_gift_mystic_1.jpg' },
 	'Magicite Earrings':			{ 'atk':  12, 'def':  10, 'type': 'amulet', 'img': 'eq_azalia_amulet.jpg' },
 	'Magicite Locket':				{ 'atk':  12, 'def':   8, 'type': 'amulet', 'img': 'eq_scarlet_amulet.jpg' },
-	'Magma Plate':					{ 'atk':  20, 'def':  12, 'type': 'armor' },
+	'Magma Plate':					{ 'atk':  20, 'def':  12, 'type': 'armor', 'img': 'eq_thanatos2_armor_ca.jpg' },
 	'Magus Plate':					{ 'atk':  15, 'def':  15, 'type': 'armor', 'img': 'eq_dolomar_armor.jpg' },
 	'Maiden Shadow':				{ 'atk':  15, 'def':  16, 'type': 'unit', 'img': 'soldier_maiden_shadow.jpg' },
 	'Malekus':						{ 'atk':  31, 'def':  21, 'type': 'hero', 'img': 'boss_malekus.jpg', 'skills': 'Increase Player Attack by +0.45 per Hero' },
@@ -18224,21 +19991,22 @@ Town.rdata =			// #1017
 	'Mark of the Empire':			{ 'atk':  12, 'def':  12, 'type': 'amulet', 'img': 'eq_red_amulet.jpg' },
 	'Mark of the Wolf':				{ 'atk':   6, 'def':   8, 'type': 'magic', 'img': 'eq_darius_magic.jpg' },
 	'Mask of Agamemnon':			{ 'atk':  32, 'def':  29, 'type': 'helmet', alias: 'Mask of Agememnon' },
+	'Mask of Vengeance':			{ 'atk':  18, 'def':  24, 'type': 'helmet' },
 	'Meat Cleaver':					{ 'atk':  44, 'def':  22, 'type': 'weapon', 'img': 'eq_arena_sword.jpg' },
 	'Medius':						{ 'atk':  17, 'def':  17, 'type': 'hero', 'img': 'hero_medius.jpg', 'skills': 'Increase Player Attack by +1.0 per Frost Bolt, max 10' },
-	'Meekah':						{ 'atk':  22, 'def':  21, 'type': 'hero', 'skills': 'Increase Confidence damage' },
+	'Meekah':						{ 'atk':  22, 'def':  21, 'type': 'hero', 'img': 'hero_meekah.jpg', 'skills': 'Increase Confidence damage' },
 	'Memnon':						{ 'atk':  19, 'def':  15, 'type': 'hero', 'img': 'hero_wizard.jpg', 'skills': 'Convert -14 Player Energy to +12 Player Attack' },
 	'Mephistopheles':				{ 'atk':  27, 'def':  23, 'type': 'hero', 'img': 'quest_mephisto.jpg', 'skills': 'Increase Max Army Size by +40' },
 	'Mercedes':						{ 'atk':   8, 'def':   7, 'type': 'hero', 'img': 'hero_mercedes.jpg' },
 	'Mercenary':					{ 'atk':   5, 'def':   3, 'type': 'unit', 'img': 'soldier_mercenary.jpg' },
 	'Metal Ring':					{ 'atk':   1, 'def':   2, 'type': 'amulet', 'img': 'eq_firering_1.jpg' },
-	'Meteor Storm':					{ 'atk':  30, 'def':  25, 'type': 'magic' },
-	'Mind Control':					{ 'atk':   9, 'def':   8, 'type': 'magic' },
+	'Meteor Storm':					{ 'atk':  30, 'def':  25, 'type': 'magic', 'img': 'spell_special_quest_1.jpg' },
+	'Mind Control':					{ 'atk':   9, 'def':   8, 'type': 'magic', 'img': 'eq_aria_eye.jpg' },
 	'Minerva':						{ 'atk':  20, 'def':  18, 'type': 'hero', 'img': 'hero_minerva.jpg', 'skills': 'Increase Max Stamina by +6' },
 	'Minotaurs Battle Armor':		{ 'atk':   3, 'def':   4, 'type': 'armor', 'img': 'eq_karn_armor.jpg' },
 	'Miri Bladebourne':				{ 'atk':  19, 'def':  21, 'type': 'hero', 'img': 'hero_miri.jpg', 'skills': 'Increase Monster Crits by +10%, cooldown 4 hours' },
 	'Misa':							{ 'atk':  19, 'def':  19, 'type': 'hero', 'img': 'hero_misa.jpg', 'skills': 'Recover +30 Player Energy' },
-	'Molten Core':					{ 'atk':  38, 'def':  25, 'type': 'magic' },
+	'Molten Core':					{ 'atk':  38, 'def':  25, 'type': 'magic', 'img': 'spell_special_quest_2.jpg' },
 	'Molten Fists':					{ 'atk':  10, 'def':  11, 'type': 'gloves', 'img': 'eq_magmos_gauntlet.jpg' },
 	'Monk Warrior':					{ 'atk':  30, 'def':  30, 'type': 'unit', 'img': 'soldier_monk.jpg' },
 	'Moonclaw':						{ 'atk':  12, 'def':  12, 'type': 'weapon', 'img': 'eq_werewolf_sword.jpg' },
@@ -18249,13 +20017,13 @@ Town.rdata =			// #1017
 	'Moonfall Mace':				{ 'atk':   8, 'def':  11, 'type': 'weapon', 'img': 'demi_health_weapon.jpg' },
 	'Moonfall Robes':				{ 'atk':  15, 'def':  20, 'type': 'armor', 'img': 'demi_health_armor.jpg' },
 	'Moonfall Shield':				{ 'atk':  10, 'def':  15, 'type': 'shield', 'img': 'demi_health_shield.jpg' },
-	'Moonfall Trinket':				{ 'atk':   8, 'def':   8, 'type': 'amulet' },
+	'Moonfall Trinket':				{ 'atk':   8, 'def':   8, 'type': 'amulet', 'img': 'eq_elven_trinket.jpg' },
 	'Morningstar':					{ 'atk':   3, 'def':   7, 'type': 'weapon', 'img': 'eq_mace_complete.jpg' },
 	'Morrigan':						{ 'atk':   9, 'def':  10, 'type': 'hero', 'img': 'hero_morrigan.jpg' },
 	'Mystic Armor':					{ 'atk':   2, 'def':   5, 'type': 'armor', 'img': 'eq_gift_mystic_complete.jpg' },
 	'Mystic Robe':					{ 'atk':   7, 'def':   7, 'type': 'armor', 'img': 'gift_edea2_complete.jpg' },
 	'Mystical Dagger':				{ 'atk':   5, 'def':   5, 'type': 'weapon', 'img': 'gift_edea_complete.jpg' },
-	'Mystical Illusion':			{ 'atk':  15, 'def':  18, 'type': 'magic' },
+	'Mystical Illusion':			{ 'atk':  15, 'def':  18, 'type': 'magic', 'img': 'eq_ephraline_spell.jpg' },
 	'Mythril Fists':				{ 'atk':   9, 'def':  10, 'type': 'gloves', 'img': 'eq_darius_gauntlets.jpg' },
 	'Natures Reach':				{ 'atk':  11, 'def':   8, 'type': 'gloves', 'img': 'eq_jahanna_gauntlet.jpg' },
 	'Natures Sunder':				{ 'atk':  18, 'def':  18, 'type': 'magic', 'img': 'eq_aurora_magic.jpg' },
@@ -18277,9 +20045,9 @@ Town.rdata =			// #1017
 	'Obsidian Helmet':				{ 'atk':   3, 'def':   5, 'type': 'helmet', 'img': 'eq_helm2.jpg' },
 	'Obsidian Shield':				{ 'atk':   4, 'def':   4, 'type': 'shield', 'img': 'eq_shield2.jpg' },
 	'Obsidian Sword':				{ 'atk':  11, 'def':  12, 'type': 'weapon', 'img': 'eq_sword2.jpg' },
-	'Oceans Guard':					{ 'atk':  23, 'def':  27, 'type': 'shield' },
+	'Oceans Guard':					{ 'atk':  23, 'def':  27, 'type': 'shield', 'img': 'eq_kraken_shield.jpg' },
 	'Ogre':							{ 'atk':   7, 'def':   7, 'type': 'unit' },
-	'Ogre Raiments':				{ 'atk':  11, 'def':   8, 'type': 'armor' },
+	'Ogre Raiments':				{ 'atk':  11, 'def':   8, 'type': 'armor', 'img': 'eq_ogre_armor.jpg' },
 	'Onslaught':					{ 'atk':  15, 'def':   1, 'type': 'weapon', 'img': 'eq_lotus_scythe.jpg' },
 	'Opal Pendant':					{ 'atk':   5, 'def':   5, 'type': 'amulet', 'img': 'eq_opal_pendant.jpg' },
 	'Ophelia':						{ 'atk':  18, 'def':  13, 'type': 'hero', 'img': 'hero_ophelia.jpg', 'skills': 'Convert -25 Player Defense to +25 Player Attack' },
@@ -18287,6 +20055,7 @@ Town.rdata =			// #1017
 	'Orb of Ambrosia':				{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_ambrosia_orb.jpg' },
 	'Orb of Aurelius':				{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_aurelius_portal.jpg' },
 	'Orb of Aurora':				{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_aurora_orb.jpg' },
+	'Orb of Azeron':				{ 'atk':   0, 'def':   0, 'type': 'quest' },
 	'Orb of Azriel':				{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'orb_azriel.jpg' },
 	'Orb of Corvintheus':			{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'orb_corvintheus.jpg' },
 	'Orb of Gildamesh':				{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_gildamesh_portal.jpg' },
@@ -18296,7 +20065,7 @@ Town.rdata =			// #1017
 	'Orb of Mephistopheles':		{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_mephi_orb.jpg' },
 	'Orb of Skaar Deathrune':		{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_death_portal.jpg' },
 	'Orc Champion':					{ 'atk':  50, 'def':  50, 'type': 'unit', 'img': 'soldier_orc_champion.jpg' },
-	'Orc Chieftain':				{ 'atk':  26, 'def':  26, 'type': 'unit' },
+	'Orc Chieftain':				{ 'atk':  26, 'def':  26, 'type': 'unit', 'img': 'soldier_orc_chief.jpg' },
 	'Orc Grunt':					{ 'atk':   7, 'def':   5, 'type': 'unit', 'img': 'soldier_orc.jpg' },
 	'Orc King':						{ 'atk':  22, 'def':  22, 'type': 'hero', 'img': 'orc_boss.jpg', 'skills': 'Power Attack Multiplier +5 (Monsters)' },
 	'Orc Marauder':					{ 'atk':  32, 'def':  27, 'type': 'unit', 'img': 'solder_orcmarauder.jpg' },
@@ -18310,19 +20079,19 @@ Town.rdata =			// #1017
 	'Paralyzing Poison':			{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'ingredient_backstab_alchy.jpg' },
 	'Path of the Tower':			{ 'atk':  22, 'def':  14, 'type': 'weapon', 'img': 'eq_elaida_weapon.jpg' },
 	'Pauldrons of Light':			{ 'atk':   5, 'def':  11, 'type': 'armor', 'img': 'eq_leon_crest.jpg' },
-	'Pendant of Aska':				{ 'atk':  21, 'def':  24, 'type': 'amulet' },
-	'Pendant of Wonder':			{ 'atk':   9, 'def':   9, 'type': 'amulet' },
+	'Pendant of Aska':				{ 'atk':  21, 'def':  24, 'type': 'amulet', 'img': 'eq_esmeralda_amulet.jpg' },
+	'Pendant of Wonder':			{ 'atk':   9, 'def':   9, 'type': 'amulet', 'img': 'war_reward_4.jpg' },
 	'Pendant of the Bull':			{ 'atk':   1, 'def':   2, 'type': 'amulet', 'img': 'eq_karn_amulet.jpg' },
-	'Pendant of the Sea':			{ 'atk':  30, 'def':  25, 'type': 'amulet' },
+	'Pendant of the Sea':			{ 'atk':  30, 'def':  25, 'type': 'amulet', 'img': 'eq_kraken_amulet.jpg' },
 	'Penelope':						{ 'atk':   3, 'def':   6, 'type': 'hero', 'img': 'hero_penelope.jpg' },
 	'Percival':						{ 'atk':  18, 'def':  16, 'type': 'hero', 'img': 'hero_percival.jpg', 'skills': 'Damage Taken by -4 Increase Player Defense by +4' },
 	'Persephone':					{ 'atk':  10, 'def':  10, 'type': 'hero', 'img': 'hero_persephone.jpg', 'skills': 'Deflect damage when defending in Guild Battles' },
 	'Pestilence':					{ 'atk':   7, 'def':   9, 'type': 'magic', 'img': 'eq_death_rare_magic.jpg' },
 	'Phaethor':						{ 'atk':  23, 'def':  18, 'type': 'hero', 'img': 'hero_phaethor.jpg', 'skills': 'Increase Player Attack by +14, cooldown 5 hours' },
 	'Phantasm':						{ 'atk':  14, 'def':  14, 'type': 'unit', 'img': 'soldier_phantasm.jpg' },
-	'Phantasmal Brooch':			{ 'atk':  16, 'def':  13, 'type': 'amulet' },
+	'Phantasmal Brooch':			{ 'atk':  16, 'def':  13, 'type': 'amulet', 'img': 'eq_ephraline_amulet.jpg' },
 	'Phoenix':						{ 'atk':  20, 'def':  16, 'type': 'unit', 'img': 'upgrade_phoenix.jpg' },
-	'Pierce the Sky!':				{ 'atk':  35, 'def':  32, 'type': 'weapon' },
+	'Pierce the Sky':				{ 'atk':  35, 'def':  32, 'type': 'weapon', 'img': 'eq_alexandra_weapon.jpg' },
 	'Plate of Zeventis':			{ 'atk':  19, 'def':  16, 'type': 'armor', 'img': 'eq_zeventis_armor.jpg' },
 	'Plate of the Ages':			{ 'atk':  20, 'def':  45, 'type': 'armor', 'img': 'eq_legendary_armor.jpg' },
 	'Plate of the Wild':			{ 'atk':  23, 'def':  30, 'type': 'armor', 'img': 'eq_aurora_armor.jpg' },
@@ -18330,26 +20099,28 @@ Town.rdata =			// #1017
 	'Platinum Hands':				{ 'atk':   3, 'def':   4, 'type': 'gloves', 'img': 'eq_raida1_3.jpg' },
 	'Platinum Knight':				{ 'atk':  23, 'def':  27, 'type': 'unit', 'img': 'soldier_heaven.jpg' },
 	'Platinum Plate':				{ 'atk':   6, 'def':  10, 'type': 'armor', 'img': 'eq_platinum_plate.jpg' },
-	'Platinus Armor':				{ 'atk':   9, 'def':  11, 'type': 'armor' },
+	'Platinus Armor':				{ 'atk':   9, 'def':  11, 'type': 'armor', 'img': 'eq_lailah_armor.jpg' },
 	'Poisonous Spider':				{ 'atk':  14, 'def':  14, 'type': 'unit', 'img': 'soldier_spider_1.jpg' },
 	'Poisons Touch':				{ 'atk':  11, 'def':   9, 'type': 'gloves', 'img': 'eq_aethyx_gauntlet.jpg' },
 	'Poseidons Horn':				{ 'atk':   7, 'def':   3, 'type': 'amulet', 'img': 'alchemy_weapon_horn_done.jpg' },
-	"Praetor's Seal":				{ 'atk':  14, 'def':  15, 'type': 'amulet' },
+	'Praetors Seal':				{ 'atk':  14, 'def':  15, 'type': 'amulet', 'img': 'eq_tefaera_ring.jpg' },
 	'Prismatic Staff':				{ 'atk':  17, 'def':  14, 'type': 'weapon', 'img': 'eq_azalia_weapon.jpg' },
 	'Prophetic Wand':				{ 'atk':  17, 'def':  21, 'type': 'weapon', 'img': 'eq_shivak_weapon.jpg' },
 	'Punisher':						{ 'atk':  14, 'def':  11, 'type': 'weapon', 'img': 'eq_death_epic_weapon.jpg' },
 	'Purgatory':					{ 'atk':  30, 'def':  30, 'type': 'shield', 'img': 'eq_azriel_shield.jpg' },
-	'Purified Soul':				{ 'atk':   0, 'def':   0, 'type': 'quest' },
-	'Pyromaniac Plate':				{ 'atk':  20, 'def':  20, 'type': 'armor' },
-	'Rafaria':						{ 'atk':  24, 'def':  20, 'type': 'hero', 'skills': 'Increase Wound/Lacerate effect' },
-	'Ragnarok':						{ 'atk': 105, 'def': 105, 'type': 'unit' },
+	'Purified Soul':				{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'ingredient_cleanse_alchy.jpg' },
+	'Pyromaniac Plate':				{ 'atk':  20, 'def':  20, 'type': 'armor', 'img': 'eq_magmos_armor.jpg' },
+	'Rafaria':						{ 'atk':  24, 'def':  20, 'type': 'hero', 'img': 'hero_rafaria.jpg', 'skills': 'Increase Wound/Lacerate effect' },
+	'Ragnarok':						{ 'atk': 105, 'def': 105, 'type': 'unit', 'img': 'arena2_vanguard_ragnarok.jpg' },
 	'Rain of Shards':				{ 'atk':  18, 'def':  16, 'type': 'magic', 'img': 'eq_shardros_spell.jpg' },
 	'Ranger':						{ 'atk':   2, 'def':   1, 'type': 'unit', 'img': 'upgrade_ranger.gif' },
 	'Raven Cloak':					{ 'atk':  10, 'def':   8, 'type': 'armor', 'img': 'eq_lotus_cape.jpg' },
 	'Raziel the Silent':			{ 'atk':  29, 'def':  26, 'type': 'hero', 'img': 'hero_raziel.jpg', 'skills': 'Increase Evade chance in Guild Battles/Monsters' },
+	"Redeemer's Aegis":				{ 'atk':  40, 'def':  40, 'type': 'shield' },
+	"Redeemer's Blade":				{ 'atk':  38, 'def':  31, 'type': 'weapon' },
 	'Redeeming Light':				{ 'atk':   3, 'def':   5, 'type': 'magic', 'img': 'eq_strider_goodspell.jpg' },
-	'Reinforced Shield':			{ 'atk':   0, 'def':   0, 'type': 'quest' },
-	'Remnant Shield':				{ 'atk':  15, 'def':  18, 'type': 'shield' },
+	'Reinforced Shield':			{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'ingredient_sentinel_alchy.jpg' },
+	'Remnant Shield':				{ 'atk':  15, 'def':  18, 'type': 'shield', 'img': 'eq_caine_shield.jpg' },
 	'Retribution Armor':			{ 'atk':  15, 'def':  23, 'type': 'armor', 'img': 'divinedemi_azeron_armor.jpg' },
 	'Retribution Helm':				{ 'atk':   9, 'def':   8, 'type': 'helmet', 'img': 'eq_dexter_helmet.jpg' },
 	'Retribution Plate':			{ 'atk':   8, 'def':  11, 'type': 'armor', 'img': 'eq_dexter_armor.jpg' },
@@ -18360,7 +20131,7 @@ Town.rdata =			// #1017
 	'Ring of Honor':				{ 'atk':  18, 'def':  25, 'type': 'amulet', 'img': 'eq_corv_ring.jpg' },
 	'Ring of Life':					{ 'atk':   4, 'def':   5, 'type': 'amulet', 'img': 'eq_gift_elizabeth_complete.jpg' },
 	'Ring of Necrosis':				{ 'atk':  12, 'def':  14, 'type': 'amulet', 'img': 'eq_eva_ring.jpg' },
-	'Ring of Power':				{ 'atk':  30, 'def':  30, 'type': 'amulet' },
+	'Ring of Power':				{ 'atk':  30, 'def':  30, 'type': 'amulet', 'img': 'eq_malekus_ring.jpg' },
 	'Ring of Prophets':				{ 'atk':  11, 'def':  15, 'type': 'amulet', 'img': 'eq_shivak_amulet.jpg' },
 	'Robe of Insight':				{ 'atk':  10, 'def':   7, 'type': 'armor', 'img': 'eq_wizard_robe.jpg' },
 	'Robe of the Fang':				{ 'atk':  20, 'def':  15, 'type': 'armor', 'img': 'eq_aethyx_armor.jpg' },
@@ -18373,7 +20144,7 @@ Town.rdata =			// #1017
 	'Ruby Ore':						{ 'atk':   3, 'def':   1, 'type': 'amulet', 'img': 'eq_firering_2.jpg' },
 	'Ruby Ring':					{ 'atk':  10, 'def':  10, 'type': 'amulet' },
 	'Rune Axe':						{ 'atk':   8, 'def':   6, 'type': 'weapon', 'img': 'rune_axe.jpg' },
-	'Rune Blade':					{ 'atk':  10, 'def':   9, 'type': 'weapon' },
+	'Rune Blade':					{ 'atk':  10, 'def':   9, 'type': 'weapon', 'img': 'eq_lyra_sword.jpg' },
 	'Rusted Helm':					{ 'atk':   3, 'def':   2, 'type': 'helmet', 'img': 'eq_drakehelm_1.jpg' },
 	'Rusty Armor':					{ 'atk':   2, 'def':   3, 'type': 'armor', 'img': 'eq_gift_mystic_3.jpg' },
 	'Rusty Gloves':					{ 'atk':   1, 'def':   1, 'type': 'gloves', 'img': 'mystery_armor_rust.jpg' },
@@ -18387,7 +20158,7 @@ Town.rdata =			// #1017
 	'Scepter of Light':				{ 'atk':   2, 'def':   8, 'type': 'weapon', 'img': 'eq_penelope_complete.jpg' },
 	'Scourge':						{ 'atk':  18, 'def':  17, 'type': 'hero', 'img': 'hero_scourge.jpg', 'skills': 'Convert -25 Player Defense to +21 Player Attack' },
 	'Scytheblade':					{ 'atk':  18, 'def':  14, 'type': 'weapon', 'img': 'eq_crissana_weapon.jpg' },
-	'Seal of Agamemnon':			{ 'atk':  11, 'def':  15, 'type': 'amulet' },
+	'Seal of Agamemnon':			{ 'atk':  11, 'def':  15, 'type': 'amulet', 'img': 'eq_agamemnon_ring.jpg' },
 	'Sephora':						{ 'atk':   8, 'def':   8, 'type': 'hero', 'img': 'hero_sephora.jpg' },
 	'Seraphim Angel':				{ 'atk':  24, 'def':  21, 'type': 'unit', 'img': 'soldier_seraphim.jpg' },
 	'Seraphim Shield':				{ 'atk':  11, 'def':  13, 'type': 'shield', 'img': 'eq_solara_shield.jpg' },
@@ -18397,24 +20168,24 @@ Town.rdata =			// #1017
 	'Serpentine Ring':				{ 'atk':  20, 'def':  21, 'type': 'amulet', 'img': 'eq_aurelius_ring.jpg' },
 	'Serpentine Shield':			{ 'atk':   4, 'def':   6, 'type': 'shield', 'img': 'alchemy_serpent_done.jpg' },
 	'Serra Silverlight':			{ 'atk':  13, 'def':  19, 'type': 'hero', 'img': 'hero_angel.jpg', 'skills': 'Convert -25 Player Attack to +25 Player Defense' },
-	'Serrated Daggers':				{ 'atk':   0, 'def':   0, 'type': 'quest' },
+	'Serrated Daggers':				{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'ingredient_wound_alchy.jpg' },
 	'Serylius':						{ 'atk':  17, 'def':  17, 'type': 'hero', 'img': 'hero_serylius.jpg', 'skills': 'Increase All Player Stats by +4' },
 	'Severin':						{ 'atk':  21, 'def':  21, 'type': 'hero', 'img': 'hero_severin.jpg', 'skills': 'Increase Player Attack by +25, cooldown 7 hours' },
 	'Shadow':						{ 'atk':   7, 'def':   5, 'type': 'unit', 'img': 'soldier_shadow.jpg' },
 	'Shadow Assassin':				{ 'atk':  15, 'def':  13, 'type': 'unit', 'img': 'soldier_ninja.jpg' },
-	'Shadow Blades':				{ 'atk':  11, 'def':   5, 'type': 'weapon' },
+	'Shadow Blades':				{ 'atk':  11, 'def':   5, 'type': 'weapon', 'img': 'eq_shadowblades.jpg' },
 	'Shadow Blast':					{ 'atk':   5, 'def':   1, 'type': 'magic', 'img': 'gift_morrigan_complete.jpg' },
 	'Shadow Panther':				{ 'atk':  15, 'def':  13, 'type': 'unit', 'img': 'soldier_shadowpanther.jpg' },
-	'Shadow Slicer':				{ 'atk':  23, 'def':  18, 'type': 'weapon' },
+	'Shadow Slicer':				{ 'atk':  23, 'def':  18, 'type': 'weapon', 'img': 'eq_rafaria_weapon.jpg' },
 	'Shadow Warrior':				{ 'atk':   7, 'def':   6, 'type': 'unit', 'img': 'soldier_assassin_3.jpg' },
 	'Shadow Wraith':				{ 'atk':  13, 'def':  11, 'type': 'unit', 'img': 'soldier_wraith.jpg' },
-	'Shadowclasp Cloak':			{ 'atk':  19, 'def':  22, 'type': 'armor' },
+	'Shadowclasp Cloak':			{ 'atk':  19, 'def':  22, 'type': 'armor', 'img': 'eq_rafaria_armor.jpg' },
 	'Shadowfel Cloak':				{ 'atk':  16, 'def':  12, 'type': 'armor', 'img': 'eq_deshara_armor.jpg' },
 	'Shadowfel Katara':				{ 'atk':  18, 'def':  15, 'type': 'weapon', 'img': 'eq_deshara_weapon.jpg' },
 	'Shadowfel Pendant':			{ 'atk':  14, 'def':  10, 'type': 'amulet', 'img': 'eq_deshara_amulet.jpg' },
-	'Shadowmoon':					{ 'atk':   7, 'def':   7, 'type': 'amulet' },
+	'Shadowmoon':					{ 'atk':   7, 'def':   7, 'type': 'amulet', 'img': 'eq_shadowmoon.jpg' },
 	'Shadowsilk Armor':				{ 'atk':  10, 'def':   4, 'type': 'armor', 'img': 'eq_spider_reward_armor.jpg' },
-	'Sharpwind Amulet':				{ 'atk':  11, 'def':  13, 'type': 'amulet' },
+	'Sharpwind Amulet':				{ 'atk':  11, 'def':  13, 'type': 'amulet', 'img': 'eq_elora_amulet.jpg' },
 	'Shield of Arielle':			{ 'atk':   7, 'def':   7, 'type': 'shield', 'img': 'arielle_shield.jpg' },
 	'Shield of Artanis':			{ 'atk':   7, 'def':  10, 'type': 'shield', 'img': 'artanis_shield.jpg' },
 	'Shield of Dante':				{ 'atk':   4, 'def':   7, 'type': 'shield', 'img': 'eq_dante_shield_complete.jpg' },
@@ -18427,9 +20198,9 @@ Town.rdata =			// #1017
 	'Short Sword':					{ 'atk':   2, 'def':   0, 'type': 'weapon', 'img': 'eq_shortsword.jpg' },
 	'Shortsword +1':				{ 'atk':   3, 'def':   1, 'type': 'weapon', 'img': 'eq_shortsword.jpg' },
 	'Signet of Azriel':				{ 'atk':  15, 'def':  40, 'type': 'amulet' },
-	'Signet of Keira':				{ 'atk':  20, 'def':  35, 'type': 'amulet' },
+	'Signet of Keira':				{ 'atk':  20, 'def':  35, 'type': 'amulet', 'img': 'eq_keira_ring_complete.jpg' },
 	'Signet of Lotus':				{ 'atk':  40, 'def':  15, 'type': 'amulet' },
-	'Signet of Sylvana':			{ 'atk':  35, 'def':  20, 'type': 'amulet' },
+	'Signet of Sylvana':			{ 'atk':  35, 'def':  20, 'type': 'amulet', 'img': 'eq_sylvana_ring_complete.jpg' },
 	'Silver Bar':					{ 'atk':   0, 'def':   0, 'type': 'amulet', 'img': 'eq_gift_mystic_2.jpg' },
 	'Silver Light Training Manual':	{ 'atk':   4, 'def':   4, 'type': 'shield', 'img': 'eq_penelope_manual.jpg' },
 	'Silver Mace':					{ 'atk':   2, 'def':   4, 'type': 'weapon', 'img': 'eq_mace_3.jpg' },
@@ -18449,7 +20220,7 @@ Town.rdata =			// #1017
 	'Slayer Helm':					{ 'atk':  38, 'def':  32, 'type': 'helmet' },
 	"Slayer's Embrace":				{ 'atk':   5, 'def':   6, 'type': 'gloves', 'img': 'eq_slayer_gauntlet.jpg' },
 	'Snakes Grasp':					{ 'atk':  11, 'def':  10, 'type': 'gloves', 'img': 'eq_chimera_gauntlet.jpg' },
-	'Sofira':						{ 'atk':  19, 'def':  24, 'type': 'hero', 'skills': "Increase each War Council member's Player Attack by +5, cooldown 8 hours" },
+	'Sofira':						{ 'atk':  19, 'def':  24, 'type': 'hero', 'img': 'hero_sofira.jpg', 'skills': "Increase each War Council member's Player Attack by +5, cooldown 8 hours" },
 	'Solar Desolation':				{ 'atk':  13, 'def':  13, 'type': 'magic', 'img': 'crusader_spell4.jpg' },
 	'Solara':						{ 'atk':  20, 'def':  22, 'type': 'hero', 'img': 'hero_solara.jpg', 'skills': 'Transfer % of Max Energy +20% to Max Stamina +20%' },
 	'Solstice Blade':				{ 'atk':  15, 'def':  17, 'type': 'weapon', 'img': 'eq_solara_sword.jpg' },
@@ -18461,22 +20232,22 @@ Town.rdata =			// #1017
 	'Soul Siphon':					{ 'atk':  10, 'def':  18, 'type': 'weapon', 'img': 'eq_zurran_weapon.jpg' },
 	'Soulforge':					{ 'atk':  35, 'def':  35, 'type': 'weapon', 'img': 'eq_mephistopheles2_weapon_1.jpg', 'uniq': 1 },
 	'Soulless Pendant':				{ 'atk':  25, 'def':  25, 'type': 'amulet', 'img': 'eq_azriel_amulet_1.jpg' },
-	'Souls Calling':				{ 'atk':   0, 'def':   0, 'type': 'quest' },
-	'Souls Embrace':				{ 'atk':  14, 'def':  17, 'type': 'magic' },
+	'Souls Calling':				{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'ingredient_revive_alchy.jpg' },
+	'Souls Embrace':				{ 'atk':  14, 'def':  17, 'type': 'magic', 'img': 'eq_alexandria_spell.jpg' },
 	'Spartan Helm':					{ 'atk':   1, 'def':   1, 'type': 'helmet', 'img': 'eq_spartan_helmet.jpg' },
-	'Spartan Phalanx':				{ 'atk':  70, 'def':  70, 'type': 'unit' },
+	'Spartan Phalanx':				{ 'atk':  70, 'def':  70, 'type': 'unit', 'img': 'soldier_spartan_300.jpg' },
 	'Spartan Shield':				{ 'atk':   0, 'def':   2, 'type': 'shield', 'img': 'eq_spartan_shield.jpg' },
 	'Spartan Spear':				{ 'atk':   2, 'def':   0, 'type': 'weapon', 'img': 'eq_spartan_spear.jpg' },
 	'Spartan Warrior':				{ 'atk':   2, 'def':   1, 'type': 'unit', 'img': 'soldier_spartan.jpg' },
 	'Spellweaver Cloak':			{ 'atk':  13, 'def':  13, 'type': 'armor', 'img': 'eq_godric_armor.jpg' },
 	'Staff of Jahanna':				{ 'atk':  26, 'def':  30, 'type': 'weapon', 'img': 'eq_jahanna_weapon.jpg' },
-	'Staff of Prayers':				{ 'atk':  19, 'def':  23, 'type': 'weapon' },
-	'Staff of Veils':				{ 'atk':  19, 'def':  20, 'type': 'weapon' },
+	'Staff of Prayers':				{ 'atk':  19, 'def':  23, 'type': 'weapon', 'img': 'eq_tefaera_weapon.jpg' },
+	'Staff of Veils':				{ 'atk':  19, 'def':  20, 'type': 'weapon', 'img': 'eq_alexandria_weapon.jpg' },
 	'Staff of Vigor':				{ 'atk':   8, 'def':   5, 'type': 'weapon', 'img': 'gift_elizabeth3_complete.jpg' },
 	'Staff of the Lifeless':		{ 'atk':  25, 'def':  20, 'type': 'weapon', 'img': 'eq_aurora_staff.jpg' },
 	'Staff of the Martyr':			{ 'atk':  15, 'def':  19, 'type': 'weapon', 'img': 'eq_sanna_weapon.jpg' },
 	'Staff of the Tempest':			{ 'atk':   4, 'def':   2, 'type': 'weapon', 'img': 'demi_energy_weapon.jpg' },
-	'Star Shield':					{ 'atk':   7, 'def':  11, 'type': 'shield' },
+	'Star Shield':					{ 'atk':   7, 'def':  11, 'type': 'shield', 'img': 'item_star_shield.jpg' },
 	'Steel Chainmail':				{ 'atk':   1, 'def':   3, 'type': 'armor', 'img': 'eq_chainmail.jpg' },
 	'Steel Gauntlet':				{ 'atk':   1, 'def':   0, 'type': 'gloves', 'img': 'eq_gauntlet.jpg' },
 	'Steel Helm':					{ 'atk':   1, 'def':   2, 'type': 'helmet', 'img': 'eq_helm.jpg' },
@@ -18485,14 +20256,14 @@ Town.rdata =			// #1017
 	'Stone Guardian':				{ 'atk':  20, 'def':  22, 'type': 'hero', 'img': 'stonegiant_200.jpg', 'skills': 'Increase Siege Bonus by +10% (if the summoner has him active when siege weapon is launched)' },
 	'Stone Plate':					{ 'atk':  16, 'def':  16, 'type': 'armor', 'img': 'eq_shardros_armor.jpg' },
 	'Stone Skin':					{ 'atk':   7, 'def':   7, 'type': 'magic', 'img': 'eq_earth_rare_magic.jpg' },
-	'Stonebreaker':					{ 'atk':  20, 'def':  26, 'type': 'weapon' },
+	'Stonebreaker':					{ 'atk':  20, 'def':  26, 'type': 'weapon', 'img': 'eq_shardros_alchemy.jpg' },
 	'Stonegrasp':					{ 'atk':  12, 'def':   7, 'type': 'gloves', 'img': 'eq_shardros_gauntlet.jpg' },
 	'Storm Buckler':				{ 'atk':   8, 'def':  11, 'type': 'shield', 'img': 'eq_kromash_shield.jpg' },
-	'Stormbinder':					{ 'atk':  18, 'def':  18, 'type': 'gloves' },
+	'Stormbinder':					{ 'atk':  18, 'def':  18, 'type': 'gloves', 'img': 'eq_valhalla_gauntlet2.jpg' },
 	'Stormcrusher':					{ 'atk':  35, 'def':  20, 'type': 'weapon', 'img': 'eq_valhalla_weapon1.jpg' },
 	'Stormwind Saber':				{ 'atk':  11, 'def':  16, 'type': 'weapon', 'img': 'eq_kaylen_sword.jpg' },
 	'Strangling Vines':				{ 'atk':  15, 'def':  18, 'type': 'magic', 'img': 'eq_jahanna_spell.jpg' },
-	'Strength of Oaks':				{ 'atk':   5, 'def':  10, 'type': 'armor' },
+	'Strength of Oaks':				{ 'atk':   5, 'def':  10, 'type': 'armor', 'img': 'eq_kilgore_armor.jpg' },
 	'Strider':						{ 'atk':   6, 'def':   3, 'type': 'hero', 'img': 'hero_strider.jpg' },
 	'Succubus':						{ 'atk':  19, 'def':  17, 'type': 'unit', 'img': 'soldier_succubus.jpg' },
 	'Sun Amulet':					{ 'atk':   1, 'def':   3, 'type': 'amulet', 'img': 'eq_mace_1.jpg' },
@@ -18514,33 +20285,33 @@ Town.rdata =			// #1017
 	'Sylvanas Orb':					{ 'atk':   0, 'def':   0, 'type': 'quest', 'img': 'boss_sylvanas_orb.jpg' },
 	'Syren':						{ 'atk':  23, 'def':  19, 'type': 'hero', 'img': 'hero_syren.jpg', 'skills': 'Increase Confuse effect' },
 	'Syrens Call':					{ 'atk':  20, 'def':  18, 'type': 'weapon', 'img': 'eq_syren_weapon.jpg' },
-	'Tefaera':						{ 'atk':  21, 'def':  26, 'type': 'hero', 'skills': 'Increase Revive/Resurrect Effect' },
+	'Tefaera':						{ 'atk':  21, 'def':  26, 'type': 'hero', 'img': 'hero_tefaera.jpg', 'skills': 'Increase Revive/Resurrect Effect' },
 	'Tempered Steel':				{ 'atk':   6, 'def':   5, 'type': 'gloves', 'img': 'eq_raid_reward_300.jpg' },
 	'Tempest Crown':				{ 'atk':   3, 'def':   1, 'type': 'helmet', 'img': 'demi_energy_helm.jpg' },
 	'Tempest Elemental':			{ 'atk':  55, 'def':  50, 'type': 'unit', 'img': 'eq_valhalla_minion.jpg' },
 	'Tempest Helm':					{ 'atk':  10, 'def':  10, 'type': 'helmet', 'img': 'demi_amb_8.jpg' },
-	'Tempest Might':				{ 'atk':  30, 'def':  32, 'type': 'weapon' },
+	'Tempest Might':				{ 'atk':  30, 'def':  32, 'type': 'weapon', 'img': 'eq_ambrosia_weapon.jpg' },
 	'Tempest Plate':				{ 'atk':  20, 'def':  20, 'type': 'armor', 'img': 'divinedemi_ambrosia_armor.jpg' },
 	'Tempest Shield':				{ 'atk':   4, 'def':   6, 'type': 'shield', 'img': 'demi_energy_shield.jpg' },
 	'Tempest Storm':				{ 'atk':  17, 'def':  10, 'type': 'magic', 'img': 'demi_energy_spell.jpg' },
-	'Templar Knight':				{ 'atk':  15, 'def':  14, 'type': 'unit' },
+	'Templar Knight':				{ 'atk':  15, 'def':  14, 'type': 'unit', 'img': 'templar_knight.jpg' },
 	'Temptations Lure':				{ 'atk':  15, 'def':  11, 'type': 'amulet', 'img': 'eq_syren_amulet.jpg' },
-	'Tentacle Armlet':				{ 'atk':  12, 'def':  12, 'type': 'gloves' },
+	'Tentacle Armlet':				{ 'atk':  12, 'def':  12, 'type': 'gloves', 'img': 'eq_kraken_gauntlet.jpg' },
 	'Terra':						{ 'atk':   7, 'def':   9, 'type': 'hero', 'img': 'hero_terra.jpg' },
 	"Terra's Blade":				{ 'atk':  10, 'def':   9, 'type': 'weapon', 'img': 'gift_terra_complete.jpg' },
 	"Terra's Crown":				{ 'atk':  10, 'def':   7, 'type': 'helmet', 'img': 'eq_earth_rare_helmet.jpg' },
 	"Terra's Guard":				{ 'atk':  10, 'def':  10, 'type': 'shield', 'img': 'eq_earth_epic_shield.jpg' },
 	"Terra's Heart":				{ 'atk':   6, 'def':   8, 'type': 'amulet', 'img': 'eq_earth_rare_amulet.jpg' },
 	'Terran Plate':					{ 'atk':   7, 'def':   4, 'type': 'armor', 'img': 'eq_darius_armor.jpg' },
-	'Terror Pendant':				{ 'atk':  17, 'def':  13, 'type': 'amulet' },
+	'Terror Pendant':				{ 'atk':  17, 'def':  13, 'type': 'amulet', 'img': 'eq_rafaria_amulet.jpg' },
 	'Terrorshard Armor':			{ 'atk':  15, 'def':  13, 'type': 'armor', 'img': 'eq_raziel_armor.jpg' },
-	'Tetheryn Glove':				{ 'atk':   7, 'def':   9, 'type': 'gloves' },
+	'Tetheryn Glove':				{ 'atk':   7, 'def':   9, 'type': 'gloves', 'img': 'eq_elora_gauntlet.jpg' },
 	'Thawing Star':					{ 'atk':  18, 'def':  17, 'type': 'amulet', 'img': 'eq_water_epic_amulet.jpg' },
 	'The Disemboweler':				{ 'atk':  17, 'def':  12, 'type': 'weapon', alias: 'The Disembowler' },
 	'The Dreadnought':				{ 'atk':   3, 'def':   7, 'type': 'shield', 'img': 'boss_keira_shield.jpg' },
 	'The Galvanizer':				{ 'atk':  27, 'def':  23, 'type': 'weapon', 'img': 'eq_raziel_weapon.jpg' },
 	'The Reckoning':				{ 'atk':  40, 'def':  28, 'type': 'weapon', 'img': 'eq_corv_sword.jpg' },
-	'The Terrible':					{ 'atk':  20, 'def':  19, 'type': 'weapon' },
+	'The Terrible':					{ 'atk':  20, 'def':  19, 'type': 'weapon', 'img': 'eq_caine_weapon.jpg' },
 	'Theorin':						{ 'atk':  22, 'def':  23, 'type': 'hero', 'img': 'hero_theorin.jpg', 'skills': 'Increase Max Energy by +10' },
 	'Therian':						{ 'atk':  23, 'def':  17, 'type': 'hero', 'img': 'hero_therian.jpg', 'skills': 'Increase Player Attack by +25 against Monsters' },
 	'Thornguard Helm':				{ 'atk':  18, 'def':  15, 'type': 'helmet', 'img': 'eq_jahanna_helm.jpg' },
@@ -18552,20 +20323,20 @@ Town.rdata =			// #1017
 	'Titania Bow':					{ 'atk':   6, 'def':   4, 'type': 'weapon', 'img': 'gift_titania_complete.jpg' },
 	'Tooth of Gehenna':				{ 'atk':  18, 'def':  23, 'type': 'amulet', 'img': 'eq_gehenna_amulet.jpg' },
 	'Transcendence':				{ 'atk':  46, 'def':  36, 'type': 'amulet', 'img': 'eq_azriel_amulet_2.jpg' },
-	'Transfiguration':				{ 'atk':  17, 'def':  12, 'type': 'magic' },
+	'Transfiguration':				{ 'atk':  17, 'def':  12, 'type': 'magic', 'img': 'eq_anya_spell.jpg' },
 	'Tree Ent':						{ 'atk':   4, 'def':   5, 'type': 'unit', 'img': 'upgrade_tree.jpg' },
 	'Tribal Crest':					{ 'atk':  11, 'def':   9, 'type': 'amulet', 'img': 'eq_kataan_amulet.jpg' },
 	'Trident of the Deep':			{ 'atk':   6, 'def':   3, 'type': 'weapon', 'img': 'alchemy_weapon_trident_done.jpg' },
 	'Trigon Necklace':				{ 'atk':  13, 'def':  11, 'type': 'amulet', 'img': 'eq_crissana_amulet.jpg' },
-	'Trisoul Plate':				{ 'atk':  40, 'def':  35, 'type': 'armor' },
+	'Trisoul Plate':				{ 'atk':  40, 'def':  35, 'type': 'armor', 'img': 'eq_chimera_divine.jpg' },
 	'Tristram':						{ 'atk':  23, 'def':  18, 'type': 'hero', 'img': 'hero_tristram.jpg', 'skills': 'Increase Player Attack by +7' },
 	'Truthseeker Blade':			{ 'atk':  15, 'def':  22, 'type': 'weapon', 'img': 'eq_severin_weapon.jpg' },
 	'Truthseeker Pendant':			{ 'atk':   8, 'def':  14, 'type': 'amulet', 'img': 'eq_severin_amulet.jpg' },
-	'Typhonus the Chimera':			{ 'atk': 125, 'def': 125, 'type': 'unit' },
-	'Tyrant':						{ 'atk':  36, 'def':  32, 'type': 'hero', 'skills': 'Increase Sentinal/Guardian Effect' },
+	'Typhonus the Chimera':			{ 'atk': 125, 'def': 125, 'type': 'unit', 'img': 'arena_reward_7.jpg' },
+	'Tyrant':						{ 'atk':  36, 'def':  32, 'type': 'hero', 'img': 'hero_tyrant.jpg', 'skills': 'Increase Sentinal/Guardian Effect' },
 	'Tyrant Crown':					{ 'atk':  22, 'def':  20, 'type': 'helmet', 'img': 'eq_gehenna_helm_1.jpg' },
 	'Tyxeros':						{ 'atk':  21, 'def':  20, 'type': 'hero', 'img': 'hero_tyxeros.jpg', 'skills': 'Highly randomize base damage in Guild Battles' },
-	'Unbreakable Chestplate':		{ 'atk':  15, 'def':  20, 'type': 'armor' },
+	'Unbreakable Chestplate':		{ 'atk':  15, 'def':  20, 'type': 'armor', 'img': 'eq_alexandra_armor.jpg' },
 	'Valdonian Mystic Mage':		{ 'atk':  45, 'def':  33, 'type': 'unit', 'img': 'soldier_mystic_mage.jpg' },
 	'Valdonian War Armor':			{ 'atk':  19, 'def':  16, 'type': 'armor', 'img': 'eq_bjorin_armor.jpg' },
 	'Valdonian War Helm':			{ 'atk':  30, 'def':  20, 'type': 'helmet', 'img': 'eq_bjorin_helm.jpg' },
@@ -18580,10 +20351,11 @@ Town.rdata =			// #1017
 	'Vampire Lord':					{ 'atk':  20, 'def':  18, 'type': 'unit', 'img': 'soldier_vampire2.jpg' },
 	'Vampiric Blade':				{ 'atk':  10, 'def':  12, 'type': 'weapon', 'img': 'eq_slayer_sword.jpg' },
 	'Vanguard Doomhelm':			{ 'atk':  45, 'def':  45, 'type': 'helmet', 'img': 'arena3_helm.jpg' },
-	'Vanguard Helm':				{ 'atk':  35, 'def':  35, 'type': 'helmet' },
+	'Vanguard Helm':				{ 'atk':  35, 'def':  35, 'type': 'helmet', 'img': 'arena2_helm.jpg' },
 	'Vanguards Power Glaive':		{ 'atk':  22, 'def':  18, 'type': 'gloves', 'img': 'arena_reward_6.jpg' },
-	'Vanishing Dagger':				{ 'atk':  26, 'def':  23, 'type': 'weapon' },
+	'Vanishing Dagger':				{ 'atk':  26, 'def':  23, 'type': 'weapon', 'img': 'eq_esmeralda_weapon.jpg' },
 	'Vanquish':						{ 'atk':  18, 'def':  17, 'type': 'hero', 'img': 'hero_vanquish.jpg' },
+	'Vengeance Pendant':			{ 'atk':  14, 'def':  16, 'type': 'amulet' },
 	'Vincent':						{ 'atk':  25, 'def':  19, 'type': 'hero', 'img': 'boss_vincent.jpg', 'skills': 'Increase Max Health by +15' },
 	'Vincents Soul':				{ 'atk':   5, 'def':   5, 'type': 'amulet', 'img': 'eq_vincent_soul.jpg' },
 	'Vindicator Shield':			{ 'atk':  11, 'def':  13, 'type': 'shield', 'img': 'eq_crissana_shield.jpg' },
@@ -18592,22 +20364,23 @@ Town.rdata =			// #1017
 	'Virtue of Fortitude':			{ 'atk':  14, 'def':  32, 'type': 'helmet', 'img': 'eq_red_helm.jpg' },
 	'Virtue of Justice':			{ 'atk':  25, 'def':  25, 'type': 'weapon', 'img': 'eq_red_weapon.jpg' },
 	'Virtue of Temperance':			{ 'atk':   6, 'def':  14, 'type': 'gloves', 'img': 'eq_red_gauntlet.jpg' },
+	'Voidblade':					{ 'atk':  15, 'def':  15, 'type': 'weapon' },
 	'Volcanic Helm':				{ 'atk':  32, 'def':  14, 'type': 'helmet', 'img': 'eq_volcanic_helm.jpg' },
 	'Volcanic Knight':				{ 'atk':  65, 'def':  55, 'type': 'unit', 'img': 'soldier_volcanic_knight.jpg' },
-	'Voracious Imp':				{ 'atk':  48, 'def':  36, 'type': 'unit' },
+	'Voracious Imp':				{ 'atk':  48, 'def':  36, 'type': 'unit', 'img': 'soldier_voracious_imp.jpg' },
 	'Vorenus':						{ 'atk':  17, 'def':  17, 'type': 'hero', 'img': 'hero_vorenus.jpg', 'skills': 'Increase Monster Crits by +2%' },
 	'Vortex Seal':					{ 'atk':  11, 'def':  15, 'type': 'amulet', 'img': 'eq_valhalla_ring.jpg' },
 	'Vulcan':						{ 'atk':  15, 'def':  18, 'type': 'hero', 'img': 'hero_vulcan.jpg', 'skills': 'Convert -10 Player Stamina to +15 Player Defense' },
 	'Wall of Fire':					{ 'atk':   7, 'def':   7, 'type': 'magic', 'img': 'dragon_reward_fire.jpg' },
-	'Wand of Illusia':				{ 'atk':   9, 'def':   8, 'type': 'weapon' },
+	'Wand of Illusia':				{ 'atk':   9, 'def':   8, 'type': 'weapon', 'img': 'eq_wand_illusia.jpg' },
 	'War Bear':						{ 'atk':   5, 'def':   4, 'type': 'unit', 'img': 'soldier_bear.jpg' },
 	'War Lion':						{ 'atk':   6, 'def':   6, 'type': 'unit', 'img': 'soldier_lion_160.jpg' },
 	'Warmonger Shield':				{ 'atk':  12, 'def':  10, 'type': 'shield', 'img': 'eq_barbarus_shield.jpg' },
 	'Warrior Gauntlet':				{ 'atk':   9, 'def':   9, 'type': 'gloves', 'img': 'arena2_vanguard_gauntlet.jpg' },
-	'Warrior Unbound':				{ 'atk':  52, 'def':  48, 'type': 'shield' },
+	'Warrior Unbound':				{ 'atk':  52, 'def':  48, 'type': 'shield', 'img': 'eq_alexandra_shield_2.jpg' },
 	'Warriors Battleplate':			{ 'atk':  24, 'def':  22, 'type': 'armor', 'img': 'arena_reward_3.jpg' },
 	'Warriors Blade':				{ 'atk':  30, 'def':  19, 'type': 'weapon', 'img': 'arena3_weapon.jpg' },
-	'Warriors Calm':				{ 'atk':  24, 'def':  24, 'type': 'shield' },
+	'Warriors Calm':				{ 'atk':  24, 'def':  24, 'type': 'shield', 'img': 'eq_alexandra_shield_1.jpg' },
 	'Warriors Insignia':			{ 'atk':  18, 'def':  12, 'type': 'amulet', 'img': 'eq_arena_crest.jpg' },
 	'Water Demon':					{ 'atk':  14, 'def':  12, 'type': 'unit', 'img': 'soldier_assassin_4.jpg' },
 	'Water Elemental':				{ 'atk':  14, 'def':  15, 'type': 'unit', 'img': 'soldier_water_elemental.jpg' },
@@ -18633,7 +20406,7 @@ Town.rdata =			// #1017
 	'Wolfwood Amulet':				{ 'atk':  13, 'def':   7, 'type': 'amulet', 'img': 'eq_darius_amulet.jpg' },
 	'Wrath of Vanquish':			{ 'atk':   4, 'def':   2, 'type': 'magic', 'img': 'eq_vanquish_complete.jpg' },
 	'Wrathbringer Helm':			{ 'atk':  12, 'def':   8, 'type': 'helmet', 'img': 'eq_barbarus_helm.jpg' },
-	'Xira':							{ 'atk':  27, 'def':  24, 'type': 'hero', 'skills': 'Transfer % Player Defense +25% to Player Attack +25%' },
+	'Xira':							{ 'atk':  27, 'def':  24, 'type': 'hero', 'img': 'hero_xira.jpg', 'skills': 'Transfer % Player Defense +25% to Player Attack +25%' },
 	'Zarevok':						{ 'atk':   6, 'def':   5, 'type': 'hero', 'img': 'hero_zarevok.jpg' },
 	'Zarevok Defender':				{ 'atk':   5, 'def':   9, 'type': 'shield', 'img': 'gift_zarevok2_complete.jpg' },
 	'Zarevok Plate':				{ 'atk':   4, 'def':   9, 'type': 'armor', 'img': 'gift_zarevok_complete.jpg' },
@@ -18659,7 +20432,7 @@ Town.rrestr =
 	  //   shield.19{Sword of Redemption}, weapon.5{Sword}
 	'weapon':
 	  '\\baxe\\b' +				// 14
-	  '|\\bblades?\\b' +		// 28+1
+	  '|\\bblades?\\b' +		// 29+1
 	  '|\\bbow\\b' +			// 10
 	  '|\\bclaw\\b' +			// 1
 	  '|\\bclaymore\\b' +		// 1
@@ -18693,6 +20466,7 @@ Town.rrestr =
 	  '|\\bsword\\b' +			// 17 (mismatches 1)
 	  '|\\btalon\\b' +			// 1
 	  '|\\btrident\\b' +		// 2
+	  '|\\bvoidblade\\b' +		// 1
 	  '|\\bwand\\b' +			// 6
 	  '|^Arachnid Slayer$' +
 	  '|^Atonement$' +
@@ -18728,7 +20502,7 @@ Town.rrestr =
 	  "|^Oberon's Might$" +
 	  '|^Onslaught$' +
 	  '|^Path of the Tower$' +
-	  '|^Pierce the Sky!$' +
+	  '|^Pierce the Sky$' +
 	  '|^Punisher$' +
 	  '|^Righteousness$' +
 	  '|^Rocklasher$' +
@@ -18747,7 +20521,7 @@ Town.rrestr =
 	  '|^Virtue of Justice$' +
 	  '',
 	'shield':
-	  '\\baegis\\b' +			// 8
+	  '\\baegis\\b' +			// 9
 	  '|\\bbuckler\\b' +		// 2
 	  '|\\bdeathshield\\b' +	// 1
 	  '|\\bdefender\\b' +		// 6
@@ -18780,7 +20554,7 @@ Town.rrestr =
 	  '',
 	'armor':
 	  '\\barmguard\\b' +		// 1
-	  '|\\barmor\\b' +			// 26
+	  '|\\barmor\\b' +			// 27
 	  '|\\bbattlegarb\\b' +		// 1
 	  '|\\bbattlegear\\b' +		// 4
 	  '|\\bbattleplate\\b' +	// 1
@@ -18820,7 +20594,7 @@ Town.rrestr =
 	  '|\\bhorns\\b' +			// 1
 	  '|\\bkrown\\b' +			// 1
 	  '|\\bmane\\b' +			// 1
-	  '|\\bmask\\b' +			// 2
+	  '|\\bmask\\b' +			// 3
 	  '|\\btiara\\b' +			// 1
 	  '|\\bveil\\b' +			// 1
 	  '|^Virtue of Fortitude$' +
@@ -18845,7 +20619,7 @@ Town.rrestr =
 	  '|\\bmemento\\b' +		// 1
 	  '|\\bnecklace\\b' +		// 4
 	  '|\\borb\\b' +			// 4
-	  '|\\bpendant\\b' +		// 17
+	  '|\\bpendant\\b' +		// 18
 	  '|\\brelic\\b' +			// 1
 	  '|\\bring\\b' +			// 15
 	  '|\\bruby\\b' +			// 2
@@ -18881,8 +20655,8 @@ Town.rrestr =
 	  '\\barmlet\\b' +			// 1
 	  '|\\bbracer\\b' +			// 1
 	  '|\\bfists?\\b' +			// 1+3
-	  '|\\bgauntlets?\\b' +		// 12+5
-	  '|\\bglaive\\b' +			// 2
+	  '|\\bgauntlets?\\b' +		// 13+6
+	  '|\\bglaive\\b' +			// 1
 	  '|\\bgloves?\\b' +		// 2+2
 	  '|\\bhandguards?\\b' +	// 1+1
 	  '|\\bhands?\\b' +			// 6+3
@@ -18900,6 +20674,7 @@ Town.rrestr =
 	  '',
 	'boots':
 	  '\\bgreaves\\b' +			// 1
+	  '|\\btreads\\b' +			// 1
 	  ''
 };
 
@@ -18996,28 +20771,41 @@ Upgrade.init = function() {
 };
 
 Upgrade.update = function(event, events) {
-	if (events.findEvent(this,'calc') || events.findEvent(this,'watch','option.script') || (this.option.cycle && events.findEvent(Player,'watch'))) {
+	var i, j, points = Player.get('upgrade'), next = null,
+		real = {
+			'stamina':'maxstamina',
+			'energy':'maxenergy',
+			'health':'maxhealth'
+		},
+		need = {
+			'energy':1,
+			'stamina':2,
+			'attack':1,
+			'defense':1,
+			'health':1
+		};
+
+	if (events.findEvent(this,'calc')
+	  || events.findEvent(this,'watch','option.script')
+	  || (this.option.cycle && events.findEvent(Player,'watch'))
+	) {
 		this.script = new Script(this.option.script, {
 			'map':{
 				stamina:'Player.data.maxstamina',
 				energy:'Player.data.maxenergy',
 				health:'Player.data.maxhealth'
 			},
-			'default':Player.data,
+			'default':Player.get('data'),
 			'data':'Upgrade.data' // So we can manually view it easily
 		});
-		this.script.run(true);
+		if (this.script) {
+			this.script.run(true);
+		}
 	}
-	var i, j, points = Player.get('upgrade'), next = null, real = {'stamina':'maxstamina', 'energy':'maxenergy', 'health':'maxhealth'}, need = {
-		'energy':1,
-		'stamina':2,
-		'attack':1,
-		'defense':1,
-		'health':1
-	};
+
 	for (i in this.data) {
 		if (need[i] && (j = Player.get(['data',real[i] || i],0)) < this.data[i]) {
-			Dashboard.status(this, 'Next point: ' + Config.makeImage(i) + ' ' + i.ucfirst() + ' (' + j + ' / ' + this.data[i] + ')');
+			Dashboard.status(this, 'Next point: ' + Config.makeImage(i, i.ucfirst()) + ' [' + j + ' / ' + this.data[i] + ']');
 			next = i;
 			break;
 		}
@@ -19027,6 +20815,7 @@ Upgrade.update = function(event, events) {
 	}
 	this.set(['runtime','next'], next);
 	this.set('option._sleep', !this.runtime.next || points < need[this.runtime.next]);
+
 	return true;
 };
 
@@ -19124,21 +20913,23 @@ FP.runtime = {
 
 FP.init = function() {
 	// BEGIN: fix up "under level 4" generals
-	if (this.option.general=== 'under level 4') {
+	if (this.option.general === 'under level 4') {
 	        this.set('option.general', 'under max level');
 	}
 	// END
 };
 
 FP.page = function(page, change) {
-	// No need to parse out Income potions as about to visit the Keep anyway...
-	$('.oracleItemSmallBoxGeneral:contains("You have : ")').each(function(i,el){
-		FP.set(['runtime','points'], $(el).text().regex(/You have : (\d+) points/i));
-	});
-	$('.title_action:contains("favor points")').each(function(i,el){
-		FP.set(['runtime','points'], $(el).text().regex(/You have (\d+) favor points/i));
-	});
-	History.set('favor points',this.runtime.points);
+	if (page === 'index') {
+		$('.oracleItemSmallBoxGeneral:contains("You have : ")').each(function(i,el){
+			FP.set(['runtime','points'], $(el).text().regex(/\bYou have : (\d+) points?\b/im));
+		});
+	} else if (page === 'oracle_oracle') {
+		$('.title_action:contains("favor point")').each(function(i,el){
+			FP.set(['runtime','points'], $(el).text().regex(/\bYou have (\d+) favor points?\b/im));
+		});
+	}
+	History.set('favor points', this.runtime.points);
 	return false;
 };
 

@@ -122,7 +122,7 @@ Bank.worth = function(amount) { // Anything withdrawing should check this first!
 Bank.menu = function(worker, key) {
 	if (worker === this) {
 		if (!key && !this.option._disabled) {
-			return ['bank:Bank&nbsp;Now'];
+			return ['bank:Bank Now'];
 		} else if (key === 'bank') {
 			this.set(['temp','force'], true);
 		}

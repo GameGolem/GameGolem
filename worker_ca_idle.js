@@ -11,7 +11,7 @@
 * Keep focus for disabling other workers
 */
 var Idle = new Worker('Idle');
-Idle.temp = Idle.data = null;
+Idle.data = null;
 
 Idle.defaults['castle_age'] = {};
 
@@ -35,6 +35,11 @@ Idle.option = {
 	festival:0,
 	monsters:3600000
 //	collect:0
+};
+
+Idle.temp = {
+    scan:{},
+    generals:{}
 };
 
 Idle.when = {
@@ -145,7 +150,12 @@ Idle.pages = {
 	battle:['battle_battle'],
 	guild:['battle_guild'],
 	festival:['festival_guild'],
-	monsters:['monster_monster_list', 'battle_raid', 'festival_monster_list']
+	monsters:[
+		'monster_monster_list',
+		'battle_raid',
+		'festival_monster_list',
+		'festival_monster2_list'
+	]
 //	collect:['apprentice_collect']
 };
 
@@ -165,15 +175,22 @@ Idle.work = function(state) {
 	}
 
 	// handle the generals tour first, to avoid thrashing with the Idle general
-	if (this.option[i = 'generals'] && (p = Generals.get('data'))) {
-		for (j in p) {
-			if ((k = Generals.get(['runtime','last',j], 0)) + this.option[i] <= now) {
-				if (Generals.to(j) === null) {
-					// if we can't change the general now due to stats or error
-					// just try again in an hour
-					Generals.set(['runtime','last',j], Math.max(k, now + 60*60*1000 - this.option[i]));
+	if (((j = this.get('temp.scan.generals')) || (i = this.option.generals)) && (p = Generals.get('data'))) {
+		k = j ? now - j : i;
+		for (i in p) {
+			// purge cooldown guard after 5 minutes, if expired
+			if ((j = this.get(['temp','generals',i], 0, 'number')) && j + 300000 <= now) {
+				this.set(['temp','generals',i]);
+				j = 0;
+			}
+			if (p[i] && p[i].own && Math.max(j, Generals.get(['runtime','last',i], 0, 'number')) + k <= now) {
+				// if a general swap would be lossy, or it can't be done now,
+				// set a cooldown mark to guard against thrashing
+				if (Generals.to(i) === null) {
+					this.set(['temp','generals',i], now);
+				} else {
+					return true;
 				}
-				return true;
 			}
 		}
 	}
@@ -182,14 +199,18 @@ Idle.work = function(state) {
 		return true;
 	}
 
+	// stale pages tour
 	for (i in this.pages) {
-		if (this.option[i]) {
+		k = this.get(['temp','scan',i], 0, 'number');
+		if (k || (j = this.option[i])) {
+			j = Math.max(now - j, k);
 			for (p = 0; p < this.pages[i].length; p++) {
-				if (Page.isStale(this.pages[i][p], now - this.option[i]) && (!Page.to(this.pages[i][p]))) {
+				if (Page.isStale(this.pages[i][p], j) && (!Page.to(this.pages[i][p]))) {
 					return true;
 				}
 			}
 		}
+		this.set(['temp','scan',i]);
 	}
 
 	return true;

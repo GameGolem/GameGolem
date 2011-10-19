@@ -3,6 +3,7 @@
 	$, Worker, Workers, Config, Theme,
 	APP, APPID, APPNAME, PREFIX, userID, imagepath,
 	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	isArray, isFunction, isNumber, isObject, isString, isWorker,
 	getImage
 */
@@ -17,11 +18,23 @@ Menu.settings = {
 	taint:true
 };
 
+// array of {key}[P][I]{label} strings
+//   key = '---'	- horizontal line separator is added into the menu
+//   key = *		- key name for that menu action
+//   label = *		- displayed label for that menu action
+//   P = ' '		- no mapping, spaces are left alone
+//   P = *			- spaces are mapped to &nbsp; to prevent wrapping (default)
+//   I = '!'		- !!! warning icon
+//   I = '+'		- checkbox style, set to selected (tick)
+//   I = '-'		- checkbox style, set to not selected (cross)
+//   I = '='		- radio button style, set to selected (dot)
+//   I = *			- plain menu item (default)
+
 Menu.init = function() {
 	Config._init(); // We patch into the output of Config.init so it must finish first
 	$('<span class="ui-icon golem-menu-icon ui-icon-' + Theme.get('Menu_icon', 'gear') + '"></span>')
 		.click(function(event) {
-			var i, j, k, w, keys, ord, hr = false, html = '',
+			var i, j, k, s, w, keys, ord, hr = false, html = '',
 				$this = $(this.wrappedJSObject || this),
 				worker = Worker.find($this.closest('div').attr('name')),
 				name = worker ? worker.name : '';
@@ -37,10 +50,14 @@ Menu.init = function() {
 				}
 				for (i = 0; i < ord.length; i++) {
 					w = ord[i];
-					if (isFunction(Workers[w].menu)) {
+					if (Workers[w].menu) {
 						hr = true;
 						Workers[w]._unflush();
-						keys = Workers[w].menu(worker) || [];
+						try {
+							keys = Workers[w].menu(worker) || [];
+						} catch (e) {
+							log(e, e.name + ' in ' + w + '.menu(' + worker.name + '): ' + e.message);
+						}
 						for (j=0; j<keys.length; j++) {
 							k = keys[j].regex(/([^:]*):?(.*)/);
 							if (k[0] === '---') {
@@ -50,14 +67,19 @@ Menu.init = function() {
 									html += html ? '<hr>' : '';
 									hr = false;
 								}
-								switch (k[1].charAt(0)) {
-								case '!':	k[1] = '<img src="' + getImage('warning') + '">' + k[1].substr(1);	break;
-								case '+':	k[1] = '<img src="' + getImage('tick') + '">' + k[1].substr(1);	break;
-								case '-':	k[1] = '<img src="' + getImage('cross') + '">' + k[1].substr(1);	break;
-								case '=':	k[1] = '<img src="' + getImage('dot') + '">' + k[1].substr(1);	break;
+								if (k[1].charAt(0) === ' ') {
+									s = k[1].substr(1);
+								} else {
+									s = k[1].replace(' ', '&nbsp;');
+								}
+								switch (s.charAt(0)) {
+								case '!':	s = '<img src="' + getImage('warning') + '">' + s.substr(1);	break;
+								case '+':	s = '<img src="' + getImage('tick') + '">' + s.substr(1);	break;
+								case '-':	s = '<img src="' + getImage('cross') + '">' + s.substr(1);	break;
+								case '=':	s = '<img src="' + getImage('dot') + '">' + s.substr(1);	break;
 								default:	break;
 								}
-								html += '<div name="' + w + '.' + name + '.' + k[0] + '">' + k[1] + '</div>';
+								html += '<div name="' + w + '.' + name + '.' + k[0] + '">' + s + '</div>';
 							}
 						}
 					}

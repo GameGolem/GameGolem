@@ -1,13 +1,14 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+	// Only need them the first time...
 /*global
-	$, Workers, Worker, Config, Dashboard, Page, Resources,
+	$, Workers, Worker, Config, Dashboard, Idle, Page, Resources,
 	LevelUp, Player, Town,
 	APP, APPID, PREFIX, userID, imagepath,
 	isRelease, version, revision, Images, window, browser, console,
 	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	isArray, isFunction, isNumber, isObject, isString, isWorker,
-	sum, getAttDef, tr, th, td, makeTime, nmax, assert
+	sum, tr, th, td, makeTime, nmax, assert
 */
 /********** Worker.Generals **********
 * Updates the list of Generals
@@ -50,14 +51,31 @@ Generals.display = [
 Generals.runtime = {
 	multipliers: {}, // Attack multipliers list for Orc King and Barbarus type generals
 	force: false,
-	armymax:1 // Don't force someone with a small army to buy a whole load of extra items...
+	armymax:1, // Don't force someone with a small army to buy a whole load of extra items...
+	last: {} // last visit timestamps
 };
 
-Generals.init = function(old_revision) {
-	if (!Player.get('attack') || !Player.get('defense')) { // Only need them the first time...
+Generals.menu = function(worker, key) {
+	if (worker === this) {
+		if (!key) {
+			return ['scan:Scan Generals at Idle'];
+		} else if (key === 'scan') {
+			Idle.set('temp.scan.generals', Date.now());
+		}
+	}
+};
+
+Generals.init = function(old_revision, fresh) {
+	// BEGIN: remove old per-worker revision check
+	this.set(['runtime','revision']);
+	// END: 
+
+	// Only need them the first time...
+	if (!Player.get('attack') || !Player.get('defense')) {
 		this._watch(Player, 'data.attack');
 		this._watch(Player, 'data.defense');
 	}
+
 	this._watch(Player, 'data.army');
 	this._watch(Player, 'data.armymax');
 	this._watch(Town, 'runtime.invade');
@@ -66,10 +84,10 @@ Generals.init = function(old_revision) {
 	this._watch(Town, 'data'); // item counts
 
 	// last recalc revision is behind the current, fire a reminder
-	if (this.get('runtime.revision', 0, 'number') < revision) {
-		this._remind(1, 'revision');
+	if (old_revision < revision) {
+		this._remindMs(1, 'revision');
 	} else if (this.get('runtime.force')) {
-		this._remind(1, 'force');
+		this._remindMs(1, 'force');
 	}
 };
 
@@ -116,7 +134,7 @@ Generals.page = function(page, change) {
 						}
 					}
 				}
-				this.set(['data',name,'skillsbase'], s = $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim());
+				this.set(['data',name,'skillsbase'], s = $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim(true));
 				j = parseInt($('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
 				if (j) {
 					k = this.get(['data',name,'skills']) || s || '';
@@ -132,7 +150,7 @@ Generals.page = function(page, change) {
 		}
 
 		// parse general equipment, including those not yet owned
-		name = $('.general_name_div3').first().text().trim();
+		name = $('.general_name_div3').first().text().trim(true).replace(/\*+$/, '');
 		if (this.get(['data',name])) {
 			tmp = $('div[style*="model_items."] img[title]');
 			for (i=0; i<tmp.length; i++) {
@@ -140,7 +158,7 @@ Generals.page = function(page, change) {
 				item = $(el).attr('title');
 				icon = ($(el).attr('src') || '').filepart();
 				if (isString(item)) {
-					item = item.replace('[not owned]', ' ').replace(/<[^>]*>|\s+/gim, ' ').trim();
+					item = item.replace('[not owned]', ' ').replace(/<[^>]*>|\s+/gim, ' ').trim(true);
 					if ((j = item.match(/^\s*([^:]*\w)\s*:\s*(.*\w)\s*$/i))) {
 						item = Town.qualify(j[1], icon);
 						Resources.set(['_'+item,'generals'], Math.max(1, Resources.get(['_'+item,'generals'], 0, 'number')));
@@ -614,11 +632,11 @@ Generals.update = function(event, events) {
 
 			army = Math.min(armymax + nmax(0, skillcombo.regex(/\b(\d+) Army members?/gi)), nmax(0, skillcombo.regex(/\bArmy Limit to (\d+)\b/gi)) || 501);
 
-			gen_att = getAttDef(data, listpush, 'att', 1 + Math.floor((army - 1) / 5));
-			gen_def = getAttDef(data, listpush, 'def', 1 + Math.floor((army - 1) / 5));
+			gen_att = Town.getAttDef(data, listpush, 'att', 1 + Math.floor((army - 1) / 5));
+			gen_def = Town.getAttDef(data, listpush, 'def', 1 + Math.floor((army - 1) / 5));
 
-			war_att = getAttDef(data, listpush, 'att', 6);
-			war_def = getAttDef(data, listpush, 'def', 6);
+			war_att = Town.getAttDef(data, listpush, 'att', 6);
+			war_def = Town.getAttDef(data, listpush, 'def', 6);
 
 			j = sum(skillcombo.regex(/([-+]?\d*\.?\d+)% Crit/gi));
 			if (j) { stats['crits'] = j; }

@@ -50,11 +50,24 @@ Page.defaults.castle_age = {
 			battle_war_council:		{url:'war_council.php', image:'war_select_banner.jpg', skip:true},
 			monster_monster_list:		{url:'player_monster_list.php', image:'monster_button_yourmonster_on.jpg', skip:true},
 			monster_remove_list:		{url:'player_monster_list.php', image:'mp_current_monsters.gif', skip:true},
-			monster_battle_monster:		{url:'battle_monster.php', selector:'div[style*="monster_header"],div[style*="boss_header"]', skip:true},
+			monster_battle_monster:		{
+				url:'battle_monster.php',
+				selector:'div[style*="monster_header_"]'
+				  + ',div[style*="boss_header_"]'
+				  + ',div[style*="dragon_title_owner."]'
+				  + ',div[style*="monster_"][style*="_header."]',
+				skip:true
+			},
 			keep_monster_active:		{url:'raid.php', image:'dragon_view_more.gif', skip:true},
-			festival_monster_list:		{url:'festival_tower.php?tab=monster', selector:'div[style*="festival_monster_list_middle.jpg"]', skip:true},
-			festival_monster2_list:		{url:'festival_tower2.php?tab=monster', selector:'div[style*="festival_monster2_list_middle.jpg"]', skip:true},
-			festival_battle_monster:	{url:'festival_battle_monster.php', image:'festival_monstertag_list.gif', skip:true},
+			festival_monster_list:		{url:'festival_tower.php?tab=monster', image:'festival_monster_towerbutton.jpg', skip:true},
+			festival_monster2_list:		{url:'festival_tower2.php?tab=monster', image:'festival_monster2_towerbutton.jpg', skip:true},
+			festival_battle_monster:	{
+				url:'festival_battle_monster.php',
+				//image:'festival_monstertag_list.gif',
+				selector:'img[src*="festival_achievement_monster_"]'
+				  + ',img[src*="festival_achievement_monster2_"]',
+				skip:true
+			},
 			monster_dead:			{url:'battle_monster.php', selector:'div[style*="no_monster_back.jpg"]', skip:true},
 			monster_summon:			{url:'monster_summon_list.php', image:'tab_summon_monster_on.gif', skip:true},
 			monster_class:			{url:'view_class_progress.php', selector:'#'+APPID_+'choose_class_header', skip:true},
