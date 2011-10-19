@@ -1540,9 +1540,11 @@ Monster.page = function(page, change) {
 			for (i in ensta) {
 				if (this.get(['runtime','used',ensta[i]])) {
 					if ($('span[class="positive"]').length && $('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')) {
-						calc_rolling_weighted_average(this.runtime.monsters[type_label]
-								,'damage',Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,''))
-								,ensta[i],this.runtime.used[ensta[i]],10);
+						o = this.get(['runtime','monsters',type_label]) || {};
+						calc_rolling_weighted_average(o, 'damage',
+						  Number($('span[class="positive"]').prevAll('span').text().replace(/[^0-9\/]/g,'')),
+						  ensta[i], this.get(['runtime','used',ensta[i]]), 10);
+						this._replace(['runtime','monsters',type_label], o);
 						//log(LOG_WARN, 'Damage per ' + ensta[i] + ' = ' + this.runtime.monsters[type_label]['avg_damage_per_' + ensta[i]]);
 						if (Player.get('general') === 'Banthus Archfiend'
 								&& Generals.get(['data','Banthus Archfiend','charge'],1e99) < now) {

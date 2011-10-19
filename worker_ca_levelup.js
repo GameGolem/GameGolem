@@ -154,7 +154,7 @@ LevelUp.page = function(page, change) {
 };
 
 LevelUp.update = function(event, events) {
-	var now = Date.now(), i, worker, stat,
+	var now = Date.now(), i, o, worker, stat,
 		energy = Player.get('energy', 0, 'number'),
 		maxenergy = Player.get('maxenergy', 0, 'number'),
 		stamina = Player.get('stamina', 0, 'number'),
@@ -200,13 +200,17 @@ LevelUp.update = function(event, events) {
 			// Experience has increased...
 			if (this.runtime.stamina > stamina) {
 				this.set(['runtime','last_stamina'], (Page.temp.page === 'keep_monster_active' || Page.temp.page === 'monster_battle_monster') ? 'attack' : 'battle');
-				calc_rolling_weighted_average(this.runtime, 'exp', exp - this.runtime.exp, 'stamina', this.runtime.stamina - stamina);
+				o = this.runtime || {};
+				calc_rolling_weighted_average(o, 'exp', exp - this.runtime.exp, 'stamina', this.runtime.stamina - stamina);
+				this._replace('runtime', o);
 			}
 			if (this.runtime.energy > energy) {
 				this.set(['runtime','last_energy'], (Page.temp.page === 'keep_monster_active' || Page.temp.page === 'monster_battle_monster') ? 'defend' : 'quest');
 				// Only need average for monster defense. Quest average is known.
 				if (this.runtime.last_energy === 'defend') {
-					calc_rolling_weighted_average(this.runtime, 'exp', exp - this.runtime.exp, 'energy', this.runtime.energy - energy);
+					o = this.runtime || {};
+					calc_rolling_weighted_average(o, 'exp', exp - this.runtime.exp, 'energy', this.runtime.energy - energy);
+					this._replace('runtime', o);
 				}
 			}
 		}
