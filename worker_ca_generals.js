@@ -797,6 +797,9 @@ Generals.update = function(event, events) {
 			j = nmax(0, skillcombo.regex(/Chance ([-+]?\d*\.?\d+)% Drops|\bitems from quests by (\d*\.?\d+)%/gi));
 			if (j) { stats['item'] = j; }
 
+			j = nmax(0, skillcombo.regex(/\bDecreases? Damage Taken by (\d+)\b/gi));
+			if (j) { stats['mitigation'] = j; }
+
 			// Guild skills
 
 			j = nmax(0,
@@ -1029,8 +1032,8 @@ Generals.best = function(type) {
 			case 'monster-attack':
 				i = this.get(['runtime','best','monster-att']);
 				break;
-			case 'monster-defend':
 			case 'dispell':
+			case 'monster-defend':
 				i = this.get(['runtime','best','monster-def']);
 				break;
 			case 'under max level':

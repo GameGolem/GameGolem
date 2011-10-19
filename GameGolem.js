@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1168
+ * GameGolem v31.6.1169
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1168
+ * GameGolem v31.6.1169
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1168;
+var revision = 1169;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1167;
+var trunk_revision = 1168;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -10102,6 +10102,9 @@ Generals.update = function(event, events) {
 			j = nmax(0, skillcombo.regex(/Chance ([-+]?\d*\.?\d+)% Drops|\bitems from quests by (\d*\.?\d+)%/gi));
 			if (j) { stats['item'] = j; }
 
+			j = nmax(0, skillcombo.regex(/\bDecreases? Damage Taken by (\d+)\b/gi));
+			if (j) { stats['mitigation'] = j; }
+
 			// Guild skills
 
 			j = nmax(0,
@@ -10334,8 +10337,8 @@ Generals.best = function(type) {
 			case 'monster-attack':
 				i = this.get(['runtime','best','monster-att']);
 				break;
-			case 'monster-defend':
 			case 'dispell':
+			case 'monster-defend':
 				i = this.get(['runtime','best','monster-def']);
 				break;
 			case 'under max level':
@@ -14436,7 +14439,7 @@ Monster.update = function(event, events) {
 };
 
 Monster.work = function(state) {
-	var i, j, mid, uid, type, btn = null, b, monster, title,
+	var i, j, mid, uid, type, btn = null, b, monster, title, general = 'any',
 		target_info = [], battle_list, list = [],
 		mode = this.runtime.mode,
 		stat = this.runtime.stat;
@@ -14467,6 +14470,39 @@ Monster.work = function(state) {
 //		this._remind(0, 'levelup');
 //		return QUEUE_RELEASE;
 //	}
+
+	// determine the best general to use
+	// likely should be done in update, given use of multipliers in update
+	if (general === 'any' && !LevelUp.option._disabled && (i = LevelUp.get('runtime.general'))) {
+		general = i;
+	}
+	if (general === 'any' && Generals.get('runtime.zin')) {
+		general = 'any';
+	}
+	if (general === 'any') {
+		if (type.raid && this.option.best_raid) {
+			general = Generals.best(this.option.raid.indexOf('Invade') === -1 ? 'raid-duel' : 'raid-invade');
+		} else if (!type.raid && this.option['best_'+mode]) {
+			general = Generals.best('monster-'+mode);
+		} else if ((i = this.option['general_'+mode])) {
+			general = Generals.best(i);
+		}
+	}
+	if (general === 'any' && this.option['best_'+mode]) {
+		general = Generals.best('under max level');
+	}
+	if (general === 'any' && this.option['best_'+mode]) {
+		general = Generals.best('demi');
+	}
+	if (general === 'any' && this.option['best_'+mode]) {
+		general = Generals.best('mitigation');
+	}
+
+	if (!Generals.to(general)) {
+		return QUEUE_CONTINUE;
+	}
+
+	/*
 	if (!Generals.to(Generals.runtime.zin || LevelUp.runtime.general || (this.option['best_'+mode]
 			? (type.raid
 				? ((this.option.raid.search('Invade') === -1) ? 'raid-duel' : 'raid-invade')
@@ -14474,6 +14510,8 @@ Monster.work = function(state) {
 			: this.option['general_'+mode]))) {
 		return QUEUE_CONTINUE;
 	}
+	*/
+
 	if (type.raid) { // Raid has different buttons
 		btn = $(Monster.raid_buttons[this.option.raid]);
 	} else {
@@ -14509,6 +14547,7 @@ Monster.work = function(state) {
 		this.set('runtime.check', null);
 		return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
 	}
+
 	if (type.raid) {
 		battle_list = Battle.get('user');
 		if (this.option.force1) { // Grab a list of valid targets from the Battle Worker to substitute into the Raid buttons for +1 raid attacks.
@@ -15697,7 +15736,6 @@ Quest.option = {
 	general:true,
 	general_choice:'any',
 	what:'Advancement',
-	ignorecomplete:true,
 	unique:false,
 	monster:'When able',
 	bank:true,
@@ -15768,13 +15806,6 @@ Quest.display = [
 		  ' Inf+Cash will run the best viable cash quests under 100% influence, then cascade to Cash.' +
 		  ' Experience runs only the best experience quests.' +
 		  ' Cash runs only the best cash quests.'
-	},{
-		advanced:true,
-		id:'ignorecomplete',
-		require:'what=="Cartigan" || what=="Vampire Lord"',
-		label:'Only do incomplete quests',
-		checkbox:true,
-		help:"Will only do quests that aren't at 100% influence."
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -16244,11 +16275,12 @@ Quest.update = function(event, events) {
 };
 
 Quest.getBest = function(goal, maxenergy) {
-	var i, x, oi, ob, cmp, eff, own, need, unit, noCanDo, ok,
+	var g, i, x, oi, ob, cmp, eff, own, need, unit, noCanDo, ok,
 		has_cartigan, has_vampire, forced_general, badgens = {},
 		best, best_cartigan, best_vampire, best_subquest, best_advancement,
 		best_influence, best_experience, best_land, best_unique,
 		best_adv_eff, best_inf_eff,
+		general = Player.get('general'),
 		diag = this.option.diag || 0;
 
 	best = null;
@@ -16267,7 +16299,7 @@ Quest.getBest = function(goal, maxenergy) {
 
 	if (!best && (goal !== 'Nothing' || this.option.unique)) {
 		if (diag) {
-			log(LOG_INFO, '# -----[ determining best quest ]-----');
+			log(LOG_INFO, '# -----[ determining best ' + goal + ' quest ]-----');
 		}
 
 		if (goal !== 'Vampire Lord'
@@ -16294,15 +16326,11 @@ Quest.getBest = function(goal, maxenergy) {
 
 			// Skip quests we can't afford or can't equip the general for
 			x = 'any';
-			if (oi.energy > maxenergy
-			  || (isNumber(oi.influence) && oi.influence < 100
-			  && oi.general && badgens[oi.general])
-			) {
+			if (oi.energy > maxenergy) {
 				if (diag >= 3) {
 					log(LOG_INFO, '# skipping ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					  + ' due to energy ' + oi.energy + ' > ' + maxenergy
-					  + ' or general ' + oi.general
 					);
 				}
 				continue;
@@ -16335,6 +16363,7 @@ Quest.getBest = function(goal, maxenergy) {
 				}
 			}
 
+			// effort = energy * quest reps per influence level
 			eff = oi.eff || (oi.energy * this.wiki_reps(oi));
 			if (0 < (oi.influence || 0) && (oi.influence || 0) < 100) {
 				eff = Math.ceil(eff * (100 - oi.influence) / 100);
@@ -16350,21 +16379,27 @@ Quest.getBest = function(goal, maxenergy) {
 				}
 			}
 
+			// try to limit how often we look these up
+			// once per possibly useful general should be all we need
+			if (isNumber(oi.influence) && oi.influence < 100
+			  && (x = oi.general) && !badgens.hasOwnProperty(x)
+			) {
+				badgens[x] = !Generals.test(x);
+			}
+
 			// Automatically fallback on type - but without changing options
 			switch (goal) {
 			case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
 				ob = this.get(['data','id',best_vampire]);
 				// order: inf<100, <energy, >exp, >cash (vampire)
 				ok = false;
-				if (!has_vampire && oi.land === 5 && oi.type === 1
-				  && (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100))
-				) {
+				if (!has_vampire && oi.land === 5 && oi.type === 1) {
 					ok = true;
 				} else if (diag >= 3) {
 					log(LOG_INFO, '# failed vampire reqs ' + i + ':' + oi.name);
 				}
 				if (ok && (!best_vampire
-				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
@@ -16376,7 +16411,7 @@ Quest.getBest = function(goal, maxenergy) {
 						);
 					}
 					best_vampire = i;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping vampire ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);
@@ -16388,7 +16423,6 @@ Quest.getBest = function(goal, maxenergy) {
 				ok = false;
 				x = this.get(['data','id',oi.main || i,'name']);
 				if (!has_cartigan && oi.land === 6
-				  && (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100))
 				  && (((x === 'The Long Path' || x === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') < 3)
 				  || ((x === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') < 3)
 				  || ((x === 'Fire and Brimstone' || x === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') < 3))
@@ -16398,7 +16432,7 @@ Quest.getBest = function(goal, maxenergy) {
 					log(LOG_INFO, '# failed cartigan reqs ' + i + ':' + oi.name);
 				}
 				if (ok && (!best_cartigan
-				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
@@ -16410,7 +16444,7 @@ Quest.getBest = function(goal, maxenergy) {
 						);
 					}
 					best_cartigan = i;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping cartigan ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);
@@ -16420,8 +16454,17 @@ Quest.getBest = function(goal, maxenergy) {
 				ob = this.get(['data','id',best_subquest]);
 				// order: <energy, >exp, >cash (subquests)
 				ok = false;
-				if (oi.type === 2 && isNumber(oi.influence) && oi.influence < 100) {
+				g = true;
+				if (oi.type === 2 && (g = isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general])) {
 					ok = true;
+				} else if (!g && badgens[oi.general]) {
+					if (diag >= 2) {
+						log(LOG_INFO, '# failed subquest reqs ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+						  + ' due to resource issues swapping generals'
+						  + ' (' + general + ' to ' + oi.general + ')'
+						);
+					}
 				} else if (diag >= 3) {
 					log(LOG_INFO, '# failed subquest reqs ' + i + ':' + oi.name);
 				}
@@ -16437,7 +16480,7 @@ Quest.getBest = function(goal, maxenergy) {
 						);
 					}
 					best_subquest = i;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping subquest ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);
@@ -16460,10 +16503,11 @@ Quest.getBest = function(goal, maxenergy) {
 				ob = this.get(['data','id',best_advancement]);
 				// order: <effort, >exp, >cash, <energy (advancement)
 				ok = false;
+				g = true;
 				if (oi.type !== 2 && isNumber(oi.land)
 				  //&& oi.level === 1 // Need to check if necessary to do boss to unlock next land without requiring orb
 				  && oi.land >= best_land
-				  && ((isNumber(oi.influence) && oi.influence < 100 && oi.level <= 1 && (!oi.general || badgens[oi.general]))
+				  && ((oi.level <= 1 && (g = isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general]))
 				  || (oi.type === 3 && Alchemy.get(['summons',oi.itemimg]) && !Alchemy.get(['ingredients',oi.itemimg], 0, 'number')))
 				) {
 					if (diag) {
@@ -16473,7 +16517,15 @@ Quest.getBest = function(goal, maxenergy) {
 						);
 					}
 					ok = true;
-				} else if (diag >= 2) {
+				} else if (!g && badgens[oi.general]) {
+					if (diag >= 2) {
+						log(LOG_INFO, '# failed advancement reqs ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+						  + ' due to resource issues swapping generals'
+						  + ' (' + general + ' to ' + oi.general + ')'
+						);
+					}
+				} else if (diag >= 3) {
 					log(LOG_INFO, '# failed advancement reqs ' + i + ':' + oi.name);
 				}
 				if (ok && (!best_advancement
@@ -16482,19 +16534,6 @@ Quest.getBest = function(goal, maxenergy) {
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0))
 				) {
-					if (isNumber(oi.influence) && oi.influence < 100
-					  && oi.level <= 1
-					  && (x = oi.general) && !badgens.hasOwnProperty(x)
-					  && (badgens[x] = Generals.test(x))
-					) {
-						if (diag >= 1) {
-							log(LOG_INFO, '# skipping ' + i + ':' + oi.name
-							  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
-							  + ' due to general ' + x
-							);
-						}
-						continue;
-					}
 					if (diag) {
 						log(LOG_INFO, '# best advancement ' + i + ':' + oi.name
 						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
@@ -16504,7 +16543,7 @@ Quest.getBest = function(goal, maxenergy) {
 					best_land = Math.max(best_land, oi.land);
 					best_advancement = i;
 					best_adv_eff = eff;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping advancement ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);
@@ -16514,10 +16553,16 @@ Quest.getBest = function(goal, maxenergy) {
 				ob = this.get(['data','id',best_influence]);
 				// order: <effort, >exp, >cash, <energy (influence)
 				ok = false;
-				if (isNumber(oi.influence) && oi.influence < 100
-				  && (!oi.general || badgens[oi.general])
-				) {
+				if (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general]) {
 					ok = true;
+				} else if (badgens[oi.general]) {
+					if (diag >= 2) {
+						log(LOG_INFO, '# failed influence reqs ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+						  + ' due to resource issues swapping generals'
+						  + ' (' + general + ' to ' + oi.general + ')'
+						);
+					}
 				} else if (diag >= 3) {
 					log(LOG_INFO, '# failed influence reqs ' + i + ':' + oi.name);
 				}
@@ -16527,18 +16572,6 @@ Quest.getBest = function(goal, maxenergy) {
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0))
 				) {
-					if (isNumber(oi.influence) && oi.influence < 100
-					  && (x = oi.general) && !badgens.hasOwnProperty(x)
-					  && (badgens[x] = Generals.test(x))
-					) {
-						if (diag >= 1) {
-							log(LOG_INFO, '# skipping ' + i + ':' + oi.name
-							  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
-							  + ' due to general ' + x
-							);
-						}
-						continue;
-					}
 					if (diag) {
 						log(LOG_INFO, '# best influence ' + i + ':' + oi.name
 						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
@@ -16547,7 +16580,7 @@ Quest.getBest = function(goal, maxenergy) {
 					}
 					best_influence = i;
 					best_inf_eff = eff;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping influence ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);
@@ -16558,7 +16591,7 @@ Quest.getBest = function(goal, maxenergy) {
 				// order: >exp, inf<100, >cash, <energy (experience)
 				if (!best_experience
 				  || (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0
-				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0)
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
 				) {
@@ -16579,7 +16612,7 @@ Quest.getBest = function(goal, maxenergy) {
 				ob = this.get(['data','id',best_experience]);
 				// order: inf<100, >exp, >cash, <energy (inf+exp)
 				if (!best_experience
-				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
@@ -16601,7 +16634,7 @@ Quest.getBest = function(goal, maxenergy) {
 				ob = this.get(['data','id',best]);
 				// order: inf<100, >cash, >exp, <energy (inf+cash)
 				if (!best
-				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
@@ -16624,7 +16657,7 @@ Quest.getBest = function(goal, maxenergy) {
 				// order: >cash, inf<100, >exp, <energy (cash)
 				if (!best
 				  || (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0
-				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0)
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
 				) {
@@ -16652,7 +16685,7 @@ Quest.getBest = function(goal, maxenergy) {
 				}
 				if (ok && (!best
 				  || (cmp = oi.energy - ob.energy) < 0
-				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0)
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
 				) {
@@ -16663,7 +16696,7 @@ Quest.getBest = function(goal, maxenergy) {
 						);
 					}
 					best = i;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping default ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);

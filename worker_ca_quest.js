@@ -31,7 +31,6 @@ Quest.option = {
 	general:true,
 	general_choice:'any',
 	what:'Advancement',
-	ignorecomplete:true,
 	unique:false,
 	monster:'When able',
 	bank:true,
@@ -102,13 +101,6 @@ Quest.display = [
 		  ' Inf+Cash will run the best viable cash quests under 100% influence, then cascade to Cash.' +
 		  ' Experience runs only the best experience quests.' +
 		  ' Cash runs only the best cash quests.'
-	},{
-		advanced:true,
-		id:'ignorecomplete',
-		require:'what=="Cartigan" || what=="Vampire Lord"',
-		label:'Only do incomplete quests',
-		checkbox:true,
-		help:"Will only do quests that aren't at 100% influence."
 	},{
 		id:'unique',
 		label:'Get Unique Items First',
@@ -578,11 +570,12 @@ Quest.update = function(event, events) {
 };
 
 Quest.getBest = function(goal, maxenergy) {
-	var i, x, oi, ob, cmp, eff, own, need, unit, noCanDo, ok,
+	var g, i, x, oi, ob, cmp, eff, own, need, unit, noCanDo, ok,
 		has_cartigan, has_vampire, forced_general, badgens = {},
 		best, best_cartigan, best_vampire, best_subquest, best_advancement,
 		best_influence, best_experience, best_land, best_unique,
 		best_adv_eff, best_inf_eff,
+		general = Player.get('general'),
 		diag = this.option.diag || 0;
 
 	best = null;
@@ -601,7 +594,7 @@ Quest.getBest = function(goal, maxenergy) {
 
 	if (!best && (goal !== 'Nothing' || this.option.unique)) {
 		if (diag) {
-			log(LOG_INFO, '# -----[ determining best quest ]-----');
+			log(LOG_INFO, '# -----[ determining best ' + goal + ' quest ]-----');
 		}
 
 		if (goal !== 'Vampire Lord'
@@ -628,15 +621,11 @@ Quest.getBest = function(goal, maxenergy) {
 
 			// Skip quests we can't afford or can't equip the general for
 			x = 'any';
-			if (oi.energy > maxenergy
-			  || (isNumber(oi.influence) && oi.influence < 100
-			  && oi.general && badgens[oi.general])
-			) {
+			if (oi.energy > maxenergy) {
 				if (diag >= 3) {
 					log(LOG_INFO, '# skipping ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					  + ' due to energy ' + oi.energy + ' > ' + maxenergy
-					  + ' or general ' + oi.general
 					);
 				}
 				continue;
@@ -669,6 +658,7 @@ Quest.getBest = function(goal, maxenergy) {
 				}
 			}
 
+			// effort = energy * quest reps per influence level
 			eff = oi.eff || (oi.energy * this.wiki_reps(oi));
 			if (0 < (oi.influence || 0) && (oi.influence || 0) < 100) {
 				eff = Math.ceil(eff * (100 - oi.influence) / 100);
@@ -684,21 +674,27 @@ Quest.getBest = function(goal, maxenergy) {
 				}
 			}
 
+			// try to limit how often we look these up
+			// once per possibly useful general should be all we need
+			if (isNumber(oi.influence) && oi.influence < 100
+			  && (x = oi.general) && !badgens.hasOwnProperty(x)
+			) {
+				badgens[x] = !Generals.test(x);
+			}
+
 			// Automatically fallback on type - but without changing options
 			switch (goal) {
 			case 'Vampire Lord': // Main quests or last subquest (can't check) in Undead Realm
 				ob = this.get(['data','id',best_vampire]);
 				// order: inf<100, <energy, >exp, >cash (vampire)
 				ok = false;
-				if (!has_vampire && oi.land === 5 && oi.type === 1
-				  && (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100))
-				) {
+				if (!has_vampire && oi.land === 5 && oi.type === 1) {
 					ok = true;
 				} else if (diag >= 3) {
 					log(LOG_INFO, '# failed vampire reqs ' + i + ':' + oi.name);
 				}
 				if (ok && (!best_vampire
-				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
@@ -710,7 +706,7 @@ Quest.getBest = function(goal, maxenergy) {
 						);
 					}
 					best_vampire = i;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping vampire ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);
@@ -722,7 +718,6 @@ Quest.getBest = function(goal, maxenergy) {
 				ok = false;
 				x = this.get(['data','id',oi.main || i,'name']);
 				if (!has_cartigan && oi.land === 6
-				  && (!this.option.ignorecomplete || (isNumber(oi.influence) && oi.influence < 100))
 				  && (((x === 'The Long Path' || x === 'Burning Gates') && Alchemy.get(['ingredients', 'eq_underworld_sword.jpg'], 0, 'number') < 3)
 				  || ((x === 'Fiery Awakening') && Alchemy.get(['ingredients', 'eq_underworld_amulet.jpg'], 0, 'number') < 3)
 				  || ((x === 'Fire and Brimstone' || x === 'Deathrune Castle') && Alchemy.get(['ingredients', 'eq_underworld_gauntlet.jpg'], 0, 'number') < 3))
@@ -732,7 +727,7 @@ Quest.getBest = function(goal, maxenergy) {
 					log(LOG_INFO, '# failed cartigan reqs ' + i + ':' + oi.name);
 				}
 				if (ok && (!best_cartigan
-				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
@@ -744,7 +739,7 @@ Quest.getBest = function(goal, maxenergy) {
 						);
 					}
 					best_cartigan = i;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping cartigan ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);
@@ -754,8 +749,17 @@ Quest.getBest = function(goal, maxenergy) {
 				ob = this.get(['data','id',best_subquest]);
 				// order: <energy, >exp, >cash (subquests)
 				ok = false;
-				if (oi.type === 2 && isNumber(oi.influence) && oi.influence < 100) {
+				g = true;
+				if (oi.type === 2 && (g = isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general])) {
 					ok = true;
+				} else if (!g && badgens[oi.general]) {
+					if (diag >= 2) {
+						log(LOG_INFO, '# failed subquest reqs ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+						  + ' due to resource issues swapping generals'
+						  + ' (' + general + ' to ' + oi.general + ')'
+						);
+					}
 				} else if (diag >= 3) {
 					log(LOG_INFO, '# failed subquest reqs ' + i + ':' + oi.name);
 				}
@@ -771,7 +775,7 @@ Quest.getBest = function(goal, maxenergy) {
 						);
 					}
 					best_subquest = i;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping subquest ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);
@@ -794,10 +798,11 @@ Quest.getBest = function(goal, maxenergy) {
 				ob = this.get(['data','id',best_advancement]);
 				// order: <effort, >exp, >cash, <energy (advancement)
 				ok = false;
+				g = true;
 				if (oi.type !== 2 && isNumber(oi.land)
 				  //&& oi.level === 1 // Need to check if necessary to do boss to unlock next land without requiring orb
 				  && oi.land >= best_land
-				  && ((isNumber(oi.influence) && oi.influence < 100 && oi.level <= 1 && (!oi.general || badgens[oi.general]))
+				  && ((oi.level <= 1 && (g = isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general]))
 				  || (oi.type === 3 && Alchemy.get(['summons',oi.itemimg]) && !Alchemy.get(['ingredients',oi.itemimg], 0, 'number')))
 				) {
 					if (diag) {
@@ -807,7 +812,15 @@ Quest.getBest = function(goal, maxenergy) {
 						);
 					}
 					ok = true;
-				} else if (diag >= 2) {
+				} else if (!g && badgens[oi.general]) {
+					if (diag >= 2) {
+						log(LOG_INFO, '# failed advancement reqs ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+						  + ' due to resource issues swapping generals'
+						  + ' (' + general + ' to ' + oi.general + ')'
+						);
+					}
+				} else if (diag >= 3) {
 					log(LOG_INFO, '# failed advancement reqs ' + i + ':' + oi.name);
 				}
 				if (ok && (!best_advancement
@@ -816,19 +829,6 @@ Quest.getBest = function(goal, maxenergy) {
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0))
 				) {
-					if (isNumber(oi.influence) && oi.influence < 100
-					  && oi.level <= 1
-					  && (x = oi.general) && !badgens.hasOwnProperty(x)
-					  && (badgens[x] = Generals.test(x))
-					) {
-						if (diag >= 1) {
-							log(LOG_INFO, '# skipping ' + i + ':' + oi.name
-							  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
-							  + ' due to general ' + x
-							);
-						}
-						continue;
-					}
 					if (diag) {
 						log(LOG_INFO, '# best advancement ' + i + ':' + oi.name
 						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
@@ -838,7 +838,7 @@ Quest.getBest = function(goal, maxenergy) {
 					best_land = Math.max(best_land, oi.land);
 					best_advancement = i;
 					best_adv_eff = eff;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping advancement ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);
@@ -848,10 +848,16 @@ Quest.getBest = function(goal, maxenergy) {
 				ob = this.get(['data','id',best_influence]);
 				// order: <effort, >exp, >cash, <energy (influence)
 				ok = false;
-				if (isNumber(oi.influence) && oi.influence < 100
-				  && (!oi.general || badgens[oi.general])
-				) {
+				if (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general]) {
 					ok = true;
+				} else if (badgens[oi.general]) {
+					if (diag >= 2) {
+						log(LOG_INFO, '# failed influence reqs ' + i + ':' + oi.name
+						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
+						  + ' due to resource issues swapping generals'
+						  + ' (' + general + ' to ' + oi.general + ')'
+						);
+					}
 				} else if (diag >= 3) {
 					log(LOG_INFO, '# failed influence reqs ' + i + ':' + oi.name);
 				}
@@ -861,18 +867,6 @@ Quest.getBest = function(goal, maxenergy) {
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0))
 				) {
-					if (isNumber(oi.influence) && oi.influence < 100
-					  && (x = oi.general) && !badgens.hasOwnProperty(x)
-					  && (badgens[x] = Generals.test(x))
-					) {
-						if (diag >= 1) {
-							log(LOG_INFO, '# skipping ' + i + ':' + oi.name
-							  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
-							  + ' due to general ' + x
-							);
-						}
-						continue;
-					}
 					if (diag) {
 						log(LOG_INFO, '# best influence ' + i + ':' + oi.name
 						  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
@@ -881,7 +875,7 @@ Quest.getBest = function(goal, maxenergy) {
 					}
 					best_influence = i;
 					best_inf_eff = eff;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping influence ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);
@@ -892,7 +886,7 @@ Quest.getBest = function(goal, maxenergy) {
 				// order: >exp, inf<100, >cash, <energy (experience)
 				if (!best_experience
 				  || (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0
-				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0)
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
 				) {
@@ -913,7 +907,7 @@ Quest.getBest = function(goal, maxenergy) {
 				ob = this.get(['data','id',best_experience]);
 				// order: inf<100, >exp, >cash, <energy (inf+exp)
 				if (!best_experience
-				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
@@ -935,7 +929,7 @@ Quest.getBest = function(goal, maxenergy) {
 				ob = this.get(['data','id',best]);
 				// order: inf<100, >cash, >exp, <energy (inf+cash)
 				if (!best
-				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0
+				  || (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0)
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
@@ -958,7 +952,7 @@ Quest.getBest = function(goal, maxenergy) {
 				// order: >cash, inf<100, >exp, <energy (cash)
 				if (!best
 				  || (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0
-				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0)
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = oi.energy - ob.energy) < 0)
 				) {
@@ -986,7 +980,7 @@ Quest.getBest = function(goal, maxenergy) {
 				}
 				if (ok && (!best
 				  || (cmp = oi.energy - ob.energy) < 0
-				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 ? 1 : 0)) > 0)
+				  || (!cmp && (cmp = (isNumber(oi.influence) && oi.influence < 100 && !badgens[oi.general] ? 1 : 0) - (isNumber(ob.influence) && ob.influence < 100 && !badgens[ob.general] ? 1 : 0)) > 0)
 				  || (!cmp && (cmp = (oi.exp / oi.energy) - (ob.exp / ob.energy)) > 0)
 				  || (!cmp && (cmp = (oi.reward / oi.energy) - (ob.reward / ob.energy)) > 0))
 				) {
@@ -997,7 +991,7 @@ Quest.getBest = function(goal, maxenergy) {
 						);
 					}
 					best = i;
-				} else if (diag >= 3) {
+				} else if (ok && diag >= 3) {
 					log(LOG_INFO, '# skipping default ' + i + ':' + oi.name
 					  + ' in ' + (isNumber(oi.land) ? this.land[oi.land] : this.area[oi.area])
 					);

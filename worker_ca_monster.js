@@ -2399,7 +2399,7 @@ Monster.update = function(event, events) {
 };
 
 Monster.work = function(state) {
-	var i, j, mid, uid, type, btn = null, b, monster, title,
+	var i, j, mid, uid, type, btn = null, b, monster, title, general = 'any',
 		target_info = [], battle_list, list = [],
 		mode = this.runtime.mode,
 		stat = this.runtime.stat;
@@ -2430,6 +2430,39 @@ Monster.work = function(state) {
 //		this._remind(0, 'levelup');
 //		return QUEUE_RELEASE;
 //	}
+
+	// determine the best general to use
+	// likely should be done in update, given use of multipliers in update
+	if (general === 'any' && !LevelUp.option._disabled && (i = LevelUp.get('runtime.general'))) {
+		general = i;
+	}
+	if (general === 'any' && Generals.get('runtime.zin')) {
+		general = 'any';
+	}
+	if (general === 'any') {
+		if (type.raid && this.option.best_raid) {
+			general = Generals.best(this.option.raid.indexOf('Invade') === -1 ? 'raid-duel' : 'raid-invade');
+		} else if (!type.raid && this.option['best_'+mode]) {
+			general = Generals.best('monster-'+mode);
+		} else if ((i = this.option['general_'+mode])) {
+			general = Generals.best(i);
+		}
+	}
+	if (general === 'any' && this.option['best_'+mode]) {
+		general = Generals.best('under max level');
+	}
+	if (general === 'any' && this.option['best_'+mode]) {
+		general = Generals.best('demi');
+	}
+	if (general === 'any' && this.option['best_'+mode]) {
+		general = Generals.best('mitigation');
+	}
+
+	if (!Generals.to(general)) {
+		return QUEUE_CONTINUE;
+	}
+
+	/*
 	if (!Generals.to(Generals.runtime.zin || LevelUp.runtime.general || (this.option['best_'+mode]
 			? (type.raid
 				? ((this.option.raid.search('Invade') === -1) ? 'raid-duel' : 'raid-invade')
@@ -2437,6 +2470,8 @@ Monster.work = function(state) {
 			: this.option['general_'+mode]))) {
 		return QUEUE_CONTINUE;
 	}
+	*/
+
 	if (type.raid) { // Raid has different buttons
 		btn = $(Monster.raid_buttons[this.option.raid]);
 	} else {
@@ -2472,6 +2507,7 @@ Monster.work = function(state) {
 		this.set('runtime.check', null);
 		return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
 	}
+
 	if (type.raid) {
 		battle_list = Battle.get('user');
 		if (this.option.force1) { // Grab a list of valid targets from the Battle Worker to substitute into the Raid buttons for +1 raid attacks.
