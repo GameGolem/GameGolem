@@ -1,5 +1,4 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-	// Only need them the first time...
 /*global
 	$, Workers, Worker, Config, Dashboard, Idle, Page, Resources,
 	LevelUp, Player, Town,
@@ -109,7 +108,7 @@ Generals.page = function(page, change) {
 			el = tmp[i];
 			try {
 				this._transaction(); // BEGIN TRANSACTION
-				name = $('.general_name_div3_padding', el).text().trim(true).replace(/\*+$/, '');
+				name = ($('.general_name_div3_padding', el).text() || '').trim(true).replace(/\s*\*+$/, '');
 				assert(name && name.indexOf('\t') === -1 && name.length < 30, 'Bad general name - found tab character');
 				seen[name] = true;
 				assert(this.set(['data',name,'id'], parseInt($('input[name=item]', el).val(), 10), 'number') !== false, 'Bad general id: '+name);
@@ -159,17 +158,18 @@ Generals.page = function(page, change) {
 				icon = ($(el).attr('src') || '').filepart();
 				if (isString(item)) {
 					item = item.replace('[not owned]', ' ').replace(/<[^>]*>|\s+/gim, ' ').trim(true);
-					if ((j = item.match(/^\s*([^:]*\w)\s*:\s*(.*\w)\s*$/i))) {
-						item = Town.qualify(j[1], icon);
-						Resources.set(['_'+item,'generals'], Math.max(1, Resources.get(['_'+item,'generals'], 0, 'number')));
-						this.set(['data',name,'equip',item], j[2]);
+					if ((j = item.match(/^\s*([^:]*[^:\s])\s*:\s*(.*\S)\s*$/i))) {
+						if ((item = Town.qualify(j[1], icon))) {
+							Resources.set(['_'+item,'generals'], Math.max(1, Resources.get(['_'+item,'generals'], 0, 'number')));
+							this.set(['data',name,'equip',item], j[2]);
+						}
 					}
 				}
 			}
 			i = $('#main_bn div[style*="general_plate."] a[href*="generals.php"] img[title]').first().attr('title').trim(true);
 			if (i) {
 				this.set(['data',name,'skills'], i);
-				if (isNumber(j = i.regex(/\bmax\.? (\d+)\b/im))) {
+				if (isNumber(j = i.regex(/\bmax\.? (\d+)\b/i))) {
 					this.set(['data',name,'cap'], j);
 				}
 			}
@@ -336,10 +336,20 @@ Generals.update = function(event, events) {
 				if ((x = s.regex(/\bmax\.? (\d+)/i))) {
 					cap = Math.max(cap, x);
 				}
+				if (cap) {
+					if ((j = s.regex(/\b(\d+\.\d+)\b/))) {
+						cap /= j;
+					}
+				}
 				if (str) {
 					for (x = str.split(' '); x.length > 0; x.pop()) {
 						str = x.join(' ');
-						if ((y = str.regex(/^(.+)s$/i))) {
+						if ((y = str.regex(/^(.+)ies$/i))) {
+							if (Town.get(['data', y+'y'])) {
+								item = y+'y';
+								break;
+							}
+						} else if ((y = str.regex(/^(.+)s$/i))) {
 							if (Town.get(['data', y])) {
 								item = y;
 								break;
@@ -352,7 +362,7 @@ Generals.update = function(event, events) {
 					}
 				}
 				if (num && item) {
-					Resources.set(['data', '_' + item, 'generals'], num * cap);
+					Resources.set(['data','_'+item,'generals'], Math.ceil(num * cap));
 //					log(LOG_WARN, 'Save ' + (num * cap) + ' x ' + item + ' for General ' + i);
 				}
 			}
@@ -419,6 +429,9 @@ Generals.update = function(event, events) {
 			if ((o = p['equip'])) {
 				for (j in o) {
 					if (Town.get(['data',j,'own'], 0, 'number') > 0) {
+						if (s !== '') { s += '; '; }
+						s += j + ': ' + o[j];
+					} else if (Generals.get(['data',j,'own'])) {
 						if (s !== '') { s += '; '; }
 						s += j + ': ' + o[j];
 					}
@@ -638,7 +651,8 @@ Generals.update = function(event, events) {
 			war_att = Town.getAttDef(data, listpush, 'att', 6);
 			war_def = Town.getAttDef(data, listpush, 'def', 6);
 
-			j = sum(skillcombo.regex(/([-+]?\d*\.?\d+)% Crit/gi));
+			j = sum(skillcombo.regex(/([-+]?\d*\.?\d+)% Crit/gi))
+			  + sum(skillcombo.regex(/\bcritical\b[^;,]* (\d*\.?\d+)%/gi));
 			if (j) { stats['crits'] = j; }
 
 			// invade calcs
@@ -776,7 +790,8 @@ Generals.update = function(event, events) {
 			j = skillcombo.regex(/Bank Fee/gi) ? 100 : 0;
 			if (j) { stats['bank'] = j; }
 
-			j = nmax(0, skillcombo.regex(/\bBonus \$?(\d+) Gold\b/gi));
+			j = nmax(0, skillcombo.regex(/\bBonus \$?(\d+) Gold\b/gi),
+			  skillcombo.regex(/\badditional \$?(\d+) gold\b/gi));
 			if (j) { stats['cash'] = j; }
 
 			j = nmax(0, skillcombo.regex(/\bSoldier Cost by -?(\d*\.?\d+)%/gi),
@@ -794,24 +809,31 @@ Generals.update = function(event, events) {
 			  skillcombo.regex(/\bQuests? (\d*\.?\d+)% Faster\b/gi));
 			if (j) { stats['influence'] = j; }
 
-			j = nmax(0, skillcombo.regex(/Chance ([-+]?\d*\.?\d+)% Drops|\bitems from quests by (\d*\.?\d+)%/gi));
+			j = nmax(0, skillcombo.regex(/\bChance ([-+]?\d*\.?\d+)% Drops/gi),
+			  skillcombo.regex(/\bitems from quests by (\d*\.?\d+)%/gi));
 			if (j) { stats['item'] = j; }
 
-			j = nmax(0, skillcombo.regex(/\bDecreases? Damage Taken by (\d+)\b/gi));
+			j = nmax(0, skillcombo.regex(/\bDecreases? Damage Taken by (\d+)\b/gi),
+			  skillcombo.regex(/\bdamage received is reduced by (\d+)\b/gi));
 			if (j) { stats['mitigation'] = j; }
 
 			// Guild skills
 
 			j = nmax(0,
-			  skillcombo.regex(/\bWhen attacked in guild battle[^;]*\b(\d+) damage done to you is deflected back on the attacker\b/i),
-			  skillcombo.regex(/\b(\d+) damage done to you is deflected back on the attacker[^;]*\bwhen attacked in guild battle\b/i));
+			  skillcombo.regex(/\bWhen attacked in guild battle[^;]*\b(\d+) damage done to you is deflected back on the attacker\b/gi),
+			  skillcombo.regex(/\b(\d+) damage done to you is deflected back on the attacker[^;]*\bwhen attacked in guild battle\b/gi));
 			if (j) { stats['guild_deflect_passive'] = j; }
 
-			if (skillcombo.match(/\bDeals Extra Damage In Battles\b/i)) {
-				j = 5;
-			} else {
-				j = nmax(0, skillcombo.regex(/\bDeals additional (\d+) Damage In Battles\b/));
+			if (skillcombo.match(/\bDeals? Extra Damage In Battles?\b/i)) {
+				if (i === 'Deianira') {
+					j = (p['level'] || 1) * 5;
+				} else {
+					j = 5;
+				}
 			}
+			j += sum(skillcombo.regex(/\bDeals? additional (\d+) Damage In Battles?\b/gi))
+			  + sum(skillcombo.regex(/\bDeals? (\d+) Extra Damage In Battles?\b/gi))
+			  + sum(skillcombo.regex(/\b(\d+) Damage in Battles?\b/gi));
 			if (j) { stats['guild_damage'] = j; }
 
 			// Sanna
@@ -857,8 +879,12 @@ Generals.update = function(event, events) {
 			if (j) { stats['guild_warrior_whirlwind'] = j; }
 
 			// Meekah
-			j = nmax(0, skillcombo.regex(/\bIncrease Confidence Damage by ([-+]?\d*\.?\d+)\b/gi));
+			j = nmax(0, skillcombo.regex(/\bIncreases? Confidence Damage by ([-+]?\d*\.?\d+)\b/gi));
 			if (j) { stats['guild_warrior_confidence'] = j; }
+
+			// Tefaera
+			j = nmax(0, skillcombo.regex(/\bIncreases? health restored with Revive\/Resurrection by (\d+)\b/gi));
+			if (j) { stats['guild_cleric_resurrect'] = j; }
 
 			this.set(['data',i,'stats'], stats);
 

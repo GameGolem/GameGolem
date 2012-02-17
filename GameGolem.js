@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1170
+ * GameGolem v31.6.1171
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1170
+ * GameGolem v31.6.1171
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1170;
+var revision = 1171;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1169;
+var trunk_revision = 1170;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -7581,13 +7581,13 @@ Update.init = function() {
 	this.set(['runtime','revision'], this.runtime.revision || revision);
 	if (browser === 'chrome') {
 		Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
-		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx'; // Beta
-		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.release.crx'; // Release
+		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.release.crx'; // Release
+		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx'; // Beta
 	} else {
 		// No easy way to check if we're Greasemonkey now as it behaves just like a bookmarklet
 		Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/_version.js';
-		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js'; // Beta
-		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.release.user.js'; // Release
+		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.release.user.js'; // Release
+		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js'; // Beta
 	}
 	// Add an update button for everyone
 	Config.addButton({
@@ -7659,13 +7659,15 @@ Update.init = function() {
 };
 
 Update.checkVersion = function(force) {
-	Update.set('runtime.lastcheck', Date.now() - 21600000 + 60000);// Don't check again for 1 minute - will get reset if we get a reply
+	var now = Date.now();
+	// Don't check again for 1 minute - will get reset if we get a reply
+	Update.set('runtime.lastcheck', now - (6*60+1)*60*1000);
 	Update.set('runtime.force', force);
-	window.setTimeout(function(){
+	window.setTimeout(function() {
 		var s = document.createElement('script');
 		s.setAttribute('type', 'text/javascript');
 		s.className = 'golem-script-version';
-		s.src = Update.temp.check + '?random=' + Date.now();
+		s.src = Update.temp.check + '?random=' + now;
 		document.getElementsByTagName('head')[0].appendChild(s);
 	}, 100);
 };
@@ -7678,20 +7680,38 @@ Update.checkVersion = function(force) {
 3b. Display a notification if there's a new version
 4. Set a reminder if there isn't
 */
-Update.update = function(event) {
-	if (event.type === 'reminder') {
+Update.update = function(event, events) {
+	var now = Date.now(), age, time;
+
+	if (events.findEvent(null, 'reminder')) {
 		this.checkVersion(false);
 	}
-	if (event.type === 'init' || event.type === 'reminder') {
-		var now = Date.now(), age = (now - this.runtime.installed) / 1000, time = (now - this.runtime.lastcheck) / 1000;
-		if (age <= 21600) {time += 3600;}		// Every hour for 6 hours
-		else if (age <= 64800) {time += 7200;}	// Every 2 hours for another 12 hours (18 total)
-		else if (age <= 129600) {time += 10800;}// Every 3 hours for another 18 hours (36 total)
-		else if (age <= 216000) {time += 14400;}// Every 4 hours for another 24 hours (60 total)
-		else {time += 21600;}					// Every 6 hours normally
-		this._remind(Math.max(0, time), 'check');
+
+	if (events.findEvent(null, 'init') || events.findEvent(null, 'reminder')) {
+		age = now - this.runtime.installed;
+		time = now - this.runtime.lastcheck;
+		if (age <= 6*60*60*1000) {
+			// Every hour for 6 hours
+			time += 60*60*1000;
+		} else if (age <= (1+2)*6*60*60*1000) {
+			// Every 2 hours for another 12 hours (18 total)
+			time += 2*60*60;
+		} else if (age <= (1+2+3)*6*60*60*1000) {
+			// Every 3 hours for another 18 hours (36 total)
+			time += 3*60*60*1000;
+		} else if (age <= (1+2+3+4)*6*60*60*1000) {
+			// Every 4 hours for another 24 hours (60 total)
+			time += 4*60*60*1000;
+		} else {
+			// Every 6 hours normally
+			time += 6*60*60*1000;
+		}
+		this._remindMs(Math.max(1000, time), 'check');
 	}
-	if (this.runtime.version > this.temp.version || (!isRelease && this.runtime.revision > this.temp.revision)) {
+
+	if (this.runtime.version > this.temp.version
+	  || (!isRelease && this.runtime.revision > this.temp.revision)
+	) {
 		log(LOG_INFO, 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + this.runtime.current);
 		if (this.runtime.version > this.temp.version) {
 			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_1 + '?' + Date.now() + '">New Version Available</a></div>');
@@ -7702,18 +7722,30 @@ Update.update = function(event) {
 		this.set(['temp','version'], this.runtime.version);
 		this.set(['temp','revision'], this.runtime.revision);
 	}
+
+	return true;
 };
 
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false*/
+/*global
+	$, Worker, Workers, Main,
+	APP, APPID, PREFIX, userID:true, imagepath:true, isFacebook,
+	isRelease, version, revision, Images, window, browser,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+*/
 // Add "Castle Age" to known applications
-Main.add('castle_age', '46755028429', 'Castle Age', /^http:\/\/web3.castleagegame.com\/castle_ws\/index.php/i, function() {
+Main.add('castle_age', '46755028429', 'Castle Age', /^https?:\/\/web3\.castleagegame\.com\/castle_ws\//i, function() {
 	if (!isFacebook) {
-		userID = ($('#main_bntp img').attr('src') || '').regex(/graph.facebook.com\/(\d+)\/picture/i);
-		// imagepath = 'http://image4.castleagegame.com/graphics/';
+		userID = ($('#main_bntp img').attr('src') || '').regex(/graph\.facebook\.com\/(\d+)\/picture/i);
 		imagepath = ($('#AjaxLoadIcon img').attr('src') || '').pathpart();
 		var fn = function(){
-			var left = Math.max(0, Math.floor(($('body').width() - 1030) / 2));
-			$('#rightCol').css({'padding-left':(left + 781) + 'px'});
+			var body = $('body').width(),
+			    game = $('globalcss').width() || 762,
+			    left = Math.max(0, Math.floor((body - game - 244) / 2));
+			$('#rightCol').css({'padding-left':(left + game) + 'px'});
 			$('center').css({'text-align':'left', 'padding-left':left+'px'});
+			$('#collapsedGuildChat').css({'left':(left+5)+'px'});
+			$('#expandedGuildChat').css({'left':(left+5)+'px'});
 		};
 		$('body').prepend('<div id="rightCol" style="position:absolute;left:0;top:2px;width:244px;height:0;"></div>');
 		fn();
@@ -9307,7 +9339,6 @@ Elite.army = function(action, uid) {
 };
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
-	// Only need them the first time...
 /*global
 	$, Workers, Worker, Config, Dashboard, Idle, Page, Resources,
 	LevelUp, Player, Town,
@@ -9417,7 +9448,7 @@ Generals.page = function(page, change) {
 			el = tmp[i];
 			try {
 				this._transaction(); // BEGIN TRANSACTION
-				name = $('.general_name_div3_padding', el).text().trim(true).replace(/\*+$/, '');
+				name = ($('.general_name_div3_padding', el).text() || '').trim(true).replace(/\s*\*+$/, '');
 				assert(name && name.indexOf('\t') === -1 && name.length < 30, 'Bad general name - found tab character');
 				seen[name] = true;
 				assert(this.set(['data',name,'id'], parseInt($('input[name=item]', el).val(), 10), 'number') !== false, 'Bad general id: '+name);
@@ -9467,17 +9498,18 @@ Generals.page = function(page, change) {
 				icon = ($(el).attr('src') || '').filepart();
 				if (isString(item)) {
 					item = item.replace('[not owned]', ' ').replace(/<[^>]*>|\s+/gim, ' ').trim(true);
-					if ((j = item.match(/^\s*([^:]*\w)\s*:\s*(.*\w)\s*$/i))) {
-						item = Town.qualify(j[1], icon);
-						Resources.set(['_'+item,'generals'], Math.max(1, Resources.get(['_'+item,'generals'], 0, 'number')));
-						this.set(['data',name,'equip',item], j[2]);
+					if ((j = item.match(/^\s*([^:]*[^:\s])\s*:\s*(.*\S)\s*$/i))) {
+						if ((item = Town.qualify(j[1], icon))) {
+							Resources.set(['_'+item,'generals'], Math.max(1, Resources.get(['_'+item,'generals'], 0, 'number')));
+							this.set(['data',name,'equip',item], j[2]);
+						}
 					}
 				}
 			}
 			i = $('#main_bn div[style*="general_plate."] a[href*="generals.php"] img[title]').first().attr('title').trim(true);
 			if (i) {
 				this.set(['data',name,'skills'], i);
-				if (isNumber(j = i.regex(/\bmax\.? (\d+)\b/im))) {
+				if (isNumber(j = i.regex(/\bmax\.? (\d+)\b/i))) {
 					this.set(['data',name,'cap'], j);
 				}
 			}
@@ -9644,10 +9676,20 @@ Generals.update = function(event, events) {
 				if ((x = s.regex(/\bmax\.? (\d+)/i))) {
 					cap = Math.max(cap, x);
 				}
+				if (cap) {
+					if ((j = s.regex(/\b(\d+\.\d+)\b/))) {
+						cap /= j;
+					}
+				}
 				if (str) {
 					for (x = str.split(' '); x.length > 0; x.pop()) {
 						str = x.join(' ');
-						if ((y = str.regex(/^(.+)s$/i))) {
+						if ((y = str.regex(/^(.+)ies$/i))) {
+							if (Town.get(['data', y+'y'])) {
+								item = y+'y';
+								break;
+							}
+						} else if ((y = str.regex(/^(.+)s$/i))) {
 							if (Town.get(['data', y])) {
 								item = y;
 								break;
@@ -9660,7 +9702,7 @@ Generals.update = function(event, events) {
 					}
 				}
 				if (num && item) {
-					Resources.set(['data', '_' + item, 'generals'], num * cap);
+					Resources.set(['data','_'+item,'generals'], Math.ceil(num * cap));
 //					log(LOG_WARN, 'Save ' + (num * cap) + ' x ' + item + ' for General ' + i);
 				}
 			}
@@ -9727,6 +9769,9 @@ Generals.update = function(event, events) {
 			if ((o = p['equip'])) {
 				for (j in o) {
 					if (Town.get(['data',j,'own'], 0, 'number') > 0) {
+						if (s !== '') { s += '; '; }
+						s += j + ': ' + o[j];
+					} else if (Generals.get(['data',j,'own'])) {
 						if (s !== '') { s += '; '; }
 						s += j + ': ' + o[j];
 					}
@@ -9946,7 +9991,8 @@ Generals.update = function(event, events) {
 			war_att = Town.getAttDef(data, listpush, 'att', 6);
 			war_def = Town.getAttDef(data, listpush, 'def', 6);
 
-			j = sum(skillcombo.regex(/([-+]?\d*\.?\d+)% Crit/gi));
+			j = sum(skillcombo.regex(/([-+]?\d*\.?\d+)% Crit/gi))
+			  + sum(skillcombo.regex(/\bcritical\b[^;,]* (\d*\.?\d+)%/gi));
 			if (j) { stats['crits'] = j; }
 
 			// invade calcs
@@ -10084,7 +10130,8 @@ Generals.update = function(event, events) {
 			j = skillcombo.regex(/Bank Fee/gi) ? 100 : 0;
 			if (j) { stats['bank'] = j; }
 
-			j = nmax(0, skillcombo.regex(/\bBonus \$?(\d+) Gold\b/gi));
+			j = nmax(0, skillcombo.regex(/\bBonus \$?(\d+) Gold\b/gi),
+			  skillcombo.regex(/\badditional \$?(\d+) gold\b/gi));
 			if (j) { stats['cash'] = j; }
 
 			j = nmax(0, skillcombo.regex(/\bSoldier Cost by -?(\d*\.?\d+)%/gi),
@@ -10102,24 +10149,31 @@ Generals.update = function(event, events) {
 			  skillcombo.regex(/\bQuests? (\d*\.?\d+)% Faster\b/gi));
 			if (j) { stats['influence'] = j; }
 
-			j = nmax(0, skillcombo.regex(/Chance ([-+]?\d*\.?\d+)% Drops|\bitems from quests by (\d*\.?\d+)%/gi));
+			j = nmax(0, skillcombo.regex(/\bChance ([-+]?\d*\.?\d+)% Drops/gi),
+			  skillcombo.regex(/\bitems from quests by (\d*\.?\d+)%/gi));
 			if (j) { stats['item'] = j; }
 
-			j = nmax(0, skillcombo.regex(/\bDecreases? Damage Taken by (\d+)\b/gi));
+			j = nmax(0, skillcombo.regex(/\bDecreases? Damage Taken by (\d+)\b/gi),
+			  skillcombo.regex(/\bdamage received is reduced by (\d+)\b/gi));
 			if (j) { stats['mitigation'] = j; }
 
 			// Guild skills
 
 			j = nmax(0,
-			  skillcombo.regex(/\bWhen attacked in guild battle[^;]*\b(\d+) damage done to you is deflected back on the attacker\b/i),
-			  skillcombo.regex(/\b(\d+) damage done to you is deflected back on the attacker[^;]*\bwhen attacked in guild battle\b/i));
+			  skillcombo.regex(/\bWhen attacked in guild battle[^;]*\b(\d+) damage done to you is deflected back on the attacker\b/gi),
+			  skillcombo.regex(/\b(\d+) damage done to you is deflected back on the attacker[^;]*\bwhen attacked in guild battle\b/gi));
 			if (j) { stats['guild_deflect_passive'] = j; }
 
-			if (skillcombo.match(/\bDeals Extra Damage In Battles\b/i)) {
-				j = 5;
-			} else {
-				j = nmax(0, skillcombo.regex(/\bDeals additional (\d+) Damage In Battles\b/));
+			if (skillcombo.match(/\bDeals? Extra Damage In Battles?\b/i)) {
+				if (i === 'Deianira') {
+					j = (p['level'] || 1) * 5;
+				} else {
+					j = 5;
+				}
 			}
+			j += sum(skillcombo.regex(/\bDeals? additional (\d+) Damage In Battles?\b/gi))
+			  + sum(skillcombo.regex(/\bDeals? (\d+) Extra Damage In Battles?\b/gi))
+			  + sum(skillcombo.regex(/\b(\d+) Damage in Battles?\b/gi));
 			if (j) { stats['guild_damage'] = j; }
 
 			// Sanna
@@ -10165,8 +10219,12 @@ Generals.update = function(event, events) {
 			if (j) { stats['guild_warrior_whirlwind'] = j; }
 
 			// Meekah
-			j = nmax(0, skillcombo.regex(/\bIncrease Confidence Damage by ([-+]?\d*\.?\d+)\b/gi));
+			j = nmax(0, skillcombo.regex(/\bIncreases? Confidence Damage by ([-+]?\d*\.?\d+)\b/gi));
 			if (j) { stats['guild_warrior_confidence'] = j; }
+
+			// Tefaera
+			j = nmax(0, skillcombo.regex(/\bIncreases? health restored with Revive\/Resurrection by (\d+)\b/gi));
+			if (j) { stats['guild_cleric_resurrect'] = j; }
 
 			this.set(['data',i,'stats'], stats);
 
@@ -21623,7 +21681,7 @@ Guild.work = function(state) {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(a,el){
 
-						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
+						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level *: (\d+) Class *: ([^ ]+) Health *: (\d+)\/(\d+) Status *: ([^ ]+) \w+ Points *: (\d+)/i);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						if (!target
 								|| (Guild.option.defeat && Guild.data && Guild.data[target[0]])
@@ -21976,7 +22034,7 @@ Festival.work = function(state) {
 					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
 					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(a,el){
 
-						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level: (\d+) Class: ([^ ]+) Health: (\d+)\/(\d+) Status: ([^ ]+) \w+ Activity Points: (\d+)/i);
+						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level *: (\d+) Class *: ([^ ]+) Health *: (\d+)\/(\d+) Status *: ([^ ]+) \w+ Points *: (\d+)/);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						if (!target
 								|| (Festival.option.defeat && Festival.data

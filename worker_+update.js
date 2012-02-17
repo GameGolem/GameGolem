@@ -46,13 +46,13 @@ Update.init = function() {
 	this.set(['runtime','revision'], this.runtime.revision || revision);
 	if (browser === 'chrome') {
 		Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
-		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx'; // Beta
-		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.release.crx'; // Release
+		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.release.crx'; // Release
+		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx'; // Beta
 	} else {
 		// No easy way to check if we're Greasemonkey now as it behaves just like a bookmarklet
 		Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/_version.js';
-		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js'; // Beta
-		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.release.user.js'; // Release
+		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.release.user.js'; // Release
+		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js'; // Beta
 	}
 	// Add an update button for everyone
 	Config.addButton({
@@ -124,13 +124,15 @@ Update.init = function() {
 };
 
 Update.checkVersion = function(force) {
-	Update.set('runtime.lastcheck', Date.now() - 21600000 + 60000);// Don't check again for 1 minute - will get reset if we get a reply
+	var now = Date.now();
+	// Don't check again for 1 minute - will get reset if we get a reply
+	Update.set('runtime.lastcheck', now - (6*60+1)*60*1000);
 	Update.set('runtime.force', force);
-	window.setTimeout(function(){
+	window.setTimeout(function() {
 		var s = document.createElement('script');
 		s.setAttribute('type', 'text/javascript');
 		s.className = 'golem-script-version';
-		s.src = Update.temp.check + '?random=' + Date.now();
+		s.src = Update.temp.check + '?random=' + now;
 		document.getElementsByTagName('head')[0].appendChild(s);
 	}, 100);
 };
@@ -143,20 +145,38 @@ Update.checkVersion = function(force) {
 3b. Display a notification if there's a new version
 4. Set a reminder if there isn't
 */
-Update.update = function(event) {
-	if (event.type === 'reminder') {
+Update.update = function(event, events) {
+	var now = Date.now(), age, time;
+
+	if (events.findEvent(null, 'reminder')) {
 		this.checkVersion(false);
 	}
-	if (event.type === 'init' || event.type === 'reminder') {
-		var now = Date.now(), age = (now - this.runtime.installed) / 1000, time = (now - this.runtime.lastcheck) / 1000;
-		if (age <= 21600) {time += 3600;}		// Every hour for 6 hours
-		else if (age <= 64800) {time += 7200;}	// Every 2 hours for another 12 hours (18 total)
-		else if (age <= 129600) {time += 10800;}// Every 3 hours for another 18 hours (36 total)
-		else if (age <= 216000) {time += 14400;}// Every 4 hours for another 24 hours (60 total)
-		else {time += 21600;}					// Every 6 hours normally
-		this._remind(Math.max(0, time), 'check');
+
+	if (events.findEvent(null, 'init') || events.findEvent(null, 'reminder')) {
+		age = now - this.runtime.installed;
+		time = now - this.runtime.lastcheck;
+		if (age <= 6*60*60*1000) {
+			// Every hour for 6 hours
+			time += 60*60*1000;
+		} else if (age <= (1+2)*6*60*60*1000) {
+			// Every 2 hours for another 12 hours (18 total)
+			time += 2*60*60;
+		} else if (age <= (1+2+3)*6*60*60*1000) {
+			// Every 3 hours for another 18 hours (36 total)
+			time += 3*60*60*1000;
+		} else if (age <= (1+2+3+4)*6*60*60*1000) {
+			// Every 4 hours for another 24 hours (60 total)
+			time += 4*60*60*1000;
+		} else {
+			// Every 6 hours normally
+			time += 6*60*60*1000;
+		}
+		this._remindMs(Math.max(1000, time), 'check');
 	}
-	if (this.runtime.version > this.temp.version || (!isRelease && this.runtime.revision > this.temp.revision)) {
+
+	if (this.runtime.version > this.temp.version
+	  || (!isRelease && this.runtime.revision > this.temp.revision)
+	) {
 		log(LOG_INFO, 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + this.runtime.current);
 		if (this.runtime.version > this.temp.version) {
 			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_1 + '?' + Date.now() + '">New Version Available</a></div>');
@@ -167,5 +187,7 @@ Update.update = function(event) {
 		this.set(['temp','version'], this.runtime.version);
 		this.set(['temp','revision'], this.runtime.revision);
 	}
+
+	return true;
 };
 
