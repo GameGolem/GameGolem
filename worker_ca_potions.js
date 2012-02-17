@@ -28,8 +28,8 @@ Potions.data = {
 };
 
 Potions.option = {
-	Energy:35,
-	Stamina:35
+	Energy:39,
+	Stamina:infinite
 };
 
 Potions.runtime = {
@@ -104,9 +104,9 @@ Potions.page = function(page, change) {
 			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(\w+) Potion x (\d+)/i);
 			if (info && info[0]) {
 				potions[info[0]] = info[1];
-				// Default only newly discovered potion types to 35
+				// Default only newly discovered potion types to 39
 				if (isUndefined(Potions.option[info[0]]) || isNull(Potions.option[info[0]])) {
-					Potions.set(['option',info[0]], Potions.option[info[0]] || 35);
+					Potions.set(['option',info[0]], Potions.option[info[0]] || 39);
 				}
 			}
 		});

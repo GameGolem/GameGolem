@@ -150,7 +150,7 @@ Generals.page = function(page, change) {
 		}
 
 		// parse general equipment, including those not yet owned
-		name = $('.general_name_div3').first().text().trim(true).replace(/\*+$/, '');
+		name = $('#general_name_div_int').first().text().trim(true).regex(/^(.*\w)\** LEVEL \d+$/i);
 		if (this.get(['data',name])) {
 			tmp = $('div[style*="model_items."] img[title]');
 			for (i=0; i<tmp.length; i++) {
@@ -166,7 +166,7 @@ Generals.page = function(page, change) {
 					}
 				}
 			}
-			i = ($('div.general_pic_div3 a img[title]').first().attr('title') || '').trim(true);
+			i = $('#main_bn div[style*="general_plate."] a[href*="generals.php"] img[title]').first().attr('title').trim(true);
 			if (i) {
 				this.set(['data',name,'skills'], i);
 				if (isNumber(j = i.regex(/\bmax\.? (\d+)\b/im))) {

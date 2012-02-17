@@ -38,6 +38,7 @@ Main.page = function() {
 	var i, j, k, newpath, locs = [
 		'#app_content_'+APPID+' img:first',
 		'#iframe_canvas body img:first',
+		'#globalcss img:first',
 		'body img:first'
 	];
 

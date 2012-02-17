@@ -109,7 +109,9 @@ Global._overload(null, 'work', function(state) {
 			if (!$('#reload_link').length) {
 				$('body').append('<a id="reload_link" href="http://www.cloutman.com/reload.php">reload</a>');
 			}
-			Page.click('#reload_link');
+			// temporary fix for ISP woes
+			//Page.click('#reload_link');
+			window.location.replace('http://web3.castleagegame.com/castle_ws/index.php');
 		}
 		return QUEUE_CONTINUE;
 	}

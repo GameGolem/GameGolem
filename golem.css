@@ -16,7 +16,7 @@
 	z-index: 1;
 }
 
-#golem > div,#golem dl,#golem dt,#golem dd,#golem ul,#golem ol,#golem li,#golem h1,#golem h2,#golem h3,#golem h4,#golem h5,#golem h6,#golem pre,#golem code,#golem form,#golem fieldset,#golem legend,#golem input,#golem textarea,#golem p,#golem blockquote,#golem th,#golem td {
+#golem > div,#golem dl,#golem dt,#golem dd,#golem ul,#golem ol,#golem li,#golem li a,#golem h1,#golem h1 a,#golem h2,#golem h2 a,#golem h3,#golem h3 a,#golem h4,#golem h4 a,#golem h5,#golem h5 a,#golem h6,#golem h6 a,#golem pre,#golem code,#golem form,#golem fieldset,#golem legend,#golem input,#golem textarea,#golem p,#golem blockquote,#golem th,#golem th a,#golem td,#golem td a {
 	margin: 0;
 	padding: 0;
 	font-size: 11px;
@@ -32,7 +32,7 @@
 	border: 0;
 }
 
-#golem address,#golem caption,#golem cite,#golem code,#golem dfn,#golem em,#golem strong,#golem th,#golem var {
+#golem address,#golem caption,#golem cite,#golem code,#golem dfn,#golem em,#golem strong,#golem th,#golem th a,#golem var {
 	font-style: normal;
 	font-weight: normal;
 }
@@ -41,12 +41,12 @@
 	list-style: none;
 }
 
-#golem caption,#golem th {
+#golem caption,#golem th,#golem th a {
 	font-weight: bold;
 	text-align: left;
 }
 
-#golem h1,#golem h2,#golem h3,#golem h4,#golem h5,#golem h6 {
+#golem h1,#golem h1 a,#golem h2,#golem h2 a,#golem h3,#golem h3 a,#golem h4,#golem h4 a,#golem h5,#golem h5 a,#golem h6,#golem h6 a {
 	font-size: 13px;
 	font-weight: normal;
 }
@@ -304,7 +304,7 @@
 	border-right: 1px solid #cccccc;
 }
 
-#golem table.golem-graph tbody td div div {
+#golem table.golem-graph tbody td div.bars div {
 	margin: 0;
 	padding: 0;
 	width: 5px;

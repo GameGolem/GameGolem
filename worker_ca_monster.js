@@ -1181,6 +1181,23 @@ Monster.types = {
 		defend_button:'input[name="Attack Dragon"][src*="heal"]',
 		defend:[10,20,40,100]
 	},
+	vermilion: {
+		name:'Vermilion the Tyrant',
+		list:'monster_vermilion_list.jpg',
+		image:'monster_vermilion_large.jpg',
+		dead:'monster_vermilion_dead.jpg',
+		//title:'monster_vermilion_header.jpg',
+		medal: 8500e3,
+		timer: 7*24*60*60,
+		mpool:3,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
 
 	// Castle Age/Heart of Darkness crossover monsters (mpool 100)
 	thanatos: {
