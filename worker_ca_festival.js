@@ -169,7 +169,7 @@ Festival.page = function(page, change) {
 			this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
 			this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
 			i = $('#'+APPID_+'monsterTicker').text().parseTimer();
-			if ($('input[src*="arena3_collectbutton.gif"]').length) {
+			if ($('input[src*="guild_battle_collectbtn_small.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
 			} else if (i === 9999) {
 				this.set(['runtime','status'], 'wait');
@@ -257,11 +257,11 @@ Festival.work = function(state) {
 				}
 			} else {
 				if (this.runtime.status === 'collect') {
-					if (!$('input[src*="arena3_collectbutton.gif"]').length) {//fix
+					if (!$('input[src*="guild_battle_collectbtn_small.gif"]').length) {//fix
 						Page.to('festival_guild');
 					} else {
 						log('Collecting Reward');
-						Page.click('input[src*="arena3_collectbutton.gif"]');//fix
+						Page.click('input[src*="guild_battle_collectbtn_small.gif"]');//fix
 					}
 				} else if (this.runtime.status === 'start') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {

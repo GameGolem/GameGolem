@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1171
+ * GameGolem v31.6.1172
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1171
+ * GameGolem v31.6.1172
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1171;
+var revision = 1172;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1170;
+var trunk_revision = 1171;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -21577,7 +21577,7 @@ Guild.page = function(page, change) {
 			this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
 			this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
 			i = $('#'+APPID_+'monsterTicker').text().parseTimer();
-			if ($('input[src*="collect_reward_button2.jpg"]').length) {
+			if ($('input[src*="guild_battle_collectbtn_small.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
 			} else if (i === 9999) {
 				this._forget('finish');
@@ -21665,11 +21665,11 @@ Guild.work = function(state) {
 				}
 			} else {
 				if (this.runtime.status === 'collect') {
-					if (!$('input[src*="collect_reward_button2.jpg"]').length) {
+					if (!$('input[src*="guild_battle_collectbtn_small.gif"]').length) {
 						Page.to('battle_guild');
 					} else {
 						log('Collecting Reward');
-						Page.click('input[src*="collect_reward_button2.jpg"]');
+						Page.click('input[src*="guild_battle_collectbtn_small.gif"]');
 					}
 				} else if (this.runtime.status === 'fight' || this.runtime.status === 'start') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
@@ -21926,7 +21926,7 @@ Festival.page = function(page, change) {
 			this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
 			this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
 			i = $('#'+APPID_+'monsterTicker').text().parseTimer();
-			if ($('input[src*="arena3_collectbutton.gif"]').length) {
+			if ($('input[src*="guild_battle_collectbtn_small.gif"]').length) {
 				this.set(['runtime','status'], 'collect');
 			} else if (i === 9999) {
 				this.set(['runtime','status'], 'wait');
@@ -22014,11 +22014,11 @@ Festival.work = function(state) {
 				}
 			} else {
 				if (this.runtime.status === 'collect') {
-					if (!$('input[src*="arena3_collectbutton.gif"]').length) {//fix
+					if (!$('input[src*="guild_battle_collectbtn_small.gif"]').length) {//fix
 						Page.to('festival_guild');
 					} else {
 						log('Collecting Reward');
-						Page.click('input[src*="arena3_collectbutton.gif"]');//fix
+						Page.click('input[src*="guild_battle_collectbtn_small.gif"]');//fix
 					}
 				} else if (this.runtime.status === 'start') {
 					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
