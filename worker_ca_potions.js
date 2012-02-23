@@ -29,7 +29,7 @@ Potions.data = {
 
 Potions.option = {
 	Energy:39,
-	Stamina:infinite
+	Stamina:'infinite'
 };
 
 Potions.runtime = {
@@ -61,7 +61,7 @@ Potions.display = function(){
 					37:37,
 					38:38,
 					39:39,
-					infinite:'&infin;'
+					infinite:'infinite'
 				},
 				help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 			});
