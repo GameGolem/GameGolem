@@ -1,1 +1,1 @@
-try{var d=document,m=d.createElement('meta');m.name='golem-version';m.content='31.6.1172';d.getElementsByTagName('head')[0].appendChild(m);}catch(e){}
+try{var d=document,m=d.createElement('meta');m.name='golem-version';m.content='31.6.1173';d.getElementsByTagName('head')[0].appendChild(m);}catch(e){}
