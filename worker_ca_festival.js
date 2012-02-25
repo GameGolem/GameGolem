@@ -45,7 +45,6 @@ Festival.runtime = {
 	rank:0,
 	points:0,
 	burn:false,
-	last:null, // name of last target, .data[last] then we've lost so skip them
 	stunned:false
 };
 
@@ -56,7 +55,8 @@ Festival.temp = {
 		start:'Entering Battle',
 		fight:'In Battle',
 		collect:'Collecting Reward'
-	}
+	},
+	last:null // name of last target, .data[last] then we've lost so skip them
 };
 
 Festival.display = [
@@ -210,13 +210,18 @@ Festival.page = function(page, change) {
 				this._notify('data');// Force dashboard update
 			}
 		}
-		if ($('img[src*="battle_defeat"]').length && this.runtime.last) {//fix
-			this.set(['data',this.runtime.last], true);
+		if ($('img[src*="battle_defeat"]').length) {//fix
+			if (this.temp.last) {
+				this.set(['data',this.temp.last], true);
+			}
+			this.set(['temp','last'], null);
+		} else if ($('img[src*="battle_victory"]').length) {
+			this.set(['temp','last'], null);
 		}
 		this.set(['runtime','stunned'], !!$('#'+APPID_+'guild_battle_banner_section:contains("Status: Stunned")').length);//fix
 		break;
 	}
-	return false;
+	return change;
 };
 
 Festival.update = function(event) {
@@ -386,23 +391,33 @@ Festival.work = function(state) {
 						  && (!best
 						  || cleric
 						  || (this.option.active && target[6] && !besttarget[6])
-						  || (this.option.live && target[3] >= 200 && besttarget[3] < 200))
-						  || test
+						  || (this.option.live && target[3] >= 200 && besttarget[3] < 200)
+						  || test)
 						) {
+							log(LOG_INFO, '# ' + (best ? '' : 'initial ')
+							  + 'best.' + i + ':'
+							  + ' ' + (target[6] ? 'active' : 'inactive')
+							  + ' ' + target[1] + '/' + target[2]
+							  + ' ' + target[3] + '/' + target[4]
+							  + ' ' + target[0]
+							);
 							best = tmp.el(i);
 							besttarget = target;
 						}
 					}
 					if (!best && tmp.length) {
 						// cheap and dirty gate change hack
-						i = tmp.closest('div[id]').attr('id').regex(/enemy_guild_member_list_(\d+)/i);
+						j = tmp.length;
+						i = tmp.closest('div[id^="enemy_guild_member_list_"]').attr('id').regex(/enemy_guild_member_list_(\d+)/i);
 						tmp = $('#'+APPID_+'enemy_arena_tab_'+(i+1)+'.imgButton');
 						if (tmp.length && Page.click(tmp[0])) {
 							log(LOG_INFO, 'No targets, trying gate ' + (i+1));
 							return QUEUE_CONTINUE;
+						} else {
+							log(LOG_INFO, 'No targets, no next gate ('+j+')');
+							return QUEUE_FINISH;
 						}
-					}
-					if (best) {
+					} else if (best) {
 						log('Attacking'
 						  + ' ' + (besttarget[6] ? 'active' : 'inactive')
 						  + ' ' + besttarget[1] + '/' + besttarget[2]
@@ -413,13 +428,15 @@ Festival.work = function(state) {
 						if (!tmp.length) {
 							log(LOG_INFO, "Can't find button, so backing out.");
 							Page.to('festival_guild');
-							this.set(['runtime','last'], null);
+						} else if (!Page.click(tmp[0])) {
+							log(LOG_INFO, "Can't click button, so backing out.");
+							Page.to('battle_guild');
+							this.set(['temp','last'], null);
 						} else {
-							this.set(['runtime','last'], besttarget[0]);
-							Page.click(tmp[0]);
+							this.set(['temp','last'], besttarget[0]);
 						}
 					} else {
-						this.set(['runtime','last'], null);
+						log(LOG_INFO, 'No targets, no next gate (0)');
 					}
 				}
 			}

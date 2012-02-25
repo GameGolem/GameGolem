@@ -45,7 +45,6 @@ Guild.runtime = {
 	rank:0,
 	points:0,
 	burn:false,
-	last:null, // name of last target, .data[last] then we've lost so skip them
 	stunned:false
 };
 
@@ -56,7 +55,8 @@ Guild.temp = {
 		start:'Entering Battle',
 		fight:'In Battle',
 		collect:'Collecting Reward'
-	}
+	},
+	last:null // name of last target, .data[last] then we've lost so skip them
 };
 
 Guild.display = [
@@ -168,56 +168,62 @@ Guild.init = function() {
 Guild.page = function(page, change) {
 	var now = Date.now(), tmp, i;
 	switch (page) {
-		case 'battle_guild':
-			if ($('input[src*="dragon_list_btn_2."]').length) {//fix
-				this.set(['runtime','status'], 'collect');
-				this._forget('finish');
-				this.set(['runtime','start'], 1800000 + now);
-				this._remind(1800, 'start');
-			} else if ($('input[src*="dragon_list_btn_3."]').length) {
-				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
-					this.set(['runtime','status'], 'start');
-				}
-			} else {
-				this._forget('finish');
-				this.set(['runtime','start'], 1800000 + now);
-				this._remind(1800, 'start');
-				this.set(['runtime','status'], 'wait');
+	case 'battle_guild':
+		if ($('input[src*="dragon_list_btn_2."]').length) {//fix
+			this.set(['runtime','status'], 'collect');
+			this._forget('finish');
+			this.set(['runtime','start'], 1800000 + now);
+			this._remind(1800, 'start');
+		} else if ($('input[src*="dragon_list_btn_3."]').length) {
+			if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
+				this.set(['runtime','status'], 'start');
 			}
-			break;
-		case 'battle_guild_battle':
-			this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
-			this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
-			i = $('#'+APPID_+'monsterTicker').text().parseTimer();
-			tmp = $('input[src*="guild_battle_collectbtn_small."]'
-			  + ',input[src*="arena3_collectbutton."]');
-			if (tmp.length) {
-				this.set(['runtime','status'], 'collect');
-			} else if (i === 9999) {
-				this._forget('finish');
-				this.set(['runtime','start'], 1800000 + now);
-				this._remind(1800, 'start');
-				this.set(['runtime','status'], 'wait');
-			} else {
-				this.set(['runtime','status'], 'fight');
-				this.set(['runtime','finish'], (i * 1000) + now);
-				this._remind(i, 'finish');
+		} else {
+			this._forget('finish');
+			this.set(['runtime','start'], 1800000 + now);
+			this._remind(1800, 'start');
+			this.set(['runtime','status'], 'wait');
+		}
+		break;
+	case 'battle_guild_battle':
+		this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
+		this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
+		i = $('#'+APPID_+'monsterTicker').text().parseTimer();
+		tmp = $('input[src*="guild_battle_collectbtn_small."]'
+		  + ',input[src*="arena3_collectbutton."]');
+		if (tmp.length) {
+			this.set(['runtime','status'], 'collect');
+		} else if (i === 9999) {
+			this._forget('finish');
+			this.set(['runtime','start'], 1800000 + now);
+			this._remind(1800, 'start');
+			this.set(['runtime','status'], 'wait');
+		} else {
+			this.set(['runtime','status'], 'fight');
+			this.set(['runtime','finish'], (i * 1000) + now);
+			this._remind(i, 'finish');
+		}
+		tmp = $('#'+APPID_+'results_main_wrapper');
+		if (tmp.length) {
+			i = tmp.text().regex(/\+(\d+) \w+ Activity Points/i);
+			if (isNumber(i)) {
+				History.add('guild', i);
+				History.add('guild_count', 1);
+				this._notify('data');// Force dashboard update
 			}
-			tmp = $('#'+APPID_+'results_main_wrapper');
-			if (tmp.length) {
-				i = tmp.text().regex(/\+(\d+) \w+ Activity Points/i);
-				if (isNumber(i)) {
-					History.add('guild', i);
-					History.add('guild_count', 1);
-					this._notify('data');// Force dashboard update
-				}
+		}
+		if ($('img[src*="battle_defeat"]').length) {//fix
+			if (this.temp.last) {
+				this.set(['data',this.temp.last], true);
 			}
-			if ($('img[src*="battle_defeat"]').length && this.runtime.last) {//fix
-				this.set(['data',this.runtime.last], true);
-			}
-			this.set(['runtime','stunned'], !!$('#'+APPID_+'guild_battle_banner_section:contains("Status: Stunned")').length);//fix
-			break;
+			this.set(['temp','last'], null);
+		} else if ($('img[src*="battle_victory"]').length) {
+			this.set(['temp','last'], null);
+		}
+		this.set(['runtime','stunned'], !!$('#'+APPID_+'guild_battle_banner_section:contains("Status: Stunned")').length);//fix
+		break;
 	}
+	return change;
 };
 
 Guild.update = function(event) {
@@ -387,23 +393,33 @@ Guild.work = function(state) {
 						  && (!best
 						  || cleric
 						  || (this.option.active && target[6] && !besttarget[6])
-						  || (this.option.live && target[3] >= 200 && besttarget[3] < 200))
-						  || test
+						  || (this.option.live && target[3] >= 200 && besttarget[3] < 200)
+						  || test)
 						) {
+							log(LOG_INFO, '# ' + (best ? '' : 'initial ')
+							  + 'best.' + i + ':'
+							  + ' ' + (target[6] ? 'active' : 'inactive')
+							  + ' ' + target[1] + '/' + target[2]
+							  + ' ' + target[3] + '/' + target[4]
+							  + ' ' + target[0]
+							);
 							best = tmp.el(i);
 							besttarget = target;
 						}
 					}
 					if (!best && tmp.length) {
 						// cheap and dirty gate change hack
-						i = tmp.closest('div[id]').attr('id').regex(/enemy_guild_member_list_(\d+)/i);
+						j = tmp.length;
+						i = tmp.closest('div[id^="enemy_guild_member_list_"]').attr('id').regex(/enemy_guild_member_list_(\d+)/i);
 						tmp = $('#'+APPID_+'enemy_guild_tab_'+(i+1)+'.imgButton');
 						if (tmp.length && Page.click(tmp[0])) {
 							log(LOG_INFO, 'No targets, trying gate ' + (i+1));
 							return QUEUE_CONTINUE;
+						} else {
+							log(LOG_INFO, 'No targets, no next gate ('+j+')');
+							return QUEUE_FINISH;
 						}
-					}
-					if (best) {
+					} else if (best) {
 						log('Attacking'
 						  + ' ' + (besttarget[6] ? 'active' : 'inactive')
 						  + ' ' + besttarget[1] + '/' + besttarget[2]
@@ -414,13 +430,15 @@ Guild.work = function(state) {
 						if (!tmp.length) {
 							log(LOG_INFO, "Can't find button, so backing out.");
 							Page.to('battle_guild');
-							this.set(['runtime','last'], null);
+						} else if (!Page.click(tmp[0])) {
+							log(LOG_INFO, "Can't click button, so backing out.");
+							Page.to('battle_guild');
+							this.set(['temp','last'], null);
 						} else {
-							this.set(['runtime','last'], besttarget[0]);
-							Page.click(tmp[0]);
+							this.set(['temp','last'], besttarget[0]);
 						}
 					} else {
-						this.set(['runtime','last'], null);
+						log(LOG_INFO, 'No targets, no next gate (0)');
 					}
 				}
 			}
