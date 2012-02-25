@@ -61,7 +61,7 @@ Potions.display = function(){
 					37:37,
 					38:38,
 					39:39,
-					infinite:'infinite'
+					infinite:'&infin;'
 				},
 				help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 			});
@@ -85,6 +85,7 @@ Potions.init = function() {
 			Potions.set(['runtime','amount'], 1);
 		}
 	});
+
 	this._watch(Player, 'data.energy');
 	this._watch(Player, 'data.maxenergy');
 	this._watch(Player, 'data.stamina');
@@ -94,29 +95,32 @@ Potions.init = function() {
 
 Potions.page = function(page, change) {
 	// No need to parse out Income potions as about to visit the Keep anyway...
-	var potions = $('.result_body:contains("You have acquired the Energy Potion!")');
-	if (potions.length) {
-		Potions.set(['data','Energy'], Potions.data['Energy'] + potions.length);
+	var i, tmp, info, potions;
+	tmp = $('.result_body:contains("You have acquired the Energy Potion!")');
+	if (tmp.length) {
+		this.set(['data','Energy'], (this.data['Energy'] || 0) + tmp.length);
 	}
 	if (page === 'keep_stats' && $('.keep_attribute_section').length) {// Only our own keep
 		potions = {};
-		$('.statsTTitle:contains("CONSUMABLES") + div > div').each(function(i,el){
-			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(\w+) Potion x (\d+)/i);
+		tmp = $('.statsTTitle:contains("CONSUMABLES") + div > div');
+		for (i = 0; i < tmp.length; i++) {
+			info = tmp.eq(i).text().replace(/\s+/g, ' ').trim().regex(/(\w+) Potion x (\d+)/i);
 			if (info && info[0]) {
 				potions[info[0]] = info[1];
 				// Default only newly discovered potion types to 39
-				if (isUndefined(Potions.option[info[0]]) || isNull(Potions.option[info[0]])) {
-					Potions.set(['option',info[0]], Potions.option[info[0]] || 39);
+				if (isUndefined(this.option[info[0]]) || isNull(this.option[info[0]])) {
+					this.set(['option',info[0]], this.option[info[0]] || 39);
 				}
 			}
-		});
+		}
 		this._replace(['data'], potions);
 	}
 	return false;
 };
 
-Potions.update = function(event) {
+Potions.update = function(event, events) {
 	var i, l, txt = [], levelup = LevelUp.get('runtime.running');
+
 	for (i in this.data) {
 		if (this.data[i]) {
 			l = i.toLowerCase();
@@ -135,16 +139,31 @@ Potions.update = function(event) {
 	} else {
 	    Dashboard.status(this);
 	}
+
 	this.set(['option','_sleep'], !this.runtime.type || !this.runtime.amount);
+
+	return true;
 };
 
 Potions.work = function(state) {
-	if (state && this.runtime.type && this.runtime.amount && Page.to('keep_stats')) {
-		log(LOG_WARN, 'Wanting to drink a ' + this.runtime.type + ' potion');
-		Page.click('.statUnit:contains("' + this.runtime.type + '") form .imgButton input');
+	var tmp;
+
+	if (!this.runtime.type || (this.runtime.amount || 0) < 1) {
 		this.set(['runtime','type'], null);
 		this.set(['runtime','amount'], 0);
+	} else if (state && Page.to('keep_stats')) {
+		log(LOG_LOG, 'Drinking ' + this.runtime.type + ' potion.');
+		tmp = $('.statUnit:contains("' + this.runtime.type + '") form .imgButton input[type="image"]');
+		if (tmp.length === 1) {
+			this.add(['runtime','amount'], -1);
+			Page.click(tmp);
+			if ((this.runtime.amount || 0) < 1) {
+				this.set(['runtime','type'], null);
+				this.set(['runtime','amount'], 0);
+			}
+		}
 	}
+
 	return QUEUE_CONTINUE;
 };
 

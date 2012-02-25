@@ -301,7 +301,7 @@ Debug.setup = function(old_revision, fresh) {
 	}
 	delete Workers['__fake__']; // Remove the fake worker
 	// Replace the global logging function for better log reporting
-	log = function(lvl, txt /*, obj, array etc*/){
+	log = function(lvl, txt /*, obj, array etc*/) {
 		var i, j, worker, name, line = '', level, tmp, stack,
 			args = Array.prototype.slice.call(arguments),
 			prefix = [], suffix = [], display = '-';
@@ -330,12 +330,22 @@ Debug.setup = function(old_revision, fresh) {
 			}
 			if (Debug.get(['option','logs',level,'worker'], false)) {
 				tmp = [];
-				for (i=0; i<Debug.stack.length; i++) {
-					if (!tmp.length || Debug.stack[i][1] !== tmp[0]) {
-						tmp.unshift(Debug.stack[i][1]);
+				if (Debug.stack.length) {
+					for (i = 0; i < Debug.stack.length; i++) {
+						if (!tmp.length || Debug.stack[i][1] !== tmp[0]) {
+							tmp.unshift(Debug.stack[i][1]);
+						}
 					}
+					prefix.push(tmp.join('->'));
+				} else {
+					for (i = 0; i < Worker.stack.length; i++) {
+						tmp.unshift(Worker.stack[i]);
+					}
+					if (tmp.length > 1) {
+						tmp.shift();
+					}
+					prefix.push('*' + tmp.join('->'));
 				}
-				prefix.push(tmp.join('->'));
 			}
 /*
 e.stack contents by browser:

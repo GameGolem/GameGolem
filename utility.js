@@ -136,8 +136,9 @@ var LOG_USER2 = 6;
 var LOG_USER3 = 7;
 var LOG_USER4 = 8;
 var LOG_USER5 = 9;
-var log = function(lvl, txt /*, obj, array etc*/){
-	var args = Array.prototype.slice.call(arguments), prefix = [], level,
+var log = function(lvl, txt /*, obj, array etc*/) {
+	var i, prefix = [], level, tmp,
+		args = Array.prototype.slice.call(arguments),
 		date = [true, true, true, true, true, true, true, true, true, true],
 		rev = [true, true, false, false, true, true, true, true, true, true],
 		worker = [true, true, true, true, true, true, true, true, true, true];
@@ -156,7 +157,14 @@ var log = function(lvl, txt /*, obj, array etc*/){
 		prefix.push('[' + (new Date()).format('H:i:s.u') + ']');
 	}
 	if (worker[level]) {
-		prefix.push(Worker.stack.length ? Worker.stack[0] : '');
+		tmp = [];
+		for (i = 0; i < Worker.stack.length; i++) {
+			tmp.unshift(Worker.stack[i]);
+		}
+		if (tmp.length > 1) {
+			tmp.shift();
+		}
+		prefix.push('*' + tmp.join('->'));
 	}
 	args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '');
 	try {

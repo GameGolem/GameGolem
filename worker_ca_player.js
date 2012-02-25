@@ -31,11 +31,14 @@ Player.setup = function() {
 };
 
 Player.init = function() {
+	var i;
+
 	this._trigger('#'+APPID_+'gold_current_value', 'cash');
 	this._trigger('#'+APPID_+'energy_current_value', 'energy');
 	this._trigger('#'+APPID_+'stamina_current_value', 'stamina');
 	this._trigger('#'+APPID_+'health_current_value', 'health');
 	this._trigger('#'+APPID_+'gold_time_value', 'cash_timer');
+
 	Title.alias('energy', 'Player:data.energy');
 	Title.alias('maxenergy', 'Player:data.maxenergy');
 	Title.alias('health', 'Player:data.health');
@@ -48,8 +51,15 @@ Player.init = function() {
 	Title.alias('bsi', 'Player:bsi');
 	Title.alias('lsi', 'Player:lsi');
 	Title.alias('csi', 'Player:csi');
+
 	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
-	this.set('cash_time', script_started + ($('*').html().regex(/gold_increase_ticker\((\d+),/) * 1000));
+	if ((i = $('#gold_time_sec')).length && isString(i = i.val())
+	  && isNumber(i = i.regex(/^(\d+)$/))
+	) {
+		this.set('cash_time', script_started + i * 1000);
+	} else if (isNumber(i = $('*').html().regex(/gold_increase_ticker\((\d+),/))) {
+		this.set('cash_time', script_started + i * 1000);
+	}
 };
 
 Player.page = function(page, change) {

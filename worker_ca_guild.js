@@ -1,6 +1,6 @@
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Workers, Worker, Config, Dashboard, History, Page:true, Queue, Resources, Global,
+	$, Workers, Worker, Config, Dashboard, History, Page, Queue, Resources,
 	Generals, Player,
 	APP, APPID, APPID_, PREFIX, userID, imagepath,
 	isRelease, version, revision, Images, window, browser,
@@ -28,9 +28,12 @@ Guild.option = {
 	collect:true,
 	tokens:'min',
 	safety:60000,
+	order:'health',
 	ignore:'',
 	limit:'',
 	cleric:false,
+	active:true,
+	live:true,
 	suppress:false
 };
 
@@ -103,12 +106,28 @@ Guild.display = [
 		id:'cleric',
 		label:'Attack Clerics First',
 		checkbox:true,
-		help:'This will attack any *active* clerics first, which might help prevent the enemy from healing up again...'
+		help:'This will attack active clerics first before considering others.'
+		  + ' Note: this works in conjunction with Actives First, Live First'
+		  + ' and the ordering preference.'
+	},{
+		id:'active',
+		label:'Attack Actives First',
+		checkbox:true,
+		help:'This will attack active targets first before considering others.'
+		  + ' Note: this works in conjunction with Clerics First, Live First'
+		  + ' and the ordering preference.'
+	},{
+		id:'live',
+		label:'Attack Live First',
+		checkbox:true,
+		help:'This will attack live targets first before considering others.'
+		  + ' Note: this works in conjunction with Clerics First, Actives First'
+		  + ' and the ordering preference.'
 	},{
 		id:'defeat',
 		label:'Avoid Defeat',
 		checkbox:true,
-		help:'This will prevent you attacking a target that you have already lost to'
+		help:"This will prevent you attacking targets against which you've been defeated."
 	},{
 		advanced:true,
 		id:'suppress',
@@ -150,12 +169,12 @@ Guild.page = function(page, change) {
 	var now = Date.now(), tmp, i;
 	switch (page) {
 		case 'battle_guild':
-			if ($('input[src*="dragon_list_btn_2.jpg"]').length) {//fix
+			if ($('input[src*="dragon_list_btn_2."]').length) {//fix
 				this.set(['runtime','status'], 'collect');
 				this._forget('finish');
 				this.set(['runtime','start'], 1800000 + now);
 				this._remind(1800, 'start');
-			} else if ($('input[src*="dragon_list_btn_3.jpg"]').length) {
+			} else if ($('input[src*="dragon_list_btn_3."]').length) {
 				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
 					this.set(['runtime','status'], 'start');
 				}
@@ -170,7 +189,9 @@ Guild.page = function(page, change) {
 			this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
 			this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
 			i = $('#'+APPID_+'monsterTicker').text().parseTimer();
-			if ($('input[src*="guild_battle_collectbtn_small.gif"]').length) {
+			tmp = $('input[src*="guild_battle_collectbtn_small."]'
+			  + ',input[src*="arena3_collectbutton."]');
+			if (tmp.length) {
 				this.set(['runtime','status'], 'collect');
 			} else if (i === 9999) {
 				this._forget('finish');
@@ -241,6 +262,9 @@ Guild.update = function(event) {
 };
 
 Guild.work = function(state) {
+	var i, j, tmp, txt, skip, test, cleric, target, targetla, ignore,
+		best, besttarget, besttargetla, level, tokens;
+
 	if (state) {
 		if (!Page.get('battle_guild')
 		  || this.get('runtime.status', 'wait') === 'wait'
@@ -248,95 +272,152 @@ Guild.work = function(state) {
 			if (!Page.to('battle_guild')) {
 				return QUEUE_FINISH;
 			}
-		} else if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
+		} else if (this.runtime.status !== 'fight'
+		  || Generals.to(this.option.general ? 'duel' : this.option.general_choice)
+		) {
 			if (Page.temp.page !== 'battle_guild_battle') {
 				if (Page.temp.page !== 'battle_guild') {
 					Page.to('battle_guild');
-				} else if (!Page.click('input[src*="dragon_list_btn"]')) {
-					this.set('runtime.status', 'wait');
-					return QUEUE_FINISH;
+				} else {
+					tmp = $('input[src*="dragon_list_btn_3."]'
+					  + ',input[src*="dragon_list_btn_2."]');
+					if (tmp.length && Page.click(tmp[0])) {
+						this.set('runtime.status', 'wait');
+						return QUEUE_FINISH;
+					} else {
+						log(LOG_INFO, "Can't find enter button, backing out.");
+						Page.to('battle_guild');
+					}
 				}
 			} else {
 				if (this.runtime.status === 'collect') {
-					if (!$('input[src*="guild_battle_collectbtn_small.gif"]').length) {
+					tmp = $('input[src*="guild_battle_collectbtn_small."]'
+					  + ',input[src*="arena3_collectbutton."]');
+					if (!tmp.length) {
 						Page.to('battle_guild');
 					} else {
 						log('Collecting Reward');
-						Page.click('input[src*="guild_battle_collectbtn_small.gif"]');
+						Page.click(tmp[0]);
 					}
-				} else if (this.runtime.status === 'fight' || this.runtime.status === 'start') {
-					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+				} else if (this.runtime.status === 'start') {
+					tmp = $('input[src*="guild_enter_battle_button."]');
+					if (tmp.length) {
 						log('Entering Battle');
-						Page.click('input[src*="guild_enter_battle_button.gif"]');
+						Page.click(tmp[0]);
 						this.set(['data'], {}); // Forget old "lose" list
+					}
+				} else if (this.runtime.status === 'fight') {
+					tmp = $('input[src*="guild_enter_battle_button."]');
+					if (tmp.length) {
+						log('Entering Battle');
+						Page.click(tmp[0]);
 						return QUEUE_CONTINUE;
 					}
-					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
-					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(a,el){
-
-						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level *: (\d+) Class *: ([^ ]+) Health *: (\d+)\/(\d+) Status *: ([^ ]+) \w+ Points *: (\d+)/i);
+					ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
+					level = Player.get('level', 1, 'number');
+					tokens = this.get(['runtime','tokens'], 0, 'number');
+					best = null;
+					besttarget = null;
+					tmp = $('#'+APPID_+'enemy_guild_member_list_1 > div'
+					  + ', #'+APPID_+'enemy_guild_member_list_2 > div'
+					  + ', #'+APPID_+'enemy_guild_member_list_3 > div'
+					  + ', #'+APPID_+'enemy_guild_member_list_4 > div');
+					for (i = 0; i < tmp.length; i++) {
+						txt = tmp.eq(i).text().trim().replace(/\s+/g,' ');
+						target = txt.regex(/^(.*) Level *: (\d+) Class *: ([^ ]+) Health *: (\d+)\/(\d+) Status *: ([^ ]+) \w+ Points *: (\d+)/);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						if (!target
-								|| (Guild.option.defeat && Guild.data && Guild.data[target[0]])
-								|| (isNumber(Guild.option.limit)
-									&& target[1] > Player.get('level',0) + Guild.option.limit)) {
-							return;
+						  || (this.option.defeat && this.data[target[0]])
+						  || (isNumber(this.option.limit)
+						  && target[1] > level + this.option.limit)
+						) {
+							continue;
 						}
-						while (i--) {
-							if (target[0].indexOf(ignore[i]) >= 0) {
-								return;
+						skip = false;
+						for (j = ignore.length - 1; j >= 0; j--) {
+							if (target[0].indexOf(ignore[j]) >= 0) {
+								skip = true;
+								break;
 							}
 						}
+						if (skip) {
+							continue;
+						}
+						test = false;
 						if (besttarget) {
-							switch(Guild.option.order) {
-								case 'level':		test = target[1] < besttarget[1];	break;
-								case 'health':		test = target[3] < besttarget[3];	break;
-								case 'maxhealth':	test = target[4] < besttarget[4];	break;
-								case 'activity':	test = target[6] < besttarget[6];	break;
-								case 'level2':		test = target[1] > besttarget[1];	break;
-								case 'health2':		test = target[3] > besttarget[3];	break;
-								case 'maxhealth2':	test = target[4] > besttarget[4];	break;
-								case 'activity2':	test = target[6] > besttarget[6];	break;
-								case 'levelactive':
-									besttargetla = besttarget[1];
-									if (besttarget[6]) {
-										besttargetla = -1.0/besttargetla;
-									}
-									targetla = target[1];
-									if (target[6]) {
-										targetla = -1.0/targetla;
-									}
-									test = targetla < besttargetla;
-									break;
-								case 'levelactive2':
-									besttargetla = besttarget[1];
-									if (!besttarget[6]) {
-										besttargetla = -1.0/besttargetla;
-									}
-									targetla = target[1];
-									if (!target[6]) {
-										targetla = -1.0/targetla;
-									}
-									test = targetla > besttargetla;
-									break;
+							switch (this.option.order) {
+							case 'level':		test = target[1] < besttarget[1];	break;
+							case 'health':		test = target[3] < besttarget[3];	break;
+							case 'maxhealth':	test = target[4] < besttarget[4];	break;
+							case 'activity':	test = target[6] < besttarget[6];	break;
+							case 'level2':		test = target[1] > besttarget[1];	break;
+							case 'health2':		test = target[3] > besttarget[3];	break;
+							case 'maxhealth2':	test = target[4] > besttarget[4];	break;
+							case 'activity2':	test = target[6] > besttarget[6];	break;
+							case 'levelactive':
+								besttargetla = besttarget[1];
+								if (besttarget[6]) {
+									besttargetla = -1.0/besttargetla;
+								}
+								targetla = target[1];
+								if (target[6]) {
+									targetla = -1.0/targetla;
+								}
+								test = targetla < besttargetla;
+								break;
+							case 'levelactive2':
+								besttargetla = besttarget[1];
+								if (!besttarget[6]) {
+									besttargetla = -1.0/besttargetla;
+								}
+								targetla = target[1];
+								if (!target[6]) {
+									targetla = -1.0/targetla;
+								}
+								test = targetla > besttargetla;
+								break;
 							}
 						}
-						if (Guild.option.cleric) {
+						cleric = false;
+						if (this.option.cleric) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
-						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Guild.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Guild.option.suppress && besttarget[3] && besttarget[6])) || test))) {
-							best = el;
+						//if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (this.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(this.option.suppress && besttarget[3] && besttarget[6])) || test)))
+						if (((tokens >= 10 || (this.option.suppress && target[6])) ? target[3] : target[3] >= 200)
+						  && (!best
+						  || cleric
+						  || (this.option.active && target[6] && !besttarget[6])
+						  || (this.option.live && target[3] >= 200 && besttarget[3] < 200))
+						  || test
+						) {
+							best = tmp.el(i);
 							besttarget = target;
 						}
-					});
+					}
+					if (!best && tmp.length) {
+						// cheap and dirty gate change hack
+						i = tmp.closest('div[id]').attr('id').regex(/enemy_guild_member_list_(\d+)/i);
+						tmp = $('#'+APPID_+'enemy_guild_tab_'+(i+1)+'.imgButton');
+						if (tmp.length && Page.click(tmp[0])) {
+							log(LOG_INFO, 'No targets, trying gate ' + (i+1));
+							return QUEUE_CONTINUE;
+						}
+					}
 					if (best) {
-						this.set(['runtime','last'], besttarget[0]);
-						log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health');
-						if ($('input[src*="monster_duel_button.gif"]', best).length) {
-							Page.click($('input[src*="monster_duel_button.gif"]', best));
-						} else {
-							log(LOG_INFO, 'But couldn\'t find button, so backing out.');
+						log('Attacking'
+						  + ' ' + (besttarget[6] ? 'active' : 'inactive')
+						  + ' ' + besttarget[1] + '/' + besttarget[2]
+						  + ' ' + besttarget[3] + '/' + besttarget[4]
+						  + ' ' + besttarget[0]
+						);
+						tmp = $('input[src*="monster_duel_button."]', best);
+						if (!tmp.length) {
+							log(LOG_INFO, "Can't find button, so backing out.");
 							Page.to('battle_guild');
+							this.set(['runtime','last'], null);
+						} else {
+							this.set(['runtime','last'], besttarget[0]);
+							Page.click(tmp[0]);
 						}
 					} else {
 						this.set(['runtime','last'], null);
@@ -345,6 +426,6 @@ Guild.work = function(state) {
 			}
 		}
 	}
+
 	return QUEUE_CONTINUE;
 };
-
