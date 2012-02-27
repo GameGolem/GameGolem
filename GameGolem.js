@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1173
+ * GameGolem v31.6.1177
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1173
+ * GameGolem v31.6.1177
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1173;
+var revision = 1177;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1172;
+var trunk_revision = 1176;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -613,8 +613,9 @@ var LOG_USER2 = 6;
 var LOG_USER3 = 7;
 var LOG_USER4 = 8;
 var LOG_USER5 = 9;
-var log = function(lvl, txt /*, obj, array etc*/){
-	var args = Array.prototype.slice.call(arguments), prefix = [], level,
+var log = function(lvl, txt /*, obj, array etc*/) {
+	var i, prefix = [], level, tmp,
+		args = Array.prototype.slice.call(arguments),
 		date = [true, true, true, true, true, true, true, true, true, true],
 		rev = [true, true, false, false, true, true, true, true, true, true],
 		worker = [true, true, true, true, true, true, true, true, true, true];
@@ -633,7 +634,14 @@ var log = function(lvl, txt /*, obj, array etc*/){
 		prefix.push('[' + (new Date()).format('H:i:s.u') + ']');
 	}
 	if (worker[level]) {
-		prefix.push(Worker.stack.length ? Worker.stack[0] : '');
+		tmp = [];
+		for (i = 0; i < Worker.stack.length; i++) {
+			tmp.unshift(Worker.stack[i]);
+		}
+		if (tmp.length > 1) {
+			tmp.shift();
+		}
+		prefix.push('*' + tmp.join('->'));
 	}
 	args[0] = prefix.join(' ') + (prefix.length && args[0] ? ': ' : '') + (args[0] || '');
 	try {
@@ -4835,7 +4843,7 @@ Debug.setup = function(old_revision, fresh) {
 	}
 	delete Workers['__fake__']; // Remove the fake worker
 	// Replace the global logging function for better log reporting
-	log = function(lvl, txt /*, obj, array etc*/){
+	log = function(lvl, txt /*, obj, array etc*/) {
 		var i, j, worker, name, line = '', level, tmp, stack,
 			args = Array.prototype.slice.call(arguments),
 			prefix = [], suffix = [], display = '-';
@@ -4864,12 +4872,22 @@ Debug.setup = function(old_revision, fresh) {
 			}
 			if (Debug.get(['option','logs',level,'worker'], false)) {
 				tmp = [];
-				for (i=0; i<Debug.stack.length; i++) {
-					if (!tmp.length || Debug.stack[i][1] !== tmp[0]) {
-						tmp.unshift(Debug.stack[i][1]);
+				if (Debug.stack.length) {
+					for (i = 0; i < Debug.stack.length; i++) {
+						if (!tmp.length || Debug.stack[i][1] !== tmp[0]) {
+							tmp.unshift(Debug.stack[i][1]);
+						}
 					}
+					prefix.push(tmp.join('->'));
+				} else {
+					for (i = 0; i < Worker.stack.length; i++) {
+						tmp.unshift(Worker.stack[i]);
+					}
+					if (tmp.length > 1) {
+						tmp.shift();
+					}
+					prefix.push('*' + tmp.join('->'));
 				}
-				prefix.push(tmp.join('->'));
 			}
 /*
 e.stack contents by browser:
@@ -15290,7 +15308,7 @@ News.page = function(page, change) {
 
 Page.defaults.castle_age = {
 	setup:function() {
-		this.pageCheck = ['#'+APPID_+'globalContainer', '#'+APPID_+'globalcss', '#'+APPID_+'main_bntp', '#'+APPID_+'main_sts_container', '#'+APPID_+'app_body_container', '#'+APPID_+'nvbar', '#'+APPID_+'current_pg_url', '#'+APPID_+'current_pg_info'];
+		this.pageCheck = ['#'+APPID_+'globalContainer', '#'+APPID_+'globalcss', '#'+APPID_+'main_bntp', '#'+APPID_+'main_sts_container', '#'+APPID_+'app_body_container', /*'#'+APPID_+'nvbar',*/ '#'+APPID_+'current_pg_url', '#'+APPID_+'current_pg_info'];
 		// '#app_content_'+APPID, 
 		this.pageNames = {
 //			facebook:			- not real, but used in worker.pages for worker.page('facebook') on fb popup dialogs
@@ -15409,11 +15427,14 @@ Player.setup = function() {
 };
 
 Player.init = function() {
+	var i;
+
 	this._trigger('#'+APPID_+'gold_current_value', 'cash');
 	this._trigger('#'+APPID_+'energy_current_value', 'energy');
 	this._trigger('#'+APPID_+'stamina_current_value', 'stamina');
 	this._trigger('#'+APPID_+'health_current_value', 'health');
 	this._trigger('#'+APPID_+'gold_time_value', 'cash_timer');
+
 	Title.alias('energy', 'Player:data.energy');
 	Title.alias('maxenergy', 'Player:data.maxenergy');
 	Title.alias('health', 'Player:data.health');
@@ -15426,8 +15447,15 @@ Player.init = function() {
 	Title.alias('bsi', 'Player:bsi');
 	Title.alias('lsi', 'Player:lsi');
 	Title.alias('csi', 'Player:csi');
+
 	// function gold_increase_ticker(ticks_left, stat_current, tick_time, increase_value, first_call)
-	this.set('cash_time', script_started + ($('*').html().regex(/gold_increase_ticker\((\d+),/) * 1000));
+	if ((i = $('#gold_time_sec')).length && isString(i = i.val())
+	  && isNumber(i = i.regex(/^(\d+)$/))
+	) {
+		this.set('cash_time', script_started + i * 1000);
+	} else if (isNumber(i = $('*').html().regex(/gold_increase_ticker\((\d+),/))) {
+		this.set('cash_time', script_started + i * 1000);
+	}
 };
 
 Player.page = function(page, change) {
@@ -15694,7 +15722,7 @@ Potions.display = function(){
 					37:37,
 					38:38,
 					39:39,
-					infinite:'infinite'
+					infinite:'&infin;'
 				},
 				help:'Will use them when you have to many, if you collect more than 40 they will be lost anyway'
 			});
@@ -15718,6 +15746,7 @@ Potions.init = function() {
 			Potions.set(['runtime','amount'], 1);
 		}
 	});
+
 	this._watch(Player, 'data.energy');
 	this._watch(Player, 'data.maxenergy');
 	this._watch(Player, 'data.stamina');
@@ -15727,29 +15756,32 @@ Potions.init = function() {
 
 Potions.page = function(page, change) {
 	// No need to parse out Income potions as about to visit the Keep anyway...
-	var potions = $('.result_body:contains("You have acquired the Energy Potion!")');
-	if (potions.length) {
-		Potions.set(['data','Energy'], Potions.data['Energy'] + potions.length);
+	var i, tmp, info, potions;
+	tmp = $('.result_body:contains("You have acquired the Energy Potion!")');
+	if (tmp.length) {
+		this.set(['data','Energy'], (this.data['Energy'] || 0) + tmp.length);
 	}
 	if (page === 'keep_stats' && $('.keep_attribute_section').length) {// Only our own keep
 		potions = {};
-		$('.statsTTitle:contains("CONSUMABLES") + div > div').each(function(i,el){
-			var info = $(el).text().replace(/\s+/g, ' ').trim().regex(/(\w+) Potion x (\d+)/i);
+		tmp = $('.statsTTitle:contains("CONSUMABLES") + div > div');
+		for (i = 0; i < tmp.length; i++) {
+			info = tmp.eq(i).text().replace(/\s+/g, ' ').trim().regex(/(\w+) Potion x (\d+)/i);
 			if (info && info[0]) {
 				potions[info[0]] = info[1];
 				// Default only newly discovered potion types to 39
-				if (isUndefined(Potions.option[info[0]]) || isNull(Potions.option[info[0]])) {
-					Potions.set(['option',info[0]], Potions.option[info[0]] || 39);
+				if (isUndefined(this.option[info[0]]) || isNull(this.option[info[0]])) {
+					this.set(['option',info[0]], this.option[info[0]] || 39);
 				}
 			}
-		});
+		}
 		this._replace(['data'], potions);
 	}
 	return false;
 };
 
-Potions.update = function(event) {
+Potions.update = function(event, events) {
 	var i, l, txt = [], levelup = LevelUp.get('runtime.running');
+
 	for (i in this.data) {
 		if (this.data[i]) {
 			l = i.toLowerCase();
@@ -15768,16 +15800,31 @@ Potions.update = function(event) {
 	} else {
 	    Dashboard.status(this);
 	}
+
 	this.set(['option','_sleep'], !this.runtime.type || !this.runtime.amount);
+
+	return true;
 };
 
 Potions.work = function(state) {
-	if (state && this.runtime.type && this.runtime.amount && Page.to('keep_stats')) {
-		log(LOG_WARN, 'Wanting to drink a ' + this.runtime.type + ' potion');
-		Page.click('.statUnit:contains("' + this.runtime.type + '") form .imgButton input');
+	var tmp;
+
+	if (!this.runtime.type || (this.runtime.amount || 0) < 1) {
 		this.set(['runtime','type'], null);
 		this.set(['runtime','amount'], 0);
+	} else if (state && Page.to('keep_stats')) {
+		log(LOG_LOG, 'Drinking ' + this.runtime.type + ' potion.');
+		tmp = $('.statUnit:contains("' + this.runtime.type + '") form .imgButton input[type="image"]');
+		if (tmp.length === 1) {
+			this.add(['runtime','amount'], -1);
+			Page.click(tmp);
+			if ((this.runtime.amount || 0) < 1) {
+				this.set(['runtime','type'], null);
+				this.set(['runtime','amount'], 0);
+			}
+		}
 	}
+
 	return QUEUE_CONTINUE;
 };
 

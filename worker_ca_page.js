@@ -11,7 +11,7 @@
 
 Page.defaults.castle_age = {
 	setup:function() {
-		this.pageCheck = ['#'+APPID_+'globalContainer', '#'+APPID_+'globalcss', '#'+APPID_+'main_bntp', '#'+APPID_+'main_sts_container', '#'+APPID_+'app_body_container', '#'+APPID_+'nvbar', '#'+APPID_+'current_pg_url', '#'+APPID_+'current_pg_info'];
+		this.pageCheck = ['#'+APPID_+'globalContainer', '#'+APPID_+'globalcss', '#'+APPID_+'main_bntp', '#'+APPID_+'main_sts_container', '#'+APPID_+'app_body_container', /*'#'+APPID_+'nvbar',*/ '#'+APPID_+'current_pg_url', '#'+APPID_+'current_pg_info'];
 		// '#app_content_'+APPID, 
 		this.pageNames = {
 //			facebook:			- not real, but used in worker.pages for worker.page('facebook') on fb popup dialogs
