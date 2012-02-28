@@ -688,8 +688,26 @@ Monster.types = {
 		list:'boss_azeron_list.jpg',
 		image:'boss_azeron_large.jpg',
 		dead:'boss_azeron_dead.jpg',
-		medal:40000000,
-		achievement:25000000,
+		medal:16500000,
+		achievement:11000000,
+		timer:691200, // 192 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+	fenix: {
+	    name:'Fenix, Risen from Ashes',
+		brief:'Fenix',
+		list:'boss_fenix_list.jpg',
+		image:'boss_fenix_large.jpg',
+		dead:'boss_fenix_dead.jpg',
+		medal:18500000,
+		achievement:40000000,
 		timer:691200, // 192 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"]'

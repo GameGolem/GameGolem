@@ -24,6 +24,7 @@ Quest.defaults['castle_age'] = {
 	  + ' quests_quest5 quests_quest6 quests_quest7 quests_quest8'
 	  + ' quests_quest9 quests_quest10 quests_quest11 quests_quest12'
 	  + ' quests_quest13 quests_quest14 quests_quest15 quests_quest16'
+	  + ' quests_quest17'
 	  + ' quests_demiquests quests_atlantis'
 };
 
@@ -68,7 +69,8 @@ Quest.land = [
 	'Mist III',
 	'Fire II',
 	'Pangaea',
-	'Perdition'
+	'Perdition',
+	'Land of Fire (IV)'
 ];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
@@ -438,7 +440,6 @@ Quest.update = function(event, events) {
 	this.set(['runtime','page'], null);
 	for (i = 0; i < list.length; i++) {
 		if (list[i] !== 'quests_quest' // old placebo, just in case...
-		  && list[i] !== 'quests_quest16' // perdition not yet on web3
 		  && /^quests_/.test(list[i])
 		  && !Page.get(list[i])
 		) {

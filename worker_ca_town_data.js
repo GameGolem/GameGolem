@@ -1,14 +1,15 @@
 /*jslint
 */
 
-Town.rts = 1329035068;	// Sun Feb 12 08:24:28 2012 UTC
+Town.rts = 1330273067;	// Sun Feb 26 16:17:47 2012 UTC
 
-Town.rdata =			// #1330
+Town.rdata =			// #1336
 {
 	'Absolution':					{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_azul_shield.jpg' },
 	'Adjucators Gauntlets':			{ 'atk':  12, 'def':   8, 'type': 'gloves', 'img': 'eq_azeron_gauntlet.jpg' },
 	'Adriana':						{ 'atk':  19, 'def':  21, 'type': 'hero', 'img': 'hero_adriana.jpg', 'skills': "Decrease opposing War Council's Defense by -3" },
 	'Aegea':						{ 'atk':  37, 'def':  36, 'type': 'hero', 'img': 'hero_aegea.jpg', 'skills': 'Affect Conquest Action Counter' },
+	'Aegis From Ashes':				{ 'atk':  50, 'def':  55, 'type': 'shield', 'img': 'eq_fenix_shield.jpg' },
 	'Aegis of Battle':				{ 'atk':  40, 'def':  35, 'type': 'shield', 'img': 'eq_malekus_shield.jpg' },
 	'Aegis of Earth':				{ 'atk':   9, 'def':   7, 'type': 'shield', 'img': 'eq_darius_shield.jpg' },
 	'Aegis of Kings':				{ 'atk':  50, 'def':  40, 'type': 'shield', 'img': 'eq_agamemnon_shield2.jpg' },
@@ -486,9 +487,11 @@ Town.rdata =			// #1330
 	'Fire Elemental':				{ 'atk':   8, 'def':   5, 'type': 'unit', 'img': 'soldier_fire_elemental.jpg' },
 	'Fire Lizard Claw':				{ 'type': 'alchemy', 'img': 'gift_araxis2_3.jpg' },
 	'Fireball':						{ 'atk':   5, 'def':   0, 'type': 'magic', 'img': 'magic_fireball.jpg' },
+	'Firefeather Bow':				{ 'atk':  24, 'def':  10, 'type': 'weapon', 'img': 'eq_fenix_weapon.jpg' },
 	'Fist of Abaddon':				{ 'atk':  12, 'def':  14, 'type': 'gloves', 'img': 'eq_mephistopheles2_gauntlet.jpg' },
 	'Flame Bow':					{ 'atk':   3, 'def':   0, 'type': 'weapon', 'img': 'item_flame_bow.jpg' },
 	'Flame Invoker':				{ 'atk':  55, 'def':  45, 'type': 'unit', 'img': 'soldier_gehenna.jpg' },
+	'Flameash Band':				{ 'atk':  12, 'def':  16, 'type': 'amulet', 'img': 'eq_fenix_amulet.jpg' },
 	'Flamehide Shield':				{ 'atk':  20, 'def':  32, 'type': 'shield', 'img': 'eq_thanatos2_shield_ca.jpg' },
 	'Flames of War':				{ 'type': 'alchemy', 'img': 'eq_malekus_ingredient.jpg' },
 	'Flameshrooms':					{ 'type': 'alchemy', 'img': 'gift_vanquish3_1.jpg' },
@@ -626,6 +629,7 @@ Town.rdata =			// #1330
 	'Hellkite Sword':				{ 'atk':   5, 'def':   6, 'type': 'weapon', 'img': 'eq_mephisto_sword.jpg' },
 	'Hellslayer Knight':			{ 'atk':  29, 'def':  33, 'type': 'unit', 'img': 'solider_hellslayer.jpg' },
 	'Hellstone':					{ 'type': 'alchemy', 'img': 'eq_mephistopheles2_ball.jpg' },
+	'Helm From Ashes':				{ 'atk':  10, 'def':  14, 'type': 'helmet', 'img': 'eq_fenix_helm.jpg' },
 	'Helm of Arcane Energies':		{ 'atk':  48, 'def':  53, 'type': 'helmet', 'img': 'eq_ambrosia_helm.jpg' },
 	'Helm of Dragon Power':			{ 'atk':  30, 'def':  30, 'type': 'helmet', 'img': 'dragon_reward_helmet.jpg' },
 	'Helm of Fear':					{ 'atk':   9, 'def':   9, 'type': 'helmet', 'img': 'eq_death_rare_helmet.jpg' },
@@ -877,6 +881,7 @@ Town.rdata =			// #1330
 	'Orb of Azeron':				{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'orb_azeron.jpg' },
 	'Orb of Azriel':				{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'orb_azriel.jpg' },
 	'Orb of Corvintheus':			{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'orb_corvintheus.jpg' },
+	'Orb of Fenix':					{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'orb_fenix.jpg' },
 	'Orb of Gildamesh':				{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'boss_gildamesh_portal.jpg' },
 	'Orb of Jahanna':				{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'boss_jahanna_orb.jpg' },
 	'Orb of Keira':					{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'boss_keira_portal.jpg' },
@@ -914,6 +919,7 @@ Town.rdata =			// #1330
 	'Phantasmal Brooch':			{ 'atk':  16, 'def':  13, 'type': 'amulet', 'img': 'eq_ephraline_amulet.jpg' },
 	'Phoenix':						{ 'atk':  20, 'def':  16, 'type': 'unit', 'img': 'upgrade_phoenix.jpg' },
 	'Pierce the Sky':				{ 'atk':  35, 'def':  32, 'type': 'weapon', 'img': 'eq_alexandra_weapon.jpg' },
+	'Plate of Fenix':				{ 'atk':  24, 'def':  26, 'type': 'armor', 'img': 'eq_fenix_armor.jpg' },
 	'Plate of Zeventis':			{ 'atk':  19, 'def':  16, 'type': 'armor', 'img': 'eq_zeventis_armor.jpg' },
 	'Plate of the Ages':			{ 'atk':  20, 'def':  45, 'type': 'armor', 'img': 'eq_legendary_armor.jpg' },
 	'Plate of the Wild':			{ 'atk':  23, 'def':  30, 'type': 'armor', 'img': 'eq_aurora_armor.jpg' },
@@ -1224,7 +1230,7 @@ Town.rdata =			// #1330
 	'Typhonus the Chimera':			{ 'atk': 125, 'def': 125, 'type': 'unit', 'img': 'arena_reward_7.jpg' },
 	'Tyrant':						{ 'atk':  36, 'def':  32, 'type': 'hero', 'img': 'hero_tyrant.jpg', 'skills': 'Increase Sentinal/Guardian Effect' },
 	'Tyrant Crown':					{ 'atk':  22, 'def':  20, 'type': 'helmet', 'img': 'eq_gehenna_helm_1.jpg' },
-	'Tyrantscale Armor':			{ 'atk':  15, 'def':  15, 'type': 'armor', 'img': 'eq_vermilion_armor.jpg' },
+	'Tyrantscale Armor':			{ 'atk':  15, 'def':  15, 'type': 'armor', 'img': 'eq_vermilion_armor.jpg', 'alias': 'Tryantscale Armor' },
 	'Tyrantscale Protector':		{ 'atk':  25, 'def':  22, 'type': 'shield', 'img': 'eq_vermilion_shield.jpg' },
 	'Tyxeros':						{ 'atk':  21, 'def':  20, 'type': 'hero', 'img': 'hero_tyxeros.jpg', 'skills': 'Highly randomize base damage in Guild Battles' },
 	'Unbreakable Chestplate':		{ 'atk':  15, 'def':  20, 'type': 'armor', 'img': 'eq_alexandra_armor.jpg' },
@@ -1353,7 +1359,7 @@ Town.rrestr =
 	  '\\baxe\\b' +				// 14
 	  '|\\bblade\\b' +			// 31 (mismatches 1)
 	  '|\\bblades\\b' +			// 2
-	  '|\\bbow\\b' +			// 11
+	  '|\\bbow\\b' +			// 12
 	  '|\\bclaymore\\b' +		// 1
 	  '|\\bcleaver\\b' +		// 2
 	  '|\\bcudgel\\b' +			// 1
@@ -1445,7 +1451,7 @@ Town.rrestr =
 	  '|^Virtue of Justice$' +
 	  '',
 	'shield':
-	  '\\baegis\\b' +			// 10
+	  '\\baegis\\b' +			// 11
 	  '|\\bbuckler\\b' +		// 2
 	  '|\\bdeathshield\\b' +	// 1
 	  '|\\bdefender\\b' +		// 6
@@ -1478,7 +1484,7 @@ Town.rrestr =
 	  '|^Zenarean Crest$' +
 	  '',
 	'armor':
-	  '\\barmor\\b' +			// 34
+	  '\\barmor\\b' +			// 33
 	  '|\\bbattlearmor\\b' +	// 1
 	  '|\\bbattlegarb\\b' +		// 1
 	  '|\\bbattlegear\\b' +		// 4
@@ -1493,7 +1499,7 @@ Town.rrestr =
 	  '|\\bhellplate\\b' +		// 1
 	  '|\\bkarapace\\b' +		// 1
 	  '|\\bpauldrons\\b' +		// 1
-	  '|\\bplate\\b' +			// 43
+	  '|\\bplate\\b' +			// 45
 	  '|\\bplatemail\\b' +		// 2
 	  '|\\braiments\\b' +		// 5
 	  '|\\bregalia\\b' +		// 1
@@ -1516,7 +1522,7 @@ Town.rrestr =
 	  '|\\bcrown\\b' +			// 15
 	  '|\\bdoomhelm\\b' +		// 1
 	  '|\\bheadband\\b' +		// 1
-	  '|\\bhelm\\b' +			// 55
+	  '|\\bhelm\\b' +			// 56
 	  '|\\bhelmet\\b' +			// 4
 	  '|\\bhood\\b' +			// 1
 	  '|\\bhorns\\b' +			// 1
@@ -1528,8 +1534,8 @@ Town.rrestr =
 	  '|^Virtue of Fortitude$' +
 	  '',
 	'amulet':
-	  '\\bamulet\\b' +			// 24
-	  '|\\bband\\b' +			// 4
+	  '\\bamulet\\b' +			// 23
+	  '|\\bband\\b' +			// 5
 	  '|\\bbauble\\b' +			// 1
 	  '|\\bbrooch\\b' +			// 1
 	  '|\\bcharm\\b' +			// 3
@@ -1546,7 +1552,7 @@ Town.rrestr =
 	  '|\\bmark\\b' +			// 1
 	  '|\\bmedallion\\b' +		// 1
 	  '|\\bmemento\\b' +		// 1
-	  '|\\bnecklace\\b' +		// 5
+	  '|\\bnecklace\\b' +		// 6
 	  '|\\borb\\b' +			// 4
 	  '|\\bpendant\\b' +		// 20
 	  '|\\brelic\\b' +			// 1
@@ -1591,7 +1597,7 @@ Town.rrestr =
 	  '|\\bbracer\\b' +			// 1
 	  '|\\bfists?\\b' +			// 1+3
 	  '|\\bgauntlets?\\b' +		// 15+8
-	  '|\\bgloves?\\b' +		// 4+3
+	  '|\\bgloves?\\b' +		// 3+4
 	  '|\\bgrasp\\b' +			// 2
 	  '|\\bhandguards?\\b' +	// 1+1
 	  '|\\bhands?\\b' +			// 6+3

@@ -140,7 +140,8 @@ Idle.pages = {
 		'quests_quest13',
 		'quests_quest14',
 		'quests_quest15',
-		//'quests_quest16', // not yet on web3
+		'quests_quest16',
+		'quests_quest17',
 		'quests_demiquests',
 		'quests_atlantis'
 	],

@@ -1,9 +1,9 @@
 /*jslint
 */
 
-Quest.rts = 1319027252;		// Wed Oct 19 12:27:32 2011 UTC
+Quest.rts = 1330238338;		// Sun Feb 26 06:38:58 2012 UTC
 
-Quest.rdata =				// #549
+Quest.rdata =				// #558
 {
 	'a demonic transformation':			{ 'reps_q4':  34 },
 	'a forest in peril':				{ 'reps_d4':   9 },
@@ -57,11 +57,13 @@ Quest.rdata =				// #549
 	'break through':					{ 'reps_q15':  0 },
 	'breaking through the guard':		{ 'reps_q9':  14 },
 	'bridge of elim':					{ 'reps_q8':  10 },
-	'bridge of fire':					{ 'reps_q14': 10 },
+	'bridge of fire':					{ 'reps_q14': 10, 'reps_q17': 11 },
 	'burn barracks':					{ 'reps_q14':  0 },
 	'burning gates':					{ 'reps_q7':  10 },
 	'burning of karth':					{ 'reps_q14': 12 },
+	'burning ridge':					{ 'reps_q17': 10 },
 	'bury corpses':						{ 'reps_q15':  0 },
+	'calfan ridge':						{ 'reps_q17': 10 },
 	'call of arms':						{ 'reps_q6':  23 },
 	'calm before the storm':			{ 'reps_q13': 10 },
 	'calm your soul':					{ 'reps_q15':  0 },
@@ -121,6 +123,7 @@ Quest.rdata =				// #549
 	'cure infested soldiers':			{ 'reps_q6':  23 },
 	'dark chasm':						{ 'reps_q15': 12 },
 	'dark heart of the woods':			{ 'reps_q12':  9 },
+	'darkness arrives':					{ 'reps_q17': 11 },
 	'deal final blow to bloodwing':		{ 'reps_d2':   9 },
 	'death of a forest':				{ 'reps_q13':  8 },
 	'deathrune castle':					{ 'reps_q7':  10 },
@@ -202,7 +205,7 @@ Quest.rdata =				// #549
 	'duel with guards':					{ 'reps_q12':  0 },
 	'dwarven stronghold':				{ 'reps_q10': 10 },
 	'eastern corridor':					{ 'reps_q11':  0 },
-	'eerie silence':					{ 'reps_q15': 19 },
+	'eerie silence':					{ 'reps_q15': 10 },
 	'elekin the dragon slayer':			{ 'reps_d2':  10 },
 	'enchant weapon':					{ 'reps_q14':  0 },
 	'end of the road':					{ 'reps_q9':  14 },
@@ -335,6 +338,7 @@ Quest.rdata =				// #549
 	'koralan townspeople':				{ 'reps_q11': 10 },
 	'lands end':						{ 'reps_q16': 12 },
 	'last trial':						{ 'reps_q16':  0 },
+	'lava caverns':						{ 'reps_q17': 12 },
 	'learn about death knights':		{ 'reps_d5':   9 },
 	'learn aurelius intentions':		{ 'reps_q11':  0 },
 	'learn counterspell':				{ 'reps_d1':   9 },
@@ -392,6 +396,7 @@ Quest.rdata =				// #549
 	'ready soldiers':					{ 'reps_q12':  0 },
 	'ready the horses':					{ 'reps_q1':   5 },
 	'reason with guards':				{ 'reps_q12':  0 },
+	'reborn excitement':				{ 'reps_q17':  8 },
 	'recover the key':					{ 'reps_q9':  14 },
 	'recruit allies':					{ 'reps_q10': 14 },
 	'recruit elekin to join you':		{ 'reps_d2':   8 },
@@ -411,6 +416,7 @@ Quest.rdata =				// #549
 	'ride down':						{ 'reps_q14':  0 },
 	'ride to aretop':					{ 'reps_d2':   9 },
 	'ride towards the palace':			{ 'reps_q9':  14 },
+	'ring of fire':						{ 'reps_q17': 12 },
 	'river of lava':					{ 'reps_q10': 10 },
 	'river of light':					{ 'reps_q1':   5, 'reps_q14': 11 },
 	'save dying creatures':				{ 'reps_q12':  0 },
@@ -445,6 +451,7 @@ Quest.rdata =				// #549
 	'stop the wolf from channeling':	{ 'reps_d4':   9 },
 	'storm the castle':					{ 'reps_d5':   9 },
 	'storm the ivory palace':			{ 'reps_q9':  14 },
+	'sulfur canyons':					{ 'reps_q17': 11 },
 	'sulfurous springs':				{ 'reps_q11': 10 },
 	'summon legendary defenders':		{ 'reps_q6':  23 },
 	'summon shadowpatj':				{ 'reps_q16':  0 },
@@ -460,11 +467,13 @@ Quest.rdata =				// #549
 	'swim ashore':						{ 'reps_q16':  0 },
 	'taubourne falls':					{ 'reps_q13': 10 },
 	'tenvir summit':					{ 'reps_q13': 12 },
+	'terra plateau':					{ 'reps_q17': 11 },
 	'test her power':					{ 'reps_q14':  0 },
 	'tezzari village':					{ 'reps_q12': 12 },
 	'the belly of the demon':			{ 'reps_q5':  17 },
 	'the betrayed lands':				{ 'reps_q4':  14 },
 	'the black portal':					{ 'reps_d1':  14 },
+	'the burning crater':				{ 'reps_q17':  9 },
 	'the cave of wonder':				{ 'reps_q3':  17 },
 	'the citadel':						{ 'reps_q15': 10 },
 	'the crystal caverns':				{ 'reps_d2':  10 },

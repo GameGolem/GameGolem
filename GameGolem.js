@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1177
+ * GameGolem v31.6.1178
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1177
+ * GameGolem v31.6.1178
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1177;
+var revision = 1178;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1176;
+var trunk_revision = 1177;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -11180,7 +11180,8 @@ Idle.pages = {
 		'quests_quest13',
 		'quests_quest14',
 		'quests_quest15',
-		//'quests_quest16', // not yet on web3
+		'quests_quest16',
+		'quests_quest17',
 		'quests_demiquests',
 		'quests_atlantis'
 	],
@@ -12807,8 +12808,26 @@ Monster.types = {
 		list:'boss_azeron_list.jpg',
 		image:'boss_azeron_large.jpg',
 		dead:'boss_azeron_dead.jpg',
-		medal:40000000,
-		achievement:25000000,
+		medal:16500000,
+		achievement:11000000,
+		timer:691200, // 192 hours
+		mpool:1,
+		attack_button:'input[name="Attack Dragon"][src*="stab"]'
+		  + ',input[name="Attack Dragon"][src*="bolt"]'
+		  + ',input[name="Attack Dragon"][src*="smite"]'
+		  + ',input[name="Attack Dragon"][src*="bash"]',
+		attack:[5,10,20,50],
+		defend_button:'input[name="Attack Dragon"][src*="heal"]',
+		defend:[10,20,40,100]
+	},
+	fenix: {
+	    name:'Fenix, Risen from Ashes',
+		brief:'Fenix',
+		list:'boss_fenix_list.jpg',
+		image:'boss_fenix_large.jpg',
+		dead:'boss_fenix_dead.jpg',
+		medal:18500000,
+		achievement:40000000,
 		timer:691200, // 192 hours
 		mpool:1,
 		attack_button:'input[name="Attack Dragon"][src*="stab"]'
@@ -15854,6 +15873,7 @@ Quest.defaults['castle_age'] = {
 	  + ' quests_quest5 quests_quest6 quests_quest7 quests_quest8'
 	  + ' quests_quest9 quests_quest10 quests_quest11 quests_quest12'
 	  + ' quests_quest13 quests_quest14 quests_quest15 quests_quest16'
+	  + ' quests_quest17'
 	  + ' quests_demiquests quests_atlantis'
 };
 
@@ -15898,7 +15918,8 @@ Quest.land = [
 	'Mist III',
 	'Fire II',
 	'Pangaea',
-	'Perdition'
+	'Perdition',
+	'Land of Fire (IV)'
 ];
 Quest.area = {quest:'Quests', demiquest:'Demi Quests', atlantis:'Atlantis'};
 Quest.current = null;
@@ -16268,7 +16289,6 @@ Quest.update = function(event, events) {
 	this.set(['runtime','page'], null);
 	for (i = 0; i < list.length; i++) {
 		if (list[i] !== 'quests_quest' // old placebo, just in case...
-		  && list[i] !== 'quests_quest16' // perdition not yet on web3
 		  && /^quests_/.test(list[i])
 		  && !Page.get(list[i])
 		) {
@@ -17328,9 +17348,9 @@ Quest.wiki_reps = function(quest, pure) {
 /*jslint
 */
 
-Quest.rts = 1319027252;		// Wed Oct 19 12:27:32 2011 UTC
+Quest.rts = 1330238338;		// Sun Feb 26 06:38:58 2012 UTC
 
-Quest.rdata =				// #549
+Quest.rdata =				// #558
 {
 	'a demonic transformation':			{ 'reps_q4':  34 },
 	'a forest in peril':				{ 'reps_d4':   9 },
@@ -17384,11 +17404,13 @@ Quest.rdata =				// #549
 	'break through':					{ 'reps_q15':  0 },
 	'breaking through the guard':		{ 'reps_q9':  14 },
 	'bridge of elim':					{ 'reps_q8':  10 },
-	'bridge of fire':					{ 'reps_q14': 10 },
+	'bridge of fire':					{ 'reps_q14': 10, 'reps_q17': 11 },
 	'burn barracks':					{ 'reps_q14':  0 },
 	'burning gates':					{ 'reps_q7':  10 },
 	'burning of karth':					{ 'reps_q14': 12 },
+	'burning ridge':					{ 'reps_q17': 10 },
 	'bury corpses':						{ 'reps_q15':  0 },
+	'calfan ridge':						{ 'reps_q17': 10 },
 	'call of arms':						{ 'reps_q6':  23 },
 	'calm before the storm':			{ 'reps_q13': 10 },
 	'calm your soul':					{ 'reps_q15':  0 },
@@ -17448,6 +17470,7 @@ Quest.rdata =				// #549
 	'cure infested soldiers':			{ 'reps_q6':  23 },
 	'dark chasm':						{ 'reps_q15': 12 },
 	'dark heart of the woods':			{ 'reps_q12':  9 },
+	'darkness arrives':					{ 'reps_q17': 11 },
 	'deal final blow to bloodwing':		{ 'reps_d2':   9 },
 	'death of a forest':				{ 'reps_q13':  8 },
 	'deathrune castle':					{ 'reps_q7':  10 },
@@ -17529,7 +17552,7 @@ Quest.rdata =				// #549
 	'duel with guards':					{ 'reps_q12':  0 },
 	'dwarven stronghold':				{ 'reps_q10': 10 },
 	'eastern corridor':					{ 'reps_q11':  0 },
-	'eerie silence':					{ 'reps_q15': 19 },
+	'eerie silence':					{ 'reps_q15': 10 },
 	'elekin the dragon slayer':			{ 'reps_d2':  10 },
 	'enchant weapon':					{ 'reps_q14':  0 },
 	'end of the road':					{ 'reps_q9':  14 },
@@ -17662,6 +17685,7 @@ Quest.rdata =				// #549
 	'koralan townspeople':				{ 'reps_q11': 10 },
 	'lands end':						{ 'reps_q16': 12 },
 	'last trial':						{ 'reps_q16':  0 },
+	'lava caverns':						{ 'reps_q17': 12 },
 	'learn about death knights':		{ 'reps_d5':   9 },
 	'learn aurelius intentions':		{ 'reps_q11':  0 },
 	'learn counterspell':				{ 'reps_d1':   9 },
@@ -17719,6 +17743,7 @@ Quest.rdata =				// #549
 	'ready soldiers':					{ 'reps_q12':  0 },
 	'ready the horses':					{ 'reps_q1':   5 },
 	'reason with guards':				{ 'reps_q12':  0 },
+	'reborn excitement':				{ 'reps_q17':  8 },
 	'recover the key':					{ 'reps_q9':  14 },
 	'recruit allies':					{ 'reps_q10': 14 },
 	'recruit elekin to join you':		{ 'reps_d2':   8 },
@@ -17738,6 +17763,7 @@ Quest.rdata =				// #549
 	'ride down':						{ 'reps_q14':  0 },
 	'ride to aretop':					{ 'reps_d2':   9 },
 	'ride towards the palace':			{ 'reps_q9':  14 },
+	'ring of fire':						{ 'reps_q17': 12 },
 	'river of lava':					{ 'reps_q10': 10 },
 	'river of light':					{ 'reps_q1':   5, 'reps_q14': 11 },
 	'save dying creatures':				{ 'reps_q12':  0 },
@@ -17772,6 +17798,7 @@ Quest.rdata =				// #549
 	'stop the wolf from channeling':	{ 'reps_d4':   9 },
 	'storm the castle':					{ 'reps_d5':   9 },
 	'storm the ivory palace':			{ 'reps_q9':  14 },
+	'sulfur canyons':					{ 'reps_q17': 11 },
 	'sulfurous springs':				{ 'reps_q11': 10 },
 	'summon legendary defenders':		{ 'reps_q6':  23 },
 	'summon shadowpatj':				{ 'reps_q16':  0 },
@@ -17787,11 +17814,13 @@ Quest.rdata =				// #549
 	'swim ashore':						{ 'reps_q16':  0 },
 	'taubourne falls':					{ 'reps_q13': 10 },
 	'tenvir summit':					{ 'reps_q13': 12 },
+	'terra plateau':					{ 'reps_q17': 11 },
 	'test her power':					{ 'reps_q14':  0 },
 	'tezzari village':					{ 'reps_q12': 12 },
 	'the belly of the demon':			{ 'reps_q5':  17 },
 	'the betrayed lands':				{ 'reps_q4':  14 },
 	'the black portal':					{ 'reps_d1':  14 },
+	'the burning crater':				{ 'reps_q17':  9 },
 	'the cave of wonder':				{ 'reps_q3':  17 },
 	'the citadel':						{ 'reps_q15': 10 },
 	'the crystal caverns':				{ 'reps_d2':  10 },
@@ -19554,14 +19583,15 @@ Town.dup_map = {
 /*jslint
 */
 
-Town.rts = 1329035068;	// Sun Feb 12 08:24:28 2012 UTC
+Town.rts = 1330273067;	// Sun Feb 26 16:17:47 2012 UTC
 
-Town.rdata =			// #1330
+Town.rdata =			// #1336
 {
 	'Absolution':					{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_azul_shield.jpg' },
 	'Adjucators Gauntlets':			{ 'atk':  12, 'def':   8, 'type': 'gloves', 'img': 'eq_azeron_gauntlet.jpg' },
 	'Adriana':						{ 'atk':  19, 'def':  21, 'type': 'hero', 'img': 'hero_adriana.jpg', 'skills': "Decrease opposing War Council's Defense by -3" },
 	'Aegea':						{ 'atk':  37, 'def':  36, 'type': 'hero', 'img': 'hero_aegea.jpg', 'skills': 'Affect Conquest Action Counter' },
+	'Aegis From Ashes':				{ 'atk':  50, 'def':  55, 'type': 'shield', 'img': 'eq_fenix_shield.jpg' },
 	'Aegis of Battle':				{ 'atk':  40, 'def':  35, 'type': 'shield', 'img': 'eq_malekus_shield.jpg' },
 	'Aegis of Earth':				{ 'atk':   9, 'def':   7, 'type': 'shield', 'img': 'eq_darius_shield.jpg' },
 	'Aegis of Kings':				{ 'atk':  50, 'def':  40, 'type': 'shield', 'img': 'eq_agamemnon_shield2.jpg' },
@@ -20039,9 +20069,11 @@ Town.rdata =			// #1330
 	'Fire Elemental':				{ 'atk':   8, 'def':   5, 'type': 'unit', 'img': 'soldier_fire_elemental.jpg' },
 	'Fire Lizard Claw':				{ 'type': 'alchemy', 'img': 'gift_araxis2_3.jpg' },
 	'Fireball':						{ 'atk':   5, 'def':   0, 'type': 'magic', 'img': 'magic_fireball.jpg' },
+	'Firefeather Bow':				{ 'atk':  24, 'def':  10, 'type': 'weapon', 'img': 'eq_fenix_weapon.jpg' },
 	'Fist of Abaddon':				{ 'atk':  12, 'def':  14, 'type': 'gloves', 'img': 'eq_mephistopheles2_gauntlet.jpg' },
 	'Flame Bow':					{ 'atk':   3, 'def':   0, 'type': 'weapon', 'img': 'item_flame_bow.jpg' },
 	'Flame Invoker':				{ 'atk':  55, 'def':  45, 'type': 'unit', 'img': 'soldier_gehenna.jpg' },
+	'Flameash Band':				{ 'atk':  12, 'def':  16, 'type': 'amulet', 'img': 'eq_fenix_amulet.jpg' },
 	'Flamehide Shield':				{ 'atk':  20, 'def':  32, 'type': 'shield', 'img': 'eq_thanatos2_shield_ca.jpg' },
 	'Flames of War':				{ 'type': 'alchemy', 'img': 'eq_malekus_ingredient.jpg' },
 	'Flameshrooms':					{ 'type': 'alchemy', 'img': 'gift_vanquish3_1.jpg' },
@@ -20179,6 +20211,7 @@ Town.rdata =			// #1330
 	'Hellkite Sword':				{ 'atk':   5, 'def':   6, 'type': 'weapon', 'img': 'eq_mephisto_sword.jpg' },
 	'Hellslayer Knight':			{ 'atk':  29, 'def':  33, 'type': 'unit', 'img': 'solider_hellslayer.jpg' },
 	'Hellstone':					{ 'type': 'alchemy', 'img': 'eq_mephistopheles2_ball.jpg' },
+	'Helm From Ashes':				{ 'atk':  10, 'def':  14, 'type': 'helmet', 'img': 'eq_fenix_helm.jpg' },
 	'Helm of Arcane Energies':		{ 'atk':  48, 'def':  53, 'type': 'helmet', 'img': 'eq_ambrosia_helm.jpg' },
 	'Helm of Dragon Power':			{ 'atk':  30, 'def':  30, 'type': 'helmet', 'img': 'dragon_reward_helmet.jpg' },
 	'Helm of Fear':					{ 'atk':   9, 'def':   9, 'type': 'helmet', 'img': 'eq_death_rare_helmet.jpg' },
@@ -20430,6 +20463,7 @@ Town.rdata =			// #1330
 	'Orb of Azeron':				{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'orb_azeron.jpg' },
 	'Orb of Azriel':				{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'orb_azriel.jpg' },
 	'Orb of Corvintheus':			{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'orb_corvintheus.jpg' },
+	'Orb of Fenix':					{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'orb_fenix.jpg' },
 	'Orb of Gildamesh':				{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'boss_gildamesh_portal.jpg' },
 	'Orb of Jahanna':				{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'boss_jahanna_orb.jpg' },
 	'Orb of Keira':					{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'boss_keira_portal.jpg' },
@@ -20467,6 +20501,7 @@ Town.rdata =			// #1330
 	'Phantasmal Brooch':			{ 'atk':  16, 'def':  13, 'type': 'amulet', 'img': 'eq_ephraline_amulet.jpg' },
 	'Phoenix':						{ 'atk':  20, 'def':  16, 'type': 'unit', 'img': 'upgrade_phoenix.jpg' },
 	'Pierce the Sky':				{ 'atk':  35, 'def':  32, 'type': 'weapon', 'img': 'eq_alexandra_weapon.jpg' },
+	'Plate of Fenix':				{ 'atk':  24, 'def':  26, 'type': 'armor', 'img': 'eq_fenix_armor.jpg' },
 	'Plate of Zeventis':			{ 'atk':  19, 'def':  16, 'type': 'armor', 'img': 'eq_zeventis_armor.jpg' },
 	'Plate of the Ages':			{ 'atk':  20, 'def':  45, 'type': 'armor', 'img': 'eq_legendary_armor.jpg' },
 	'Plate of the Wild':			{ 'atk':  23, 'def':  30, 'type': 'armor', 'img': 'eq_aurora_armor.jpg' },
@@ -20777,7 +20812,7 @@ Town.rdata =			// #1330
 	'Typhonus the Chimera':			{ 'atk': 125, 'def': 125, 'type': 'unit', 'img': 'arena_reward_7.jpg' },
 	'Tyrant':						{ 'atk':  36, 'def':  32, 'type': 'hero', 'img': 'hero_tyrant.jpg', 'skills': 'Increase Sentinal/Guardian Effect' },
 	'Tyrant Crown':					{ 'atk':  22, 'def':  20, 'type': 'helmet', 'img': 'eq_gehenna_helm_1.jpg' },
-	'Tyrantscale Armor':			{ 'atk':  15, 'def':  15, 'type': 'armor', 'img': 'eq_vermilion_armor.jpg' },
+	'Tyrantscale Armor':			{ 'atk':  15, 'def':  15, 'type': 'armor', 'img': 'eq_vermilion_armor.jpg', 'alias': 'Tryantscale Armor' },
 	'Tyrantscale Protector':		{ 'atk':  25, 'def':  22, 'type': 'shield', 'img': 'eq_vermilion_shield.jpg' },
 	'Tyxeros':						{ 'atk':  21, 'def':  20, 'type': 'hero', 'img': 'hero_tyxeros.jpg', 'skills': 'Highly randomize base damage in Guild Battles' },
 	'Unbreakable Chestplate':		{ 'atk':  15, 'def':  20, 'type': 'armor', 'img': 'eq_alexandra_armor.jpg' },
@@ -20906,7 +20941,7 @@ Town.rrestr =
 	  '\\baxe\\b' +				// 14
 	  '|\\bblade\\b' +			// 31 (mismatches 1)
 	  '|\\bblades\\b' +			// 2
-	  '|\\bbow\\b' +			// 11
+	  '|\\bbow\\b' +			// 12
 	  '|\\bclaymore\\b' +		// 1
 	  '|\\bcleaver\\b' +		// 2
 	  '|\\bcudgel\\b' +			// 1
@@ -20998,7 +21033,7 @@ Town.rrestr =
 	  '|^Virtue of Justice$' +
 	  '',
 	'shield':
-	  '\\baegis\\b' +			// 10
+	  '\\baegis\\b' +			// 11
 	  '|\\bbuckler\\b' +		// 2
 	  '|\\bdeathshield\\b' +	// 1
 	  '|\\bdefender\\b' +		// 6
@@ -21031,7 +21066,7 @@ Town.rrestr =
 	  '|^Zenarean Crest$' +
 	  '',
 	'armor':
-	  '\\barmor\\b' +			// 34
+	  '\\barmor\\b' +			// 33
 	  '|\\bbattlearmor\\b' +	// 1
 	  '|\\bbattlegarb\\b' +		// 1
 	  '|\\bbattlegear\\b' +		// 4
@@ -21046,7 +21081,7 @@ Town.rrestr =
 	  '|\\bhellplate\\b' +		// 1
 	  '|\\bkarapace\\b' +		// 1
 	  '|\\bpauldrons\\b' +		// 1
-	  '|\\bplate\\b' +			// 43
+	  '|\\bplate\\b' +			// 45
 	  '|\\bplatemail\\b' +		// 2
 	  '|\\braiments\\b' +		// 5
 	  '|\\bregalia\\b' +		// 1
@@ -21069,7 +21104,7 @@ Town.rrestr =
 	  '|\\bcrown\\b' +			// 15
 	  '|\\bdoomhelm\\b' +		// 1
 	  '|\\bheadband\\b' +		// 1
-	  '|\\bhelm\\b' +			// 55
+	  '|\\bhelm\\b' +			// 56
 	  '|\\bhelmet\\b' +			// 4
 	  '|\\bhood\\b' +			// 1
 	  '|\\bhorns\\b' +			// 1
@@ -21081,8 +21116,8 @@ Town.rrestr =
 	  '|^Virtue of Fortitude$' +
 	  '',
 	'amulet':
-	  '\\bamulet\\b' +			// 24
-	  '|\\bband\\b' +			// 4
+	  '\\bamulet\\b' +			// 23
+	  '|\\bband\\b' +			// 5
 	  '|\\bbauble\\b' +			// 1
 	  '|\\bbrooch\\b' +			// 1
 	  '|\\bcharm\\b' +			// 3
@@ -21099,7 +21134,7 @@ Town.rrestr =
 	  '|\\bmark\\b' +			// 1
 	  '|\\bmedallion\\b' +		// 1
 	  '|\\bmemento\\b' +		// 1
-	  '|\\bnecklace\\b' +		// 5
+	  '|\\bnecklace\\b' +		// 6
 	  '|\\borb\\b' +			// 4
 	  '|\\bpendant\\b' +		// 20
 	  '|\\brelic\\b' +			// 1
@@ -21144,7 +21179,7 @@ Town.rrestr =
 	  '|\\bbracer\\b' +			// 1
 	  '|\\bfists?\\b' +			// 1+3
 	  '|\\bgauntlets?\\b' +		// 15+8
-	  '|\\bgloves?\\b' +		// 4+3
+	  '|\\bgloves?\\b' +		// 3+4
 	  '|\\bgrasp\\b' +			// 2
 	  '|\\bhandguards?\\b' +	// 1+1
 	  '|\\bhands?\\b' +			// 6+3
