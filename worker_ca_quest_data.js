@@ -1,7 +1,7 @@
 /*jslint
 */
 
-Quest.rts = 1330238338;		// Sun Feb 26 06:38:58 2012 UTC
+Quest.rts = 1330709959;		// Fri Mar  2 17:39:19 2012 UTC
 
 Quest.rdata =				// #558
 {
@@ -396,7 +396,7 @@ Quest.rdata =				// #558
 	'ready soldiers':					{ 'reps_q12':  0 },
 	'ready the horses':					{ 'reps_q1':   5 },
 	'reason with guards':				{ 'reps_q12':  0 },
-	'reborn excitement':				{ 'reps_q17':  8 },
+	'reborn excitement':				{ 'reps_q17':  7 },
 	'recover the key':					{ 'reps_q9':  14 },
 	'recruit allies':					{ 'reps_q10': 14 },
 	'recruit elekin to join you':		{ 'reps_d2':   8 },

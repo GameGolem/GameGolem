@@ -103,7 +103,7 @@ Generals.page = function(page, change) {
 	}
 
 	if (page === 'heroes_generals') {
-		tmp = $('.generalSmallContainer2');
+		tmp = $('.generalSmallContainer1,.generalSmallContainer2');
 		for (i=0; i<tmp.length; i++) {
 			el = tmp[i];
 			try {
@@ -970,7 +970,7 @@ Generals.to = function(name) {
 	} else if (isNumber(id)) {
 		if (!Page.to('heroes_generals')) {
 			return false;
-		} else if (!(el = $('.generalSmallContainer2 form input[name="item"][value="'+id+'"]')).length) {
+		} else if (!(el = $('form input[name="item"][value="'+id+'"]', '.generalSmallContainer1,.generalSmallContainer2')).length) {
 			log(LOG_WARN, "Can't find select form for General: " + name);
 			return null;
 		} else if (!(el = $(el).closest('form')).length) {
@@ -1081,7 +1081,8 @@ Generals.best = function(type) {
 
 Generals.order = [];
 Generals.dashboard = function(sort, rev) {
-	var self = this, i, j, k, o, p, data, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0,
+	var now = Date.now(), i, j, o, p, v, vv, tt, data, output, list, tmp,
+		iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0,
 		sorttype = [
 			'img',
 			'name',
@@ -1116,11 +1117,11 @@ Generals.dashboard = function(sort, rev) {
 				aa = a;
 				bb = b;
 			} else if (sort === 3) {
-				aa = self.get(['data',a,'priority'], self.get(['data',a,'charge'], 1e9, 'number'), 'number');
-				bb = self.get(['data',b,'priority'], self.get(['data',b,'charge'], 1e9, 'number'), 'number');
+				aa = Generals.get(['data',a,'priority'], Generals.get(['data',a,'charge'], 1e9, 'number'), 'number');
+				bb = Generals.get(['data',b,'priority'], Generals.get(['data',b,'charge'], 1e9, 'number'), 'number');
 			} else if ((x = sorttype[sort])) {
-				aa = self.get(['data',a].concat(x.split('.')), 0, 'number');
-				bb = self.get(['data',b].concat(x.split('.')), 0, 'number');
+				aa = Generals.get(['data',a].concat(x.split('.')), 0, 'number');
+				bb = Generals.get(['data',b].concat(x.split('.')), 0, 'number');
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
@@ -1139,6 +1140,7 @@ Generals.dashboard = function(sort, rev) {
 		mdef = Math.max(mdef, this.get([p,'monster','def'], 1, 'number'));
 	}
 
+	output = [];
 	th(output, '');
 	th(output, 'General');
 	th(output, 'Level');
@@ -1150,33 +1152,88 @@ Generals.dashboard = function(sort, rev) {
 	th(output, 'Monster<br>Attack');
 	th(output, 'Fortify<br>Dispel');
 
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
+	list = [];
+	list.push('<table cellspacing="0" style="width:100%">');
+	list.push('<thead>');
+	list.push('<tr>' + output.join('') + '</tr>');
+	list.push('</thead>');
+	list.push('<tbody>');
 
-	for (o=0; o<this.order.length; o++) {
+	for (o = 0; o < this.order.length; o++) {
 		i = this.order[o];
 		p = this.get(['data',i]) || {};
 		output = [];
-		j = this.get([p, 'weaponbonus']);
-		k = p['skills'] || p['skillsbase'] || 'none';
-		td(output, Page.makeLink('heroes_generals', {item:p.id, itype:p.type}, '<img src="' + imagepath + p.img + '" style="width:25px;height:25px;" title="Skills: ' + k + (j ? '; Weapon Bonus: ' + j : '') + '">'));
-		td(output, i);
-		td(output, '<div'+(isNumber(p.progress) ? ' title="'+p.progress+'%"' : '')+'>'+p.level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(p.progress || 0)+'%;"></div></div>');
-		td(output, p.priority ? ((p.priority !== 1 ? '<a class="golem-moveup" name='+p.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + p.priority + (p.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+p.priority+'>&darr;</a>' : ' &nbsp;&nbsp;'))
-				: !this.get([p,'charge'],0)
-				? '&nbsp;&nbsp; '
-				: (this.get([p,'charge'],0) <= Date.now()
-				? 'Now'
-				: makeTime(this.get([p,'charge'],0), 'g:i a')));
-		td(output, (j = this.get([p,'stats','invade','att'],0,'number')).addCommas(), (iatt === j ? 'style="font-weight:bold;"' : ''));
-		td(output, (j = this.get([p,'stats','invade','def'],0,'number')).addCommas(), (idef === j ? 'style="font-weight:bold;"' : ''));
-		td(output, (j = this.get([p,'stats','duel','att'],0,'number')).addCommas(), (datt === j ? 'style="font-weight:bold;"' : ''));
-		td(output, (j = this.get([p,'stats','duel','def'],0,'number')).addCommas(), (ddef === j ? 'style="font-weight:bold;"' : ''));
-		td(output, (j = this.get([p,'stats','monster','att'],0,'number')).addCommas(), (matt === j ? 'style="font-weight:bold;"' : ''));
-		td(output, (j = this.get([p,'stats','monster','def'],0,'number')).addCommas(), (mdef === j ? 'style="font-weight:bold;"' : ''));
+
+		// icon
+		tt = 'Skills: ' + (p.skills || p.skillsbase || 'none');
+		if ((v = p.weaponbonus)) {
+			tt += '; Weapon Bonus: ' + v;
+		}
+		vv = '<img src="' + imagepath + p.img + '"'
+		  + ' style="width:25px;height:25px;"';
+		if (tt !== '') {
+			vv += ' title="' + tt.html_escape().quote_escape() + '"';
+			tt = '';
+		}
+		vv += '>';
+		if (isNumber(p.id) && isNumber(p.type)) {
+			vv = Page.makeLink('heroes_generals', {item:p.id, itype:p.type}, vv);
+		}
+		td(output, vv);
+
+		// general name
+		td(output, i.html_escape());
+
+		// progress
+		tmp = [];
+		if (isNumber(v = p.level)) {
+			tmp.push(v);
+		} else {
+			tmp.push('?');
+		}
+		tmp.push('</div>');
+		tmp.push('<div style="background-color:#9ba5b1; height:2px; width:100%;">');
+		if (isNumber(v = p.progress)) {
+			tmp.unshift('<div title="' + v + '%">');
+		} else {
+			tmp.unshift('<div>');
+		}
+		tmp.push('<div style="background-color:#1b3541; float:left; height:2px; width:'+(v || 0)+'%;">');
+		tmp.push('</div>');
+		tmp.push('</div>');
+		td(output, tmp.join(''));
+
+		// priority/charge
+		vv = '';
+		if (isNumber(v = p.priority)) {
+			if (v !== 1) {
+				vv += '<a class="golem-moveup" name="'+v+'">&uarr;</a> ';
+			}
+			vv += v;
+			if (v !== this.runtime.max_priority) {
+				vv += + ' <a class="golem-movedown" name="'+v+'">&darr;</a>';
+			}
+		} else if (isNumber(v = p.charge)) {
+			if (v > now) {
+				vv = makeTime(v, 'g:i a');
+			} else {
+				vv = 'Now';
+			}
+		}
+		td(output, vv);
+
+		td(output, (v = this.get([p,'stats','invade','att'],0,'number')).addCommas(), (iatt === v ? 'style="font-weight:bold;"' : ''));
+		td(output, (v = this.get([p,'stats','invade','def'],0,'number')).addCommas(), (idef === v ? 'style="font-weight:bold;"' : ''));
+		td(output, (v = this.get([p,'stats','duel','att'],0,'number')).addCommas(), (datt === v ? 'style="font-weight:bold;"' : ''));
+		td(output, (v = this.get([p,'stats','duel','def'],0,'number')).addCommas(), (ddef === v ? 'style="font-weight:bold;"' : ''));
+		td(output, (v = this.get([p,'stats','monster','att'],0,'number')).addCommas(), (matt === v ? 'style="font-weight:bold;"' : ''));
+		td(output, (v = this.get([p,'stats','monster','def'],0,'number')).addCommas(), (mdef === v ? 'style="font-weight:bold;"' : ''));
+
 		tr(list, output.join(''));
 	}
 
-	list.push('</tbody></table>');
+	list.push('</tbody>');
+	list.push('</table>');
 
 	$('a.golem-moveup').live('click', function(event){
 		var i, gdown, gup, x = parseInt($(this).attr('name'), 10);

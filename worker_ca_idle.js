@@ -175,12 +175,34 @@ Idle.work = function(state) {
 		return true;
 	}
 
-	// handle the generals tour first, to avoid thrashing with the Idle general
-	if (((j = this.get('temp.scan.generals')) || (i = this.option.generals)) && (p = Generals.get('data'))) {
+	// stale pages tour
+	for (i in this.pages) {
+		k = this.get(['temp','scan',i], 0, 'number');
+		if (k || (j = this.option[i])) {
+			j = Math.max(now - j, k);
+			for (p = 0; p < this.pages[i].length; p++) {
+				if (Page.isStale(this.pages[i][p], j)) {
+					if (!Generals.to(this.option.general)) {
+						return true;
+					}
+					if (!Page.to(this.pages[i][p])) {
+						return true;
+					}
+				}
+			}
+		}
+		this.set(['temp','scan',i]);
+	}
+
+	// generals tour
+	if (((j = this.get('temp.scan.generals'))
+	  || (i = this.option.generals)) && (p = Generals.get('data'))
+	) {
 		k = j ? now - j : i;
 		for (i in p) {
 			// purge cooldown guard after 5 minutes, if expired
-			if ((j = this.get(['temp','generals',i], 0, 'number')) && j + 300000 <= now) {
+			j = this.get(['temp','generals',i], 0, 'number');
+			if (j && j + 5*60*1000 <= now) {
 				this.set(['temp','generals',i]);
 				j = 0;
 			}
@@ -196,22 +218,9 @@ Idle.work = function(state) {
 		}
 	}
 
+	// ensure we are parked on the correct general as the final action
 	if (!Generals.to(this.option.general)) {
 		return true;
-	}
-
-	// stale pages tour
-	for (i in this.pages) {
-		k = this.get(['temp','scan',i], 0, 'number');
-		if (k || (j = this.option[i])) {
-			j = Math.max(now - j, k);
-			for (p = 0; p < this.pages[i].length; p++) {
-				if (Page.isStale(this.pages[i][p], j) && (!Page.to(this.pages[i][p]))) {
-					return true;
-				}
-			}
-		}
-		this.set(['temp','scan',i]);
 	}
 
 	return true;

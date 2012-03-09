@@ -67,10 +67,10 @@ Elite.page = function(page, change) {
 //			if (txt.match(/Elite Guard, and they have joined/i)) {
 			if (txt.match(/You've joined /i)) {
 				log(LOG_INFO, 'Added ' + Army.get(['Army', uid, 'name'], uid) + ' to Elite Guard');
-				Army.set(['Elite',uid, 'elite'], now + 86400000); // 24 hours
+				Army.set(['Elite',uid, 'elite'], now + 24*60*60*1000);
 			} else if (txt.match(/'s Elite Guard is FULL!/i)) {
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + '\'s Elite Guard is full');
-				Army.set(['Elite',uid, 'full'], now + 1800000); // half hour
+				Army.set(['Elite',uid, 'full'], now + 30*60*1000);
 			} else if (txt.match(/Sorry: You must be in Facebook User's Army to join their Elite Guard!/i)) {
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + ' is not in your army so can\'t join your Elite Guard');
 				Army.set(['Army',uid,'member']);
@@ -79,7 +79,7 @@ Elite.page = function(page, change) {
 				this.set(['runtime','waitelite'], now);
 			} else { //something weird - move on
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + 'couldn\'t join for some reason');
-				Army.set(['Elite',uid, 'full'], now + 1800000); // half hour
+				Army.set(['Elite',uid, 'full'], now + 30*60*1000);
 			}
 			if (this.runtime.nextelite === uid) {
 				this.set(['runtime','nextelite']);
@@ -95,7 +95,9 @@ Elite.page = function(page, change) {
 
 Elite.update = function(event, events) {
 	var i, list, check, next = 0, now = Date.now();
-	list = Army.get('Elite');// Try to keep the same guards
+
+	list = Army.get('Elite'); // Try to keep the same guards
+
 	for (i in list) {
 		check = list[i].elite || list[i].full || 0;
 		if (check < now) {
@@ -112,22 +114,35 @@ Elite.update = function(event, events) {
 			}
 		}
 	}
+
 	if (!next) {
 		list = Army.get('Army');// Otherwise lets just get anyone in the army
-		for(i in list) {
-			if (!Army.get(['Elite',i]) && Army.get(['Army',i,'member']) && (!this.option.friends || Army.get(['Army',i,'friend']))) {// Only try to add a non-member who's not already added
+		for (i in list) {
+			if (!Army.get(['Elite',i])
+			  && Army.get(['Army',i,'member'])
+			  && (!this.option.friends || Army.get(['Army',i,'friend']))
+			) {
+				// Only try to add a non-member who's not already added
 				next = i;
 				break;
 			}
 		}
 	}
-	this.set(['runtime','nextelite'], parseInt(next, 10)); // Make sure we're using a numeric uid
-	check = ((this.runtime.waitelite + (this.option.every * 3600000)) - now) / 1000;
-	if (next && this.runtime.waitelite) {
-		this._remind(check, 'recheck');
+
+	// Make sure we're using a numeric uid
+	this.set(['runtime','nextelite'], parseInt(next, 10));
+	check = (this.runtime.waitelite || 0) + this.option.every*60*60*1000 - now;
+	if (next && check > 0) {
+		this._remindMs(check, 'recheck');
 	}
-	this.set(['option','_sleep'], !next || (this.runtime.waitelite + (this.option.every * 3600000)) > now);
-	Dashboard.status(this, 'Elite Guard: Check' + (check <= 0 ? 'ing now' : ' in ' + Page.addTimer('elite', check * 1000, true)) + (next ? ', Next: '+Army.get(['Army', next, 'name']) : ''));
+
+	this.set(['option','_sleep'], !next || check > 0);
+
+	Dashboard.status(this, 'Elite Guard: Check'
+	  + (check <= 0 ? 'ing now' : ' in ' + Page.addTimer('elite', check, true))
+	  + (next ? ', Next: '+Army.get(['Army', next, 'name']) : '')
+	);
+
 	return true;
 };
 

@@ -72,13 +72,20 @@ Festival.display = [
 		select:'generals'
 	},{
 		id:'start',
-		label:'Automatically Start',
+		label:'Automatically Join',
 		checkbox:true
 	},{
 		id:'delay',
-		label:'Start Delay',
+		label:'Join Delay',
 		require:'start',
-		select:{0:'None',60000:'1 Minute',120000:'2 Minutes',180000:'3 Minutes',240000:'4 Minutes',300000:'5 Minutes'}
+		select:{
+			0:'None',
+			60000:'1 minute',
+			120000:'2 minutes',
+			180000:'3 minutes',
+			240000:'4 minutes',
+			300000:'5 minutes'
+		}
 	},{
 		id:'collect',
 		label:'Collect Rewards',
@@ -91,11 +98,31 @@ Festival.display = [
 		id:'safety',
 		label:'Safety Margin',
 		require:'tokens!="min"',
-		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
+		select:{
+			30000:'30 seconds',
+			45000:'45 seconds',
+			60000:'1 minute',
+			90000:'1.5 minutes',
+			120000:'2 minutes',
+			150000:'2.5 minutes',
+			180000:'3 minutes',
+			240000:'4 minutes'
+		}
 	},{
 		id:'order',
 		label:'Attack',
-		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity', levelactive:'Lowest Level with Activity', levelactive2:'Highest Level with Activity'}
+		select:{
+			health:'Lowest Health',
+			level:'Lowest Level',
+			maxhealth:'Lowest Max Health',
+			activity:'Lowest Activity',
+			health2:'Highest Health',
+			level2:'Highest Level',
+			maxhealth2:'Highest Max Health',
+			activity2:'Highest Activity',
+			levelactive:'Lowest Level with Activity',
+			levelactive2:'Highest Level with Activity'
+		}
 	},{
 		advanced:true,
 		id:'limit',
@@ -152,21 +179,22 @@ Festival.init = function() {
 	}
 	// END
 
-	this._remind(300, 'tokens');// Gain more tokens every 5 minutes
+	this._remind(5*60, 'tokens'); // Gain a token every 5 minutes
 	if (this.runtime.start && this.runtime.start > now) {
-		this._remind((this.runtime.start - now) / 1000, 'start');
+		this._remindMs(this.runtime.start - now, 'start');
 	}
 	if (this.runtime.finish && this.runtime.finish > now) {
-		this._remind((this.runtime.finish - now) / 1000, 'finish');
+		this._remindMs(this.runtime.finish - now, 'finish');
 	}
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
-		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
+		this._remindMs(this.runtime.finish - this.option.safety - now, 'fight');
 	}
 	this._trigger('#'+APPID_+'guild_token_current_value', 'tokens'); //fix
 };
 
 Festival.page = function(page, change) {
 	var now = Date.now(), tmp, i;
+
 	switch (page) {
 	case 'festival_guild':
 		tmp = $('#'+APPID_+'current_battle_info').text();
@@ -185,6 +213,11 @@ Festival.page = function(page, change) {
 		}
 		break;
 	case 'festival_guild_battle':
+		if ($('#arena_battle_banner_section:contains("You Are Not A Part Of This Festival Battle!")').length) {
+		    log(LOG_INFO, '# not our battle');
+		    Page.set('temp.page', null);
+		    return change;
+		}
 		this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
 		this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
 		i = $('#'+APPID_+'monsterTicker').text().parseTimer();
@@ -192,13 +225,13 @@ Festival.page = function(page, change) {
 		  + ',input[src*="arena3_collectbutton."]');
 		if (tmp.length) {
 			this.set(['runtime','status'], 'collect');
-		} else if (i === 9999) {
+		} else if (i >= Date.HUGE) {
 			this.set(['runtime','status'], 'wait');
-			this.set(['runtime','start'], 3600000 + now);
-			this._remind(3600 , 'start');
+			this.set(['runtime','start'], 60*60*1000 + now);
+			this._remind(60*60 , 'start');
 		} else {
 			this.set(['runtime','status'], 'fight');
-			this.set(['runtime','finish'], (i * 1000) + now);
+			this.set(['runtime','finish'], i*1000 + now);
 			this._remind(i, 'finish');
 		}
 		tmp = $('#'+APPID_+'results_main_wrapper');
@@ -210,41 +243,44 @@ Festival.page = function(page, change) {
 				this._notify('data');// Force dashboard update
 			}
 		}
-		if ($('img[src*="battle_defeat"]').length) {//fix
-			if (this.temp.last) {
-				this.set(['data',this.temp.last], true);
-			}
-			this.set(['temp','last'], null);
-		} else if ($('img[src*="battle_victory"]').length) {
-			this.set(['temp','last'], null);
+		if ($('img[src*="battle_defeat"]').length && this.temp.last) {//fix
+			this.set(['data',this.temp.last], true);
 		}
+		this.set(['temp','last'], null);
 		this.set(['runtime','stunned'], !!$('#'+APPID_+'guild_battle_banner_section:contains("Status: Stunned")').length);//fix
 		break;
 	}
+
 	return change;
 };
 
-Festival.update = function(event) {
-	var now = Date.now(), status;
-	if (event.type === 'reminder') {
-		if (event.id === 'tokens') {
-			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
-			if (this.runtime.tokens < 10) {
-				this._remind(300, 'tokens');
-			}
-		} else if (event.id === 'start') {
+Festival.update = function(event, events) {
+	var now = Date.now(), i, status;
+
+	if (events.findEvent(null, 'trigger', 'tokens')) {
+		if ((i = $('#'+APPID_+'guild_token_current_value')).length) {//fix
+			this.set(['runtime','tokens'], i.text().regex(/(\d+)/) || 0);
+		}
+	}
+	if (events.findEvent(null, 'reminder', 'tokens')) {
+		this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
+		if (this.runtime.tokens < 10) {
+			this._remind(5*60, 'tokens');
+		}
+	}
+	if (events.findEvent(null, 'reminder', 'start')) {
+		if (this.runtime.status !== 'fight') {
 			this.set(['runtime','status'], 'start');
-		} else if (event.id === 'finish') {
+		}
+	}
+	if (events.findEvent(null, 'reminder', 'finish')) {
+		if (this.runtime.status !== 'wait') {
 			this.set(['runtime','status'], 'collect');
 		}
 	}
-	if (event.type === 'trigger' && event.id === 'tokens') {
-		if ($('#'+APPID_+'guild_token_current_value').length) {//fix
-			this.set(['runtime','tokens'], $('#'+APPID_+'guild_token_current_value').text().regex(/(\d+)/) || 0);
-		}
-	}
+
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
-		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
+		this._remindMs(this.runtime.finish - this.option.safety - now, 'fight');
 	}
 	if (!this.runtime.tokens) {
 		this.set(['runtime','burn'], false);
@@ -257,13 +293,21 @@ Festival.update = function(event) {
 		&& !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
 		&& !(this.runtime.status === 'fight' && this.runtime.tokens
-			&& (!this.option.delay || this.runtime.finish - 3600000 >= now - this.option.delay)
+			&& (!this.option.delay || this.runtime.finish - 60*60*1000 >= now - this.option.delay)
 			&& (this.option.tokens === 'min'
 			|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 			|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
+
 	status = this.get('runtime.status', 'wait');
-	Dashboard.status(this, 'Status: ' + this.temp.status[status] + (status === 'wait' ? ' (' + Page.addTimer('festival_start', this.runtime.start) + ')' : '') + (status === 'fight' ? ' (' + Page.addTimer('festival_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('arena', 'Festival Tokens') + ' ' + this.runtime.tokens + ' / 10');
+
+	Dashboard.status(this, 'Status: ' + this.temp.status[status]
+	  + (status === 'wait' ? ' (' + Page.addTimer('festival_start', this.runtime.start) + ')' : '')
+	  + (status === 'fight' ? ' (' + Page.addTimer('festival_start', this.runtime.finish) + ')' : '')
+	  + ', Tokens: ' + Config.makeImage('arena', 'Festival Tokens') + ' ' + this.runtime.tokens + ' / 10'
+	);
+
+	return true;
 };
 
 Festival.work = function(state) {
@@ -285,13 +329,12 @@ Festival.work = function(state) {
 					Page.to('festival_guild');
 				} else {
 					tmp = $('img.imgButton[src*="festival_arena_enter."]');
-					if (tmp.length && Page.click(tmp[0])) {
+					if (!tmp.length) {
 						this.set('runtime.status', 'wait');
-						return QUEUE_FINISH;
-					} else {
-						log(LOG_INFO, "Can't find enter button, backing out.");
-						Page.to('festival_guild');
+					} else if (!Page.click(tmp[0])) {
+						log(LOG_INFO, "Can't click enter button, bailing.");
 					}
+					return QUEUE_FINISH;
 				}
 			} else {
 				if (this.runtime.status === 'collect') {
@@ -308,8 +351,8 @@ Festival.work = function(state) {
 					if (tmp.length) {
 						log('Entering Battle');
 						Page.click(tmp[0]);
-						this.set(['data'], {}); // Forget old "lose" list
 					}
+					this.set(['data'], {}); // Forget old "lose" list
 				} else if (this.runtime.status === 'fight') {
 					tmp = $('input[src*="guild_enter_battle_button."]');
 					if (tmp.length) {
@@ -386,7 +429,6 @@ Festival.work = function(state) {
 						if (this.option.cleric) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
-						//if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (this.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(this.option.suppress && besttarget[3] && besttarget[6])) || test)))
 						if (((tokens >= 10 || (this.option.suppress && target[6])) ? target[3] : target[3] >= 200)
 						  && (!best
 						  || cleric
@@ -426,10 +468,10 @@ Festival.work = function(state) {
 						);
 						tmp = $('input[src*="monster_duel_button."]', best);
 						if (!tmp.length) {
-							log(LOG_INFO, "Can't find button, so backing out.");
+							log(LOG_INFO, "Can't find button, backing out.");
 							Page.to('festival_guild');
 						} else if (!Page.click(tmp[0])) {
-							log(LOG_INFO, "Can't click button, so backing out.");
+							log(LOG_INFO, "Can't click button, backing out.");
 							Page.to('battle_guild');
 							this.set(['temp','last'], null);
 						} else {

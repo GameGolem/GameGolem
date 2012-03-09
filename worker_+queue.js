@@ -152,7 +152,7 @@ Queue.init = function(old_revision) {
 			$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
 			if (!pause) {
 				$('#golem_step').hide();
-			} else if (Config.get(['option','debug'], false)) {
+			} else if (Config.option.debug || Config.option.advanced) {
 				$('#golem_step').show();
 			}
 			Queue.set(['temp','current']);
@@ -163,7 +163,8 @@ Queue.init = function(old_revision) {
 		image:'step',
 		className:'green',
 		after:'golem_pause',
-		hide:!this.option.pause || !Config.get(['option','debug'], false),
+		hide:!this.option.pause
+		  || (!Config.option.debug && !Config.option.advanced),
 		click:function() {
 			$(this).toggleClass('red green');
 			Queue._update({type:'step'}, 'run'); // A single shot

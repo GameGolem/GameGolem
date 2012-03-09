@@ -63,8 +63,8 @@ Blessing.page = function(page, change) {
 		} else if (result.text().match(/You have paid tribute to/i)) {
 			this.set(['runtime','when'], Date.now() + 86460000); // 24 hours and 1 minute
 		}
-		if ((when = this.get(['runtime','when'],0))) {
-			this._remind((when - Date.now()) / 1000, 'blessing');
+		if ((when = this.get(['runtime','when'], 0, 'number'))) {
+			this._remindMs(Math.max(1, when - Date.now()), 'blessing');
 		}
 	}
 //app46755028429_symbol_displaysymbols1

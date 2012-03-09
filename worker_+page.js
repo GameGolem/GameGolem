@@ -20,7 +20,7 @@ Page.settings = {
 };
 
 Page.option = {
-	timeout:15,
+	timeout:60,
 	reload:5,
 	nochat:false,
 	refresh:250
@@ -55,7 +55,7 @@ Global.display.push({
 		{
 			id:['Page','option','timeout'],
 			label:'Retry after',
-			select:[10, 15, 30, 60],
+			select:[10, 15, 30, 60, 75, 90],
 			after:'seconds'
 		},{
 			id:['Page','option','reload'],

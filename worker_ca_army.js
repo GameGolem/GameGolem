@@ -74,7 +74,7 @@ Army._overload('castle_age', 'init', function() {
 	this.runtime.extra = Math.max(1, this.runtime.extra);
 	this._watch(Player, 'data.armymax');
 //	if (this.runtime.oldest && this.option.recheck) {
-//		this._remind(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck) / 1000, 'recheck');
+//		this._remindMs(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck), 'recheck');
 //	}
 	this._parent();
 });

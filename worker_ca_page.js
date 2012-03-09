@@ -33,6 +33,7 @@ Page.defaults.castle_age = {
 			quests_quest14:			{url:'quests.php?land=14', image:'tab_fire2_big.gif', skip:true},
 			quests_quest15:			{url:'quests.php?land=15', image:'tab_pangaea_big.gif', skip:true},
 			quests_quest16:			{url:'quests.php?land=16', image:'tab_perdition_big.gif', skip:true},
+			quests_quest17:			{url:'quests.php?land=17', image:'tab_fire4_big.gif', skip:true},
 			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif', skip:true},
 			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif', skip:true},
 			battle_battle:			{url:'battle.php', image:'battle_on.gif', skip:true},

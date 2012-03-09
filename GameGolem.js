@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1178
+ * GameGolem v31.6.1179
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1178
+ * GameGolem v31.6.1179
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1178;
+var revision = 1179;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1177;
+var trunk_revision = 1178;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -5937,7 +5937,7 @@ Page.settings = {
 };
 
 Page.option = {
-	timeout:15,
+	timeout:60,
 	reload:5,
 	nochat:false,
 	refresh:250
@@ -5972,7 +5972,7 @@ Global.display.push({
 		{
 			id:['Page','option','timeout'],
 			label:'Retry after',
-			select:[10, 15, 30, 60],
+			select:[10, 15, 30, 60, 75, 90],
 			after:'seconds'
 		},{
 			id:['Page','option','reload'],
@@ -6481,7 +6481,7 @@ Queue.init = function(old_revision) {
 			$(this).toggleClass('red green').attr('src', getImage(pause ? 'play' : 'pause'));
 			if (!pause) {
 				$('#golem_step').hide();
-			} else if (Config.get(['option','debug'], false)) {
+			} else if (Config.option.debug || Config.option.advanced) {
 				$('#golem_step').show();
 			}
 			Queue.set(['temp','current']);
@@ -6492,7 +6492,8 @@ Queue.init = function(old_revision) {
 		image:'step',
 		className:'green',
 		after:'golem_pause',
-		hide:!this.option.pause || !Config.get(['option','debug'], false),
+		hide:!this.option.pause
+		  || (!Config.option.debug && !Config.option.advanced),
 		click:function() {
 			$(this).toggleClass('red green');
 			Queue._update({type:'step'}, 'run'); // A single shot
@@ -8100,7 +8101,7 @@ Army._overload('castle_age', 'init', function() {
 	this.runtime.extra = Math.max(1, this.runtime.extra);
 	this._watch(Player, 'data.armymax');
 //	if (this.runtime.oldest && this.option.recheck) {
-//		this._remind(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck) / 1000, 'recheck');
+//		this._remindMs(Math.min(1, Date.now() - this.runtime.oldest + this.option.recheck), 'recheck');
 //	}
 	this._parent();
 });
@@ -9098,8 +9099,8 @@ Blessing.page = function(page, change) {
 		} else if (result.text().match(/You have paid tribute to/i)) {
 			this.set(['runtime','when'], Date.now() + 86460000); // 24 hours and 1 minute
 		}
-		if ((when = this.get(['runtime','when'],0))) {
-			this._remind((when - Date.now()) / 1000, 'blessing');
+		if ((when = this.get(['runtime','when'], 0, 'number'))) {
+			this._remindMs(Math.max(1, when - Date.now()), 'blessing');
 		}
 	}
 //app46755028429_symbol_displaysymbols1
@@ -9235,10 +9236,10 @@ Elite.page = function(page, change) {
 //			if (txt.match(/Elite Guard, and they have joined/i)) {
 			if (txt.match(/You've joined /i)) {
 				log(LOG_INFO, 'Added ' + Army.get(['Army', uid, 'name'], uid) + ' to Elite Guard');
-				Army.set(['Elite',uid, 'elite'], now + 86400000); // 24 hours
+				Army.set(['Elite',uid, 'elite'], now + 24*60*60*1000);
 			} else if (txt.match(/'s Elite Guard is FULL!/i)) {
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + '\'s Elite Guard is full');
-				Army.set(['Elite',uid, 'full'], now + 1800000); // half hour
+				Army.set(['Elite',uid, 'full'], now + 30*60*1000);
 			} else if (txt.match(/Sorry: You must be in Facebook User's Army to join their Elite Guard!/i)) {
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + ' is not in your army so can\'t join your Elite Guard');
 				Army.set(['Army',uid,'member']);
@@ -9247,7 +9248,7 @@ Elite.page = function(page, change) {
 				this.set(['runtime','waitelite'], now);
 			} else { //something weird - move on
 				log(LOG_INFO, Army.get(['Army', uid, 'name'], uid) + 'couldn\'t join for some reason');
-				Army.set(['Elite',uid, 'full'], now + 1800000); // half hour
+				Army.set(['Elite',uid, 'full'], now + 30*60*1000);
 			}
 			if (this.runtime.nextelite === uid) {
 				this.set(['runtime','nextelite']);
@@ -9263,7 +9264,9 @@ Elite.page = function(page, change) {
 
 Elite.update = function(event, events) {
 	var i, list, check, next = 0, now = Date.now();
-	list = Army.get('Elite');// Try to keep the same guards
+
+	list = Army.get('Elite'); // Try to keep the same guards
+
 	for (i in list) {
 		check = list[i].elite || list[i].full || 0;
 		if (check < now) {
@@ -9280,22 +9283,35 @@ Elite.update = function(event, events) {
 			}
 		}
 	}
+
 	if (!next) {
 		list = Army.get('Army');// Otherwise lets just get anyone in the army
-		for(i in list) {
-			if (!Army.get(['Elite',i]) && Army.get(['Army',i,'member']) && (!this.option.friends || Army.get(['Army',i,'friend']))) {// Only try to add a non-member who's not already added
+		for (i in list) {
+			if (!Army.get(['Elite',i])
+			  && Army.get(['Army',i,'member'])
+			  && (!this.option.friends || Army.get(['Army',i,'friend']))
+			) {
+				// Only try to add a non-member who's not already added
 				next = i;
 				break;
 			}
 		}
 	}
-	this.set(['runtime','nextelite'], parseInt(next, 10)); // Make sure we're using a numeric uid
-	check = ((this.runtime.waitelite + (this.option.every * 3600000)) - now) / 1000;
-	if (next && this.runtime.waitelite) {
-		this._remind(check, 'recheck');
+
+	// Make sure we're using a numeric uid
+	this.set(['runtime','nextelite'], parseInt(next, 10));
+	check = (this.runtime.waitelite || 0) + this.option.every*60*60*1000 - now;
+	if (next && check > 0) {
+		this._remindMs(check, 'recheck');
 	}
-	this.set(['option','_sleep'], !next || (this.runtime.waitelite + (this.option.every * 3600000)) > now);
-	Dashboard.status(this, 'Elite Guard: Check' + (check <= 0 ? 'ing now' : ' in ' + Page.addTimer('elite', check * 1000, true)) + (next ? ', Next: '+Army.get(['Army', next, 'name']) : ''));
+
+	this.set(['option','_sleep'], !next || check > 0);
+
+	Dashboard.status(this, 'Elite Guard: Check'
+	  + (check <= 0 ? 'ing now' : ' in ' + Page.addTimer('elite', check, true))
+	  + (next ? ', Next: '+Army.get(['Army', next, 'name']) : '')
+	);
+
 	return true;
 };
 
@@ -9461,7 +9477,7 @@ Generals.page = function(page, change) {
 	}
 
 	if (page === 'heroes_generals') {
-		tmp = $('.generalSmallContainer2');
+		tmp = $('.generalSmallContainer1,.generalSmallContainer2');
 		for (i=0; i<tmp.length; i++) {
 			el = tmp[i];
 			try {
@@ -10328,7 +10344,7 @@ Generals.to = function(name) {
 	} else if (isNumber(id)) {
 		if (!Page.to('heroes_generals')) {
 			return false;
-		} else if (!(el = $('.generalSmallContainer2 form input[name="item"][value="'+id+'"]')).length) {
+		} else if (!(el = $('form input[name="item"][value="'+id+'"]', '.generalSmallContainer1,.generalSmallContainer2')).length) {
 			log(LOG_WARN, "Can't find select form for General: " + name);
 			return null;
 		} else if (!(el = $(el).closest('form')).length) {
@@ -10439,7 +10455,8 @@ Generals.best = function(type) {
 
 Generals.order = [];
 Generals.dashboard = function(sort, rev) {
-	var self = this, i, j, k, o, p, data, output = [], list = [], iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0,
+	var now = Date.now(), i, j, o, p, v, vv, tt, data, output, list, tmp,
+		iatt = 0, idef = 0, datt = 0, ddef = 0, matt = 0, mdef = 0,
 		sorttype = [
 			'img',
 			'name',
@@ -10474,11 +10491,11 @@ Generals.dashboard = function(sort, rev) {
 				aa = a;
 				bb = b;
 			} else if (sort === 3) {
-				aa = self.get(['data',a,'priority'], self.get(['data',a,'charge'], 1e9, 'number'), 'number');
-				bb = self.get(['data',b,'priority'], self.get(['data',b,'charge'], 1e9, 'number'), 'number');
+				aa = Generals.get(['data',a,'priority'], Generals.get(['data',a,'charge'], 1e9, 'number'), 'number');
+				bb = Generals.get(['data',b,'priority'], Generals.get(['data',b,'charge'], 1e9, 'number'), 'number');
 			} else if ((x = sorttype[sort])) {
-				aa = self.get(['data',a].concat(x.split('.')), 0, 'number');
-				bb = self.get(['data',b].concat(x.split('.')), 0, 'number');
+				aa = Generals.get(['data',a].concat(x.split('.')), 0, 'number');
+				bb = Generals.get(['data',b].concat(x.split('.')), 0, 'number');
 			}
 			if (typeof aa === 'string' || typeof bb === 'string') {
 				return (rev ? (''+bb).localeCompare(aa) : (''+aa).localeCompare(bb));
@@ -10497,6 +10514,7 @@ Generals.dashboard = function(sort, rev) {
 		mdef = Math.max(mdef, this.get([p,'monster','def'], 1, 'number'));
 	}
 
+	output = [];
 	th(output, '');
 	th(output, 'General');
 	th(output, 'Level');
@@ -10508,33 +10526,88 @@ Generals.dashboard = function(sort, rev) {
 	th(output, 'Monster<br>Attack');
 	th(output, 'Fortify<br>Dispel');
 
-	list.push('<table cellspacing="0" style="width:100%"><thead><tr>' + output.join('') + '</tr></thead><tbody>');
+	list = [];
+	list.push('<table cellspacing="0" style="width:100%">');
+	list.push('<thead>');
+	list.push('<tr>' + output.join('') + '</tr>');
+	list.push('</thead>');
+	list.push('<tbody>');
 
-	for (o=0; o<this.order.length; o++) {
+	for (o = 0; o < this.order.length; o++) {
 		i = this.order[o];
 		p = this.get(['data',i]) || {};
 		output = [];
-		j = this.get([p, 'weaponbonus']);
-		k = p['skills'] || p['skillsbase'] || 'none';
-		td(output, Page.makeLink('heroes_generals', {item:p.id, itype:p.type}, '<img src="' + imagepath + p.img + '" style="width:25px;height:25px;" title="Skills: ' + k + (j ? '; Weapon Bonus: ' + j : '') + '">'));
-		td(output, i);
-		td(output, '<div'+(isNumber(p.progress) ? ' title="'+p.progress+'%"' : '')+'>'+p.level+'</div><div style="background-color: #9ba5b1; height: 2px; width=100%;"><div style="background-color: #1b3541; float: left; height: 2px; width: '+(p.progress || 0)+'%;"></div></div>');
-		td(output, p.priority ? ((p.priority !== 1 ? '<a class="golem-moveup" name='+p.priority+'>&uarr;</a> ' : '&nbsp;&nbsp; ') + p.priority + (p.priority !== this.runtime.max_priority ? ' <a class="golem-movedown" name='+p.priority+'>&darr;</a>' : ' &nbsp;&nbsp;'))
-				: !this.get([p,'charge'],0)
-				? '&nbsp;&nbsp; '
-				: (this.get([p,'charge'],0) <= Date.now()
-				? 'Now'
-				: makeTime(this.get([p,'charge'],0), 'g:i a')));
-		td(output, (j = this.get([p,'stats','invade','att'],0,'number')).addCommas(), (iatt === j ? 'style="font-weight:bold;"' : ''));
-		td(output, (j = this.get([p,'stats','invade','def'],0,'number')).addCommas(), (idef === j ? 'style="font-weight:bold;"' : ''));
-		td(output, (j = this.get([p,'stats','duel','att'],0,'number')).addCommas(), (datt === j ? 'style="font-weight:bold;"' : ''));
-		td(output, (j = this.get([p,'stats','duel','def'],0,'number')).addCommas(), (ddef === j ? 'style="font-weight:bold;"' : ''));
-		td(output, (j = this.get([p,'stats','monster','att'],0,'number')).addCommas(), (matt === j ? 'style="font-weight:bold;"' : ''));
-		td(output, (j = this.get([p,'stats','monster','def'],0,'number')).addCommas(), (mdef === j ? 'style="font-weight:bold;"' : ''));
+
+		// icon
+		tt = 'Skills: ' + (p.skills || p.skillsbase || 'none');
+		if ((v = p.weaponbonus)) {
+			tt += '; Weapon Bonus: ' + v;
+		}
+		vv = '<img src="' + imagepath + p.img + '"'
+		  + ' style="width:25px;height:25px;"';
+		if (tt !== '') {
+			vv += ' title="' + tt.html_escape().quote_escape() + '"';
+			tt = '';
+		}
+		vv += '>';
+		if (isNumber(p.id) && isNumber(p.type)) {
+			vv = Page.makeLink('heroes_generals', {item:p.id, itype:p.type}, vv);
+		}
+		td(output, vv);
+
+		// general name
+		td(output, i.html_escape());
+
+		// progress
+		tmp = [];
+		if (isNumber(v = p.level)) {
+			tmp.push(v);
+		} else {
+			tmp.push('?');
+		}
+		tmp.push('</div>');
+		tmp.push('<div style="background-color:#9ba5b1; height:2px; width:100%;">');
+		if (isNumber(v = p.progress)) {
+			tmp.unshift('<div title="' + v + '%">');
+		} else {
+			tmp.unshift('<div>');
+		}
+		tmp.push('<div style="background-color:#1b3541; float:left; height:2px; width:'+(v || 0)+'%;">');
+		tmp.push('</div>');
+		tmp.push('</div>');
+		td(output, tmp.join(''));
+
+		// priority/charge
+		vv = '';
+		if (isNumber(v = p.priority)) {
+			if (v !== 1) {
+				vv += '<a class="golem-moveup" name="'+v+'">&uarr;</a> ';
+			}
+			vv += v;
+			if (v !== this.runtime.max_priority) {
+				vv += + ' <a class="golem-movedown" name="'+v+'">&darr;</a>';
+			}
+		} else if (isNumber(v = p.charge)) {
+			if (v > now) {
+				vv = makeTime(v, 'g:i a');
+			} else {
+				vv = 'Now';
+			}
+		}
+		td(output, vv);
+
+		td(output, (v = this.get([p,'stats','invade','att'],0,'number')).addCommas(), (iatt === v ? 'style="font-weight:bold;"' : ''));
+		td(output, (v = this.get([p,'stats','invade','def'],0,'number')).addCommas(), (idef === v ? 'style="font-weight:bold;"' : ''));
+		td(output, (v = this.get([p,'stats','duel','att'],0,'number')).addCommas(), (datt === v ? 'style="font-weight:bold;"' : ''));
+		td(output, (v = this.get([p,'stats','duel','def'],0,'number')).addCommas(), (ddef === v ? 'style="font-weight:bold;"' : ''));
+		td(output, (v = this.get([p,'stats','monster','att'],0,'number')).addCommas(), (matt === v ? 'style="font-weight:bold;"' : ''));
+		td(output, (v = this.get([p,'stats','monster','def'],0,'number')).addCommas(), (mdef === v ? 'style="font-weight:bold;"' : ''));
+
 		tr(list, output.join(''));
 	}
 
-	list.push('</tbody></table>');
+	list.push('</tbody>');
+	list.push('</table>');
 
 	$('a.golem-moveup').live('click', function(event){
 		var i, gdown, gup, x = parseInt($(this).attr('name'), 10);
@@ -11215,12 +11288,34 @@ Idle.work = function(state) {
 		return true;
 	}
 
-	// handle the generals tour first, to avoid thrashing with the Idle general
-	if (((j = this.get('temp.scan.generals')) || (i = this.option.generals)) && (p = Generals.get('data'))) {
+	// stale pages tour
+	for (i in this.pages) {
+		k = this.get(['temp','scan',i], 0, 'number');
+		if (k || (j = this.option[i])) {
+			j = Math.max(now - j, k);
+			for (p = 0; p < this.pages[i].length; p++) {
+				if (Page.isStale(this.pages[i][p], j)) {
+					if (!Generals.to(this.option.general)) {
+						return true;
+					}
+					if (!Page.to(this.pages[i][p])) {
+						return true;
+					}
+				}
+			}
+		}
+		this.set(['temp','scan',i]);
+	}
+
+	// generals tour
+	if (((j = this.get('temp.scan.generals'))
+	  || (i = this.option.generals)) && (p = Generals.get('data'))
+	) {
 		k = j ? now - j : i;
 		for (i in p) {
 			// purge cooldown guard after 5 minutes, if expired
-			if ((j = this.get(['temp','generals',i], 0, 'number')) && j + 300000 <= now) {
+			j = this.get(['temp','generals',i], 0, 'number');
+			if (j && j + 5*60*1000 <= now) {
 				this.set(['temp','generals',i]);
 				j = 0;
 			}
@@ -11236,22 +11331,9 @@ Idle.work = function(state) {
 		}
 	}
 
+	// ensure we are parked on the correct general as the final action
 	if (!Generals.to(this.option.general)) {
 		return true;
-	}
-
-	// stale pages tour
-	for (i in this.pages) {
-		k = this.get(['temp','scan',i], 0, 'number');
-		if (k || (j = this.option[i])) {
-			j = Math.max(now - j, k);
-			for (p = 0; p < this.pages[i].length; p++) {
-				if (Page.isStale(this.pages[i][p], j) && (!Page.to(this.pages[i][p]))) {
-					return true;
-				}
-			}
-		}
-		this.set(['temp','scan',i]);
 	}
 
 	return true;
@@ -15349,6 +15431,7 @@ Page.defaults.castle_age = {
 			quests_quest14:			{url:'quests.php?land=14', image:'tab_fire2_big.gif', skip:true},
 			quests_quest15:			{url:'quests.php?land=15', image:'tab_pangaea_big.gif', skip:true},
 			quests_quest16:			{url:'quests.php?land=16', image:'tab_perdition_big.gif', skip:true},
+			quests_quest17:			{url:'quests.php?land=17', image:'tab_fire4_big.gif', skip:true},
 			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif', skip:true},
 			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif', skip:true},
 			battle_battle:			{url:'battle.php', image:'battle_on.gif', skip:true},
@@ -17348,7 +17431,7 @@ Quest.wiki_reps = function(quest, pure) {
 /*jslint
 */
 
-Quest.rts = 1330238338;		// Sun Feb 26 06:38:58 2012 UTC
+Quest.rts = 1330709959;		// Fri Mar  2 17:39:19 2012 UTC
 
 Quest.rdata =				// #558
 {
@@ -17743,7 +17826,7 @@ Quest.rdata =				// #558
 	'ready soldiers':					{ 'reps_q12':  0 },
 	'ready the horses':					{ 'reps_q1':   5 },
 	'reason with guards':				{ 'reps_q12':  0 },
-	'reborn excitement':				{ 'reps_q17':  8 },
+	'reborn excitement':				{ 'reps_q17':  7 },
 	'recover the key':					{ 'reps_q9':  14 },
 	'recruit allies':					{ 'reps_q10': 14 },
 	'recruit elekin to join you':		{ 'reps_d2':   8 },
@@ -19583,9 +19666,9 @@ Town.dup_map = {
 /*jslint
 */
 
-Town.rts = 1330273067;	// Sun Feb 26 16:17:47 2012 UTC
+Town.rts = 1330701967;	// Fri Mar  2 15:26:07 2012 UTC
 
-Town.rdata =			// #1336
+Town.rdata =			// #1339
 {
 	'Absolution':					{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_azul_shield.jpg' },
 	'Adjucators Gauntlets':			{ 'atk':  12, 'def':   8, 'type': 'gloves', 'img': 'eq_azeron_gauntlet.jpg' },
@@ -19598,7 +19681,7 @@ Town.rdata =			// #1336
 	'Aegis of Stone':				{ 'atk':  30, 'def':  40, 'type': 'shield', 'img': 'eq_giants_special2.jpg' },
 	'Aegis of the Tower':			{ 'atk':  22, 'def':  26, 'type': 'shield', 'img': 'eq_agamemnon_shield1.jpg' },
 	'Aegis of the Winds':			{ 'atk':  28, 'def':  22, 'type': 'shield', 'img': 'eq_valhalla_shield.jpg' },
-	'Aeris':						{ 'atk':   5, 'def':   5, 'type': 'hero', 'img': 'hero_aeris.jpg' },
+	'Aeris':						{ 'atk':   5, 'def':   5, 'type': 'hero', 'img': 'hero_aeris.jpg', 'skills': 'Decrease Bank fee' },
 	'Aeris Dagger':					{ 'atk':   4, 'def':  10, 'type': 'weapon', 'img': 'gift_aeris2_complete.jpg' },
 	'Aesirs Battle Armor':			{ 'atk':  24, 'def':  22, 'type': 'armor', 'img': 'eq_aesir_armor.jpg' },
 	'Aethyx':						{ 'atk':  24, 'def':  18, 'type': 'hero', 'img': 'hero_aethyx.jpg', 'skills': 'Increase Poison damage and duration' },
@@ -19667,7 +19750,7 @@ Town.rdata =			// #1336
 	'Arachnid Poison':				{ 'atk':   5, 'def':   5, 'type': 'magic' },
 	'Arachnid Slayer':				{ 'atk':   6, 'def':   4, 'type': 'weapon', 'img': 'eq_spider_reward_weapon.jpg' },
 	'Araxin Blade':					{ 'atk':   7, 'def':   8, 'type': 'weapon', 'img': 'gift_araxis_complete.jpg' },
-	'Araxis':						{ 'atk':  17, 'def':  19, 'type': 'hero', 'img': 'hero_araxis.jpg' },
+	'Araxis':						{ 'atk':  17, 'def':  19, 'type': 'hero', 'img': 'hero_araxis.jpg', 'skills': 'Convert' },
 	'Arcane Blast':					{ 'atk':   4, 'def':   4, 'type': 'magic', 'img': 'war_reward_3.jpg' },
 	'Arcane Bow':					{ 'atk':  17, 'def':  14, 'type': 'weapon', 'img': 'eq_sophia_arcanebow.jpg' },
 	'Arcane Defender':				{ 'atk':  23, 'def':  20, 'type': 'shield', 'img': 'eq_ambrosia_shield.jpg' },
@@ -19679,7 +19762,7 @@ Town.rdata =			// #1336
 	'Arcanist':						{ 'atk':  23, 'def':  20, 'type': 'unit', 'img': 'soldier_arcanis.jpg' },
 	'Archangel':					{ 'atk':  25, 'def':  20, 'type': 'unit', 'img': 'archangel.jpg' },
 	'Archangels Battlegear':		{ 'atk':  26, 'def':  14, 'type': 'armor', 'img': 'eq_azriel_armor.jpg' },
-	'Archmage Robes':				{ 'atk':  14, 'def':  11, 'type': 'armor', 'img': 'eq_azalia_armor.jpg' },
+	'Archmage Robes':				{ 'atk':  14, 'def':  12, 'type': 'armor', 'img': 'eq_azalia_armor.jpg' },
 	'Arctic Blade':					{ 'atk':   9, 'def':  13, 'type': 'weapon', 'img': 'eq_water_rare_dagger.jpg' },
 	'Argentum Helm':				{ 'atk':   9, 'def':   7, 'type': 'helmet', 'img': 'eq_lucius_helmet.jpg' },
 	'Argentum Plate':				{ 'atk':   7, 'def':  10, 'type': 'armor', 'img': 'eq_lucius_plate.jpg' },
@@ -19809,7 +19892,7 @@ Town.rdata =			// #1336
 	'Carmine Robes':				{ 'atk':  11, 'def':  14, 'type': 'armor', 'img': 'eq_scarlet_robe.jpg' },
 	'Cartigan':						{ 'atk':  20, 'def':  18, 'type': 'hero', 'img': 'hero_underworld.jpg', 'skills': 'Increase Player Attack by +4' },
 	'Castle Rampart':				{ 'atk':   0, 'def':   0, 'type': 'armor', 'img': 'gift_castle_wall.jpg' },
-	'Celesta':						{ 'atk':  15, 'def':  15, 'type': 'hero', 'img': 'hero_celesta.jpg' },
+	'Celesta':						{ 'atk':  15, 'def':  15, 'type': 'hero', 'img': 'hero_celesta.jpg', 'skills': 'Increase Player Defense by +7' },
 	'Celestas Devotion':			{ 'atk':  22, 'def':  44, 'type': 'weapon', 'img': 'eq_celesta_staff.jpg' },
 	'Celestial Helm':				{ 'atk':  11, 'def':  11, 'type': 'helmet', 'img': 'eq_azriel_helm.jpg' },
 	'Centaur Guardian':				{ 'atk':  24, 'def':  34, 'type': 'unit', 'img': 'soldier_centaur_guardian.jpg' },
@@ -19819,12 +19902,13 @@ Town.rdata =			// #1336
 	'Charlotte':					{ 'atk':  25, 'def':  27, 'type': 'hero', 'img': 'hero_charlotte.jpg', 'skills': 'Increase Monster Crits by +4%' },
 	'Chase':						{ 'atk':  20, 'def':  16, 'type': 'hero', 'img': 'hero_chase.jpg', 'skills': 'Increase Max Army Size by +20' },
 	'Chase Family Heirloom':		{ 'atk':   5, 'def':   5, 'type': 'amulet', 'img': 'gift_chase_complete.jpg' },
+	'Chillstrike':					{ 'atk':  24, 'def':  26, 'type': 'weapon', 'img': 'eq_frost_weapon.jpg' },
 	'Chimera Claw':					{ 'type': 'alchemy', 'img': 'gift_chimera_1.jpg' },
 	'Chimera Horns':				{ 'type': 'alchemy', 'img': 'gift_chimera_2.jpg' },
 	'Chimera Skull':				{ 'type': 'alchemy', 'img': 'gift_chimera_3.jpg' },
 	'Chimeric Aegis':				{ 'atk':  20, 'def':  22, 'type': 'shield', 'img': 'eq_chimera_shield.jpg' },
 	'Chimerus':						{ 'atk':  18, 'def':  15, 'type': 'hero', 'img': 'hero_demon.jpg', 'skills': 'Convert -10 Player Stamina to +10 Player Attack' },
-	'Cid':							{ 'atk':   5, 'def':   6, 'type': 'hero', 'img': 'hero_cid.jpg' },
+	'Cid':							{ 'atk':   5, 'def':   6, 'type': 'hero', 'img': 'hero_cid.jpg', 'skills': 'Income +4% (gross)' },
 	'Cid Helm':						{ 'atk':   3, 'def':   7, 'type': 'helmet', 'img': 'gift_cid2_complete.jpg' },
 	'Cid Saber':					{ 'atk':   6, 'def':   5, 'type': 'weapon', 'img': 'eq_cid_complete.jpg' },
 	'Cid Saber Shard 1 of 6':		{ 'type': 'alchemy', 'img': 'eq_cid_1.jpg' },
@@ -19903,7 +19987,7 @@ Town.rdata =			// #1336
 	'Dagger Fragment (2)':			{ 'type': 'alchemy', 'img': 'eq_strider_4.jpg' },
 	'Dagger Piece 1 of 2':			{ 'type': 'alchemy', 'img': 'gift_elena_3.jpg' },
 	'Dagger Piece 2 of 2':			{ 'type': 'alchemy', 'img': 'gift_elena_4.jpg' },
-	'Dante':						{ 'atk':  15, 'def':  13, 'type': 'hero', 'img': 'hero_dante.jpg' },
+	'Dante':						{ 'atk':  15, 'def':  13, 'type': 'hero', 'img': 'hero_dante.jpg', 'skills': 'Convert' },
 	'Dantes Shard':					{ 'type': 'alchemy', 'img': 'eq_dante_shield_rock.jpg' },
 	'Daphne':						{ 'atk':  17, 'def':  23, 'type': 'hero', 'img': 'hero_daphne.jpg', 'skills': 'Deflect damage while defending in Guild Battles' },
 	'Darius':						{ 'atk':  19, 'def':  19, 'type': 'hero', 'img': 'hero_darius.jpg', 'skills': 'Decrease Unit Cost by -10%' },
@@ -19949,7 +20033,7 @@ Town.rdata =			// #1336
 	'Divinity Plate':				{ 'atk':  12, 'def':  11, 'type': 'armor', 'img': 'eq_gallador_armor.jpg' },
 	'Dolomar':						{ 'atk':  22, 'def':  18, 'type': 'hero', 'img': 'hero_dolomar.jpg', 'skills': 'Increase Critical Hits against monsters' },
 	'Draconius':					{ 'atk':  18, 'def':  20, 'type': 'hero', 'img': 'hero_draconius.jpg', 'skills': 'Increase Player Defense by +2.0 per Griffin Rider, max 50' },
-	'Dragan':						{ 'atk':   5, 'def':   4, 'type': 'hero', 'img': 'hero_dragan.jpg' },
+	'Dragan':						{ 'atk':   5, 'def':   4, 'type': 'hero', 'img': 'hero_dragan.jpg', 'skills': 'Bonus Max Energy +6' },
 	'Dragan Protector':				{ 'atk':   5, 'def':   9, 'type': 'shield', 'img': 'gift_dragan_complete.jpg' },
 	'Draganblade':					{ 'atk':   7, 'def':   3, 'type': 'weapon', 'img': 'eq_dragan_complete.jpg' },
 	'Draganblade Shard 1 of 4':		{ 'type': 'alchemy', 'img': 'eq_dragan_2.jpg' },
@@ -19983,14 +20067,14 @@ Town.rdata =			// #1336
 	'Earth Shard (2)':				{ 'atk':   2, 'def':   2, 'type': 'amulet', 'img': 'gift_earth_2.jpg', alias: 'Earth Shard' },
 	'Earth Shard (3)':				{ 'atk':   1, 'def':   3, 'type': 'amulet', 'img': 'gift_earth_3.jpg', alias: 'Earth Shard' },
 	'Earth Shard (4)':				{ 'atk':   3, 'def':   2, 'type': 'amulet', 'img': 'gift_earth_4.jpg', alias: 'Earth Shard' },
-	'Edea':							{ 'atk':   7, 'def':   7, 'type': 'hero', 'img': 'hero_edea.jpg' },
+	'Edea':							{ 'atk':   7, 'def':   7, 'type': 'hero', 'img': 'hero_edea.jpg', 'skills': 'Reduce Damage' },
 	'Elaida':						{ 'atk':  25, 'def':  28, 'type': 'hero', 'img': 'hero_elaida.jpg', 'skills': 'Heal for additional Player Health +25 in Guild Battles/Monsters' },
 	'Elemental Garb':				{ 'atk':  18, 'def':  14, 'type': 'armor', 'img': 'eq_red_armor_1.jpg' },
-	'Elena':						{ 'atk':   5, 'def':   5, 'type': 'hero', 'img': 'hero_elena.jpg' },
+	'Elena':						{ 'atk':   5, 'def':   5, 'type': 'hero', 'img': 'hero_elena.jpg', 'skills': 'Bonus Max Energy +4' },
 	'Elf Root':						{ 'type': 'alchemy', 'img': 'gift_aeris_1.jpg' },
 	'Elin':							{ 'atk':  13, 'def':  13, 'type': 'hero', 'img': 'hero_elin.jpg', 'skills': 'Monster Bonus +20' },
 	'Elixir of Life':				{ 'type': 'alchemy', 'img': 'eq_gift_elizabeth2_3.jpg' },
-	'Elizabeth Lione':				{ 'atk':  13, 'def':  15, 'type': 'hero', 'img': 'hero_elizabeth.jpg' },
+	'Elizabeth Lione':				{ 'atk':  13, 'def':  15, 'type': 'hero', 'img': 'hero_elizabeth.jpg', 'skills': 'Convert' },
 	'Elora':						{ 'atk':  21, 'def':  20, 'type': 'hero', 'img': 'hero_elora.jpg', 'skills': 'Increase Player Attack by +15, Decrease Max Energy by -15' },
 	'Elven Blade':					{ 'atk':  14, 'def':  11, 'type': 'unit', 'img': 'elvenblade.jpg' },
 	'Elven Crown (Aeris)':			{ 'atk':   2, 'def':   5, 'type': 'helmet', 'img': 'gift_aeris_complete.jpg', alias: 'Elven Crown' },
@@ -20080,10 +20164,10 @@ Town.rdata =			// #1336
 	'Flamestrike Amulet':			{ 'atk':   8, 'def':   4, 'type': 'amulet', 'img': 'gift_vanquish3_complete.jpg' },
 	'Flamewaker':					{ 'atk':  20, 'def':  18, 'type': 'weapon', 'img': 'eq_flaminius_weapon.jpg' },
 	'Flamewalker Greaves':			{ 'atk':   5, 'def':   5, 'type': 'boots', 'img': 'eq_thanatos2_boot_ca.jpg' },
-	'Flamewave Tome':				{ 'atk':  16, 'def':  16, 'type': 'shield', 'img': 'eq_alexandria_shield.jpg' },
+	'Flamewave Tome':				{ 'atk':  16, 'def':  16, 'type': 'shield', 'img': 'eq_alexandria_shield.jpg', alias: 'Flamewave Tomb' },
 	'Flaminius':					{ 'atk':  23, 'def':  21, 'type': 'hero', 'img': 'hero_flaminius.jpg', 'skills': 'Increase Player Attack by +50' },
 	'Footman':						{ 'atk':   1, 'def':   1, 'type': 'unit', 'img': 'upgrade_footmen.jpg' },
-	'Force Wand Staff':				{ 'atk':  21, 'def':  26, 'type': 'weapon' },
+	'Force Ward Staff':				{ 'atk':  21, 'def':  26, 'type': 'weapon', 'img': 'eq_vanir_weapon.jpg' },
 	'Force of Nature':				{ 'atk':  35, 'def':  50, 'type': 'amulet', 'img': 'eq_jahanna_amulet.jpg' },
 	'Forsaken Tome':				{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_dolomar_shield.jpg' },
 	'Fox Totem':					{ 'type': 'alchemy', 'img': 'gift_araxis_3.jpg' },
@@ -20106,7 +20190,7 @@ Town.rdata =			// #1336
 	'Gallador':						{ 'atk':  13, 'def':  15, 'type': 'hero', 'img': 'hero_gallador.jpg', 'skills': 'Increase Player Defense by +1.0 per 50 Valor Knight, max 10' },
 	'Galvanized Helm':				{ 'atk':  11, 'def':  13, 'type': 'helmet', 'img': 'eq_gehenna_helm_3.jpg' },
 	'Gargoyle Statue':				{ 'type': 'alchemy', 'img': 'gift_zarevok_1.jpg' },
-	'Garlan':						{ 'atk':   7, 'def':   6, 'type': 'hero', 'img': 'hero_garlan.jpg' },
+	'Garlan':						{ 'atk':   7, 'def':   6, 'type': 'hero', 'img': 'hero_garlan.jpg', 'skills': 'Decrease Unit Cost by -6%' },
 	'Garlans Battlegear':			{ 'atk':   4, 'def':   7, 'type': 'armor', 'img': 'eq_gift_metal_complete.jpg' },
 	'Gatekeeper Blade':				{ 'atk':  32, 'def':  30, 'type': 'weapon', 'img': 'eq_tyrant_weapon.jpg' },
 	'Gauntlet of Fire':				{ 'atk':  13, 'def':   9, 'type': 'gloves', 'img': 'eq_gehenna_gauntlet.jpg' },
@@ -20217,6 +20301,7 @@ Town.rdata =			// #1336
 	'Helm of Fear':					{ 'atk':   9, 'def':   9, 'type': 'helmet', 'img': 'eq_death_rare_helmet.jpg' },
 	'Helm of Frost':				{ 'atk':  33, 'def':  28, 'type': 'helmet', 'img': 'eq_glacius_alchemy.jpg' },
 	'Helm of Shards':				{ 'atk':  16, 'def':  18, 'type': 'helmet', 'img': 'eq_shardros_helm.jpg' },
+	'Helm of Winter':				{ 'atk':  18, 'def':  18, 'type': 'helmet', 'img': 'eq_frost_helm.jpg' },
 	'Helm of Zeventis':				{ 'atk':  18, 'def':  23, 'type': 'helmet', 'img': 'eq_zeventis_helm.jpg' },
 	'Helm of the Conqueror':		{ 'atk':  36, 'def':  32, 'type': 'helmet', 'img': 'eq_malekus_helm.jpg' },
 	'Helm of the Deep':				{ 'atk':  55, 'def':  60, 'type': 'helmet', 'img': 'eq_kraken_helm.jpg' },
@@ -20350,7 +20435,7 @@ Town.rdata =			// #1336
 	'Lightning Storm':				{ 'atk':  15, 'def':   7, 'type': 'magic', 'img': 'lightning_storm.jpg' },
 	'Lightward Gauntlet':			{ 'atk':   8, 'def':  10, 'type': 'gloves', 'img': 'eq_kothas_gauntlet.jpg' },
 	'Lightward Greatsword':			{ 'atk':  20, 'def':  30, 'type': 'weapon', 'img': 'eq_kothas_weapon.jpg' },
-	'Lilith and Riku':				{ 'atk':  11, 'def':  12, 'type': 'hero', 'img': 'hero_riku.jpg' },
+	'Lilith and Riku':				{ 'atk':  11, 'def':  12, 'type': 'hero', 'img': 'hero_riku.jpg', 'skills': 'Bonus Player Attack +5' },
 	'Lion Fang':					{ 'atk':  24, 'def':  22, 'type': 'weapon', 'img': 'eq_aurelius_weapon.jpg' },
 	'Lion Scar Helm':				{ 'atk':   9, 'def':  14, 'type': 'helmet', 'img': 'eq_aurelius_helm.jpg' },
 	'Lion Scar Plate':				{ 'atk':  33, 'def':  18, 'type': 'armor', 'img': 'eq_aurelius_armor.jpg' },
@@ -20379,7 +20464,7 @@ Town.rdata =			// #1336
 	'Magicite Locket':				{ 'atk':  12, 'def':   8, 'type': 'amulet', 'img': 'eq_scarlet_amulet.jpg' },
 	'Magma Plate':					{ 'atk':  20, 'def':  12, 'type': 'armor', 'img': 'eq_thanatos2_armor_ca.jpg' },
 	'Magus Plate':					{ 'atk':  15, 'def':  15, 'type': 'armor', 'img': 'eq_dolomar_armor.jpg' },
-	'Maiden Shadow':				{ 'atk':  15, 'def':  16, 'type': 'unit', 'img': 'soldier_maiden_shadow.jpg' },
+	'Maiden Shadow':				{ 'atk':  16, 'def':  15, 'type': 'unit', 'img': 'soldier_maiden_shadow.jpg' },
 	'Malekus':						{ 'atk':  31, 'def':  21, 'type': 'hero', 'img': 'boss_malekus.jpg', 'skills': 'Increase Player Attack by +0.45 per Hero' },
 	'Mane of Maalvus':				{ 'atk':  15, 'def':  10, 'type': 'helmet', 'img': 'eq_maalvus_helm.jpg' },
 	'Marina':						{ 'atk':  16, 'def':  18, 'type': 'hero', 'img': 'hero_twinwater.jpg', 'skills': 'Convert -14 Player Energy to +12 Player Defense' },
@@ -20392,7 +20477,7 @@ Town.rdata =			// #1336
 	'Meekah':						{ 'atk':  22, 'def':  21, 'type': 'hero', 'img': 'hero_meekah.jpg', 'skills': 'Increase Confidence damage' },
 	'Memnon':						{ 'atk':  19, 'def':  15, 'type': 'hero', 'img': 'hero_wizard.jpg', 'skills': 'Convert -14 Player Energy to +12 Player Attack' },
 	'Mephistopheles':				{ 'atk':  27, 'def':  23, 'type': 'hero', 'img': 'quest_mephisto.jpg', 'skills': 'Increase Max Army Size by +40' },
-	'Mercedes':						{ 'atk':   8, 'def':   7, 'type': 'hero', 'img': 'hero_mercedes.jpg' },
+	'Mercedes':						{ 'atk':   8, 'def':   7, 'type': 'hero', 'img': 'hero_mercedes.jpg', 'skills': 'Income +5% (gross)' },
 	'Mercenary':					{ 'atk':   5, 'def':   3, 'type': 'unit', 'img': 'soldier_mercenary.jpg' },
 	'Metal Ring':					{ 'atk':   1, 'def':   3, 'type': 'amulet', 'img': 'eq_firering_1.jpg' },
 	'Meteor Storm':					{ 'atk':  30, 'def':  25, 'type': 'magic', 'img': 'spell_special_quest_1.jpg' },
@@ -20416,7 +20501,7 @@ Town.rdata =			// #1336
 	'Moonfall Trinket':				{ 'atk':   8, 'def':   8, 'type': 'amulet', 'img': 'eq_elven_trinket.jpg' },
 	'Moonstake Staff':				{ 'atk':  17, 'def':  23, 'type': 'weapon', 'img': 'eq_feral_weapon.jpg' },
 	'Morningstar':					{ 'atk':   3, 'def':   7, 'type': 'weapon', 'img': 'eq_mace_complete.jpg' },
-	'Morrigan':						{ 'atk':   9, 'def':  10, 'type': 'hero', 'img': 'hero_morrigan.jpg' },
+	'Morrigan':						{ 'atk':   9, 'def':  10, 'type': 'hero', 'img': 'hero_morrigan.jpg', 'skills': 'Bonus Demi Point Drop Chance (Battles and Monsters)' },
 	'Mountain Core':				{ 'type': 'alchemy', 'img': 'eq_shardros_ingredient.jpg' },
 	'Mountain Symbol':				{ 'type': 'alchemy', 'img': 'gift_giant_mountain.jpg' },
 	'Mystic Armor':					{ 'atk':   2, 'def':   5, 'type': 'armor', 'img': 'eq_gift_mystic_complete.jpg' },
@@ -20429,7 +20514,7 @@ Town.rdata =			// #1336
 	'Nature Essence':				{ 'type': 'alchemy', 'img': 'gift_elizabeth3_3.jpg' },
 	'Natures Reach':				{ 'atk':  11, 'def':   8, 'type': 'gloves', 'img': 'eq_jahanna_gauntlet.jpg' },
 	'Natures Sunder':				{ 'atk':  18, 'def':  18, 'type': 'magic', 'img': 'eq_aurora_magic.jpg' },
-	'Nautica':						{ 'atk':  19, 'def':  14, 'type': 'hero', 'img': 'hero_nautica.jpg' },
+	'Nautica':						{ 'atk':  19, 'def':  14, 'type': 'hero', 'img': 'hero_nautica.jpg', 'skills': 'Bonus Player Attack +6' },
 	'Nautical Trident':				{ 'atk':   9, 'def':   5, 'type': 'weapon', 'img': 'gift_nautica_complete.jpg' },
 	'Necromancer Disciple':			{ 'atk':  35, 'def':  33, 'type': 'unit', 'img': 'soldier_necromancer_disciple.jpg' },
 	'Necronic Blast':				{ 'atk':  18, 'def':  18, 'type': 'magic', 'img': 'eq_zurran_spell.jpg' },
@@ -20491,7 +20576,7 @@ Town.rdata =			// #1336
 	'Pendant of Wonder':			{ 'atk':   9, 'def':   9, 'type': 'amulet', 'img': 'war_reward_4.jpg' },
 	'Pendant of the Bull':			{ 'atk':   1, 'def':   2, 'type': 'amulet', 'img': 'eq_karn_amulet.jpg' },
 	'Pendant of the Sea':			{ 'atk':  30, 'def':  25, 'type': 'amulet', 'img': 'eq_kraken_amulet.jpg' },
-	'Penelope':						{ 'atk':   3, 'def':   6, 'type': 'hero', 'img': 'hero_penelope.jpg' },
+	'Penelope':						{ 'atk':   3, 'def':   6, 'type': 'hero', 'img': 'hero_penelope.jpg', 'skills': 'Decrease Unit Cost by -6%' },
 	'Percival':						{ 'atk':  18, 'def':  16, 'type': 'hero', 'img': 'hero_percival.jpg', 'skills': 'Damage Taken by -4 Increase Player Defense by +4' },
 	'Persephone':					{ 'atk':  10, 'def':  10, 'type': 'hero', 'img': 'hero_persephone.jpg', 'skills': 'Deflect damage when defending in Guild Battles' },
 	'Pestilence':					{ 'atk':   7, 'def':   9, 'type': 'magic', 'img': 'eq_death_rare_magic.jpg' },
@@ -20502,6 +20587,7 @@ Town.rdata =			// #1336
 	'Phoenix':						{ 'atk':  20, 'def':  16, 'type': 'unit', 'img': 'upgrade_phoenix.jpg' },
 	'Pierce the Sky':				{ 'atk':  35, 'def':  32, 'type': 'weapon', 'img': 'eq_alexandra_weapon.jpg' },
 	'Plate of Fenix':				{ 'atk':  24, 'def':  26, 'type': 'armor', 'img': 'eq_fenix_armor.jpg' },
+	'Plate of Glaciers':			{ 'atk':  25, 'def':  25, 'type': 'armor', 'img': 'eq_frost_armor.jpg' },
 	'Plate of Zeventis':			{ 'atk':  19, 'def':  16, 'type': 'armor', 'img': 'eq_zeventis_armor.jpg' },
 	'Plate of the Ages':			{ 'atk':  20, 'def':  45, 'type': 'armor', 'img': 'eq_legendary_armor.jpg' },
 	'Plate of the Wild':			{ 'atk':  23, 'def':  30, 'type': 'armor', 'img': 'eq_aurora_armor.jpg' },
@@ -20577,7 +20663,7 @@ Town.rdata =			// #1336
 	'Saintly Robes':				{ 'atk':  14, 'def':  14, 'type': 'armor', 'img': 'eq_sanna_armor.jpg' },
 	'Sands of Fire':				{ 'type': 'alchemy', 'img': 'gift_vanquish3_2.jpg' },
 	'Sanna':						{ 'atk':  20, 'def':  21, 'type': 'hero', 'img': 'hero_sanna.jpg', 'skills': 'Heal additional Player Health +4 as Cleric in Guild victories' },
-	'Sano':							{ 'atk':   6, 'def':   6, 'type': 'hero', 'img': 'hero_sano.jpg' },
+	'Sano':							{ 'atk':   6, 'def':   6, 'type': 'hero', 'img': 'hero_sano.jpg', 'skills': 'Sub-Quest Influence Bonus' },
 	'Sapphire Egg':					{ 'type': 'alchemy', 'img': 'gift_sea_egg_sapphire.jpg' },
 	'Savage Smash':					{ 'atk':  16, 'def':  16, 'type': 'magic', 'img': 'festival_battle_reward_1.jpg' },
 	'Savannah':						{ 'atk':  14, 'def':  19, 'type': 'hero', 'img': 'hero_savannah.jpg', 'skills': 'Increase Max Army Size by +15, max 501' },
@@ -20593,7 +20679,7 @@ Town.rdata =			// #1336
 	'Scroll of Dragon Soul':		{ 'type': 'alchemy', 'img': 'ingredient_thanatos2_summon.jpg' },
 	'Scytheblade':					{ 'atk':  18, 'def':  14, 'type': 'weapon', 'img': 'eq_crissana_weapon.jpg' },
 	'Seal of Agamemnon':			{ 'atk':  11, 'def':  15, 'type': 'amulet', 'img': 'eq_agamemnon_ring.jpg' },
-	'Sephora':						{ 'atk':   8, 'def':   8, 'type': 'hero', 'img': 'hero_sephora.jpg' },
+	'Sephora':						{ 'atk':   8, 'def':   8, 'type': 'hero', 'img': 'hero_sephora.jpg', 'skills': 'Increase Max Energy by +4 and Max Stamina by +4' },
 	'Seraphim Angel':				{ 'atk':  24, 'def':  21, 'type': 'unit', 'img': 'soldier_seraphim.jpg' },
 	'Seraphim Shield':				{ 'atk':  11, 'def':  13, 'type': 'shield', 'img': 'eq_solara_shield.jpg' },
 	'Serene':						{ 'atk':  23, 'def':  16, 'type': 'hero', 'img': 'hero_serene.jpg', 'skills': 'Increase Player Attack by +14 and decrease Max Health by -14' },
@@ -20635,7 +20721,7 @@ Town.rdata =			// #1336
 	'Shield of Sano':				{ 'atk':   8, 'def':  11, 'type': 'shield', 'img': 'gift_sano_complete.jpg' },
 	'Shield of Storms':				{ 'atk':  13, 'def':  14, 'type': 'shield', 'img': 'eq_kromash_alchemy.jpg' },
 	'Shining Greatsword':			{ 'atk':  10, 'def':  14, 'type': 'weapon', 'img': 'eq_shining_greatsword.jpg' },
-	'Shino':						{ 'atk':   7, 'def':   8, 'type': 'hero', 'img': 'hero_shino.jpg' },
+	'Shino':						{ 'atk':   7, 'def':   8, 'type': 'hero', 'img': 'hero_shino.jpg', 'skills': 'Bonus Player Defense +4' },
 	'Shivak':						{ 'atk':  19, 'def':  23, 'type': 'hero', 'img': 'hero_shivak.jpg', 'skills': 'Increase Fortitude effect' },
 	'Short Sword':					{ 'atk':   2, 'def':   0, 'type': 'weapon', 'img': 'eq_shortsword.jpg' },
 	'Shortsword +1':				{ 'atk':   3, 'def':   1, 'type': 'weapon', 'img': 'eq_shortsword.jpg' },
@@ -20668,7 +20754,7 @@ Town.rdata =			// #1336
 	'Solar Desolation':				{ 'atk':  13, 'def':  13, 'type': 'magic', 'img': 'crusader_spell4.jpg' },
 	'Solara':						{ 'atk':  20, 'def':  22, 'type': 'hero', 'img': 'hero_solara.jpg', 'skills': 'Transfer % of Max Energy +20% to Max Stamina +20%' },
 	'Solstice Blade':				{ 'atk':  15, 'def':  17, 'type': 'weapon', 'img': 'eq_solara_sword.jpg' },
-	'Sophia':						{ 'atk':   4, 'def':   5, 'type': 'hero', 'img': 'hero_sophia.jpg' },
+	'Sophia':						{ 'atk':   4, 'def':   5, 'type': 'hero', 'img': 'hero_sophia.jpg', 'skills': 'Bonus Max Energy +6' },
 	'Sophias Battlegarb':			{ 'atk':   4, 'def':   7, 'type': 'armor', 'img': 'eq_sophia_armor_complete.jpg' },
 	'Soul Catcher':					{ 'atk':   8, 'def':   7, 'type': 'amulet', 'img': 'eq_death_rare_amulet.jpg' },
 	'Soul Crusher':					{ 'atk':  16, 'def':  16, 'type': 'gloves', 'img': 'eq_legendary_dtg.jpg' },
@@ -20717,7 +20803,7 @@ Town.rdata =			// #1336
 	'Stormwind Saber':				{ 'atk':  11, 'def':  16, 'type': 'weapon', 'img': 'eq_kaylen_sword.jpg' },
 	'Strangling Vines':				{ 'atk':  15, 'def':  18, 'type': 'magic', 'img': 'eq_jahanna_spell.jpg' },
 	'Strength of Oaks':				{ 'atk':   5, 'def':  10, 'type': 'armor', 'img': 'eq_kilgore_armor.jpg' },
-	'Strider':						{ 'atk':   6, 'def':   3, 'type': 'hero', 'img': 'hero_strider.jpg' },
+	'Strider':						{ 'atk':   6, 'def':   3, 'type': 'hero', 'img': 'hero_strider.jpg', 'skills': 'Bonus Gold (Quests and Battles)' },
 	'Succubus':						{ 'atk':  19, 'def':  17, 'type': 'unit', 'img': 'soldier_succubus.jpg' },
 	'Sun Amulet':					{ 'atk':   1, 'def':   3, 'type': 'amulet', 'img': 'eq_mace_1.jpg' },
 	'Sun Blade':					{ 'atk':  10, 'def':   5, 'type': 'weapon', 'img': 'item_hellblade.jpg' },
@@ -20764,7 +20850,7 @@ Town.rdata =			// #1336
 	'Temporal Rune of Mists':		{ 'type': 'alchemy', 'img': 'ca_excavation_ingredient_1.jpg' },
 	'Temptations Lure':				{ 'atk':  15, 'def':  11, 'type': 'amulet', 'img': 'eq_syren_amulet.jpg' },
 	'Tentacle Armlet':				{ 'atk':  12, 'def':  12, 'type': 'gloves', 'img': 'eq_kraken_gauntlet.jpg' },
-	'Terra':						{ 'atk':   7, 'def':   9, 'type': 'hero', 'img': 'hero_terra.jpg' },
+	'Terra':						{ 'atk':   7, 'def':   9, 'type': 'hero', 'img': 'hero_terra.jpg', 'skills': 'Bonus Max Energy +5' },
 	"Terra's Blade":				{ 'atk':  10, 'def':   9, 'type': 'weapon', 'img': 'gift_terra_complete.jpg' },
 	"Terra's Crown":				{ 'atk':  10, 'def':   7, 'type': 'helmet', 'img': 'eq_earth_rare_helmet.jpg' },
 	"Terra's Guard":				{ 'atk':  10, 'def':  10, 'type': 'shield', 'img': 'eq_earth_epic_shield.jpg' },
@@ -20787,7 +20873,7 @@ Town.rdata =			// #1336
 	'Time Shift':					{ 'atk':   9, 'def':  10, 'type': 'magic', 'img': 'eq_godric_magic.jpg' },
 	'Timewarp Gauntlet':			{ 'atk':   9, 'def':   9, 'type': 'gloves', 'img': 'eq_tyxeros_gauntlet.jpg' },
 	'Titan Helm':					{ 'atk':  11, 'def':   7, 'type': 'helmet', 'img': 'eq_minerva_helm.jpg' },
-	'Titania':						{ 'atk':  10, 'def':   9, 'type': 'hero', 'img': 'hero_titania.jpg' },
+	'Titania':						{ 'atk':  10, 'def':   9, 'type': 'hero', 'img': 'hero_titania.jpg', 'skills': 'Bonus Chance Item Drops' },
 	'Titania Bow':					{ 'atk':   6, 'def':   4, 'type': 'weapon', 'img': 'gift_titania_complete.jpg' },
 	'Tooth of Gehenna':				{ 'atk':  18, 'def':  23, 'type': 'amulet', 'img': 'eq_gehenna_amulet.jpg' },
 	'Transcendence':				{ 'atk':  46, 'def':  36, 'type': 'amulet', 'img': 'eq_azriel_amulet_2.jpg' },
@@ -20812,7 +20898,7 @@ Town.rdata =			// #1336
 	'Typhonus the Chimera':			{ 'atk': 125, 'def': 125, 'type': 'unit', 'img': 'arena_reward_7.jpg' },
 	'Tyrant':						{ 'atk':  36, 'def':  32, 'type': 'hero', 'img': 'hero_tyrant.jpg', 'skills': 'Increase Sentinal/Guardian Effect' },
 	'Tyrant Crown':					{ 'atk':  22, 'def':  20, 'type': 'helmet', 'img': 'eq_gehenna_helm_1.jpg' },
-	'Tyrantscale Armor':			{ 'atk':  15, 'def':  15, 'type': 'armor', 'img': 'eq_vermilion_armor.jpg', 'alias': 'Tryantscale Armor' },
+	'Tyrantscale Armor':			{ 'atk':  15, 'def':  15, 'type': 'armor', 'img': 'eq_vermilion_armor.jpg', alias: 'Tryantscale Armor' },
 	'Tyrantscale Protector':		{ 'atk':  25, 'def':  22, 'type': 'shield', 'img': 'eq_vermilion_shield.jpg' },
 	'Tyxeros':						{ 'atk':  21, 'def':  20, 'type': 'hero', 'img': 'hero_tyxeros.jpg', 'skills': 'Highly randomize base damage in Guild Battles' },
 	'Unbreakable Chestplate':		{ 'atk':  15, 'def':  20, 'type': 'armor', 'img': 'eq_alexandra_armor.jpg' },
@@ -20825,7 +20911,7 @@ Town.rdata =			// #1336
 	'Valerian Signet':				{ 'atk':   6, 'def':   3, 'type': 'amulet', 'img': 'eq_valerian_signet.jpg' },
 	'Valhalla':						{ 'atk': 115, 'def': 115, 'type': 'unit', 'img': 'soldier_valhalla.jpg' },
 	'Valhalla Dust':				{ 'type': 'alchemy', 'img': 'eq_valhalla_dust.jpg' },
-	'Valiant':						{ 'atk':  11, 'def':  11, 'type': 'hero', 'img': 'hero_valiant2.jpg' },
+	'Valiant':						{ 'atk':  11, 'def':  11, 'type': 'hero', 'img': 'hero_valiant2.jpg', 'skills': 'Bonus Demi Point Drop Chance (Battles and Monsters)' },
 	'Valor Crystal':				{ 'type': 'alchemy', 'img': 'gift_mercedes_2.jpg' },
 	'Valor Knight':					{ 'atk':  22, 'def':  18, 'type': 'unit', 'img': 'redknight.jpg' },
 	'Vampire':						{ 'atk':   8, 'def':   7, 'type': 'unit', 'img': 'soldier_vampire.jpg' },
@@ -20833,9 +20919,9 @@ Town.rdata =			// #1336
 	'Vampiric Blade':				{ 'atk':  10, 'def':  12, 'type': 'weapon', 'img': 'eq_slayer_sword.jpg' },
 	'Vanguard Doomhelm':			{ 'atk':  45, 'def':  45, 'type': 'helmet', 'img': 'arena3_helm.jpg' },
 	'Vanguard Helm':				{ 'atk':  35, 'def':  35, 'type': 'helmet', 'img': 'arena2_helm.jpg' },
-	'Vanguards Power Gauntlet':		{ 'atk':  22, 'def':  18, 'type': 'gloves', 'img': 'arena_reward_6.jpg' },
+	'Vanguards Power Gauntlet':		{ 'atk':  22, 'def':  18, 'type': 'gloves', 'img': 'arena_reward_6.jpg', alias: 'Vanguards Power Glaive' },
 	'Vanishing Dagger':				{ 'atk':  26, 'def':  23, 'type': 'weapon', 'img': 'eq_esmeralda_weapon.jpg' },
-	'Vanquish':						{ 'atk':  18, 'def':  17, 'type': 'hero', 'img': 'hero_vanquish.jpg' },
+	'Vanquish':						{ 'atk':  18, 'def':  17, 'type': 'hero', 'img': 'hero_vanquish.jpg', 'skills': 'Convert' },
 	'Vanquish Dust':				{ 'type': 'alchemy', 'img': 'eq_vanquish_3.jpg' },
 	'Vanquish Petal':				{ 'type': 'alchemy', 'img': 'eq_vanquish_2.jpg' },
 	'Vanquish Staff':				{ 'type': 'alchemy', 'img': 'eq_vanquish_1.jpg' },
@@ -20912,7 +20998,7 @@ Town.rdata =			// #1336
 	'Wyrmhorn Gauntlets':			{ 'atk':  10, 'def':   8, 'type': 'gloves', 'img': 'eq_aegea_gauntlet.jpg' },
 	'Xelia':						{ 'atk':  25, 'def':  21, 'type': 'hero', 'img': 'hero_xelia.jpg', 'skills': 'Increase Illusion/Mirror Image Effect' },
 	'Xira':							{ 'atk':  27, 'def':  24, 'type': 'hero', 'img': 'hero_xira.jpg', 'skills': 'Transfer % Player Defense +25% to Player Attack +25%' },
-	'Zarevok':						{ 'atk':   6, 'def':   5, 'type': 'hero', 'img': 'hero_zarevok.jpg' },
+	'Zarevok':						{ 'atk':   6, 'def':   5, 'type': 'hero', 'img': 'hero_zarevok.jpg', 'skills': 'Monster Bonus +20' },
 	'Zarevok Defender':				{ 'atk':   5, 'def':   9, 'type': 'shield', 'img': 'gift_zarevok2_complete.jpg' },
 	'Zarevok Plate':				{ 'atk':   4, 'def':   9, 'type': 'armor', 'img': 'gift_zarevok_complete.jpg' },
 	'Zealot Robes':					{ 'atk':  25, 'def':  12, 'type': 'armor', 'img': 'eq_zealot_armor.jpg' },
@@ -20975,7 +21061,7 @@ Town.rrestr =
 	  '|\\btalon\\b' +			// 1
 	  '|\\btrident\\b' +		// 2
 	  '|\\bvoidblade\\b' +		// 1
-	  '|\\bwand\\b' +			// 8
+	  '|\\bwand\\b' +			// 7
 	  '|\\bweapon\\b' +			// 2
 	  '|^Amazons Warpath$' +
 	  '|^Arachnid Claw$' +
@@ -20986,6 +21072,7 @@ Town.rrestr =
 	  '|^Bloodblade$' +
 	  '|^Bonecrusher$' +
 	  '|^Celestas Devotion$' +
+	  '|^Chillstrike$' +
 	  '|^Daedalus$' +
 	  '|^Death Dealer$' +
 	  '|^Deathbellow$' +
@@ -21081,7 +21168,7 @@ Town.rrestr =
 	  '|\\bhellplate\\b' +		// 1
 	  '|\\bkarapace\\b' +		// 1
 	  '|\\bpauldrons\\b' +		// 1
-	  '|\\bplate\\b' +			// 45
+	  '|\\bplate\\b' +			// 46
 	  '|\\bplatemail\\b' +		// 2
 	  '|\\braiments\\b' +		// 5
 	  '|\\bregalia\\b' +		// 1
@@ -21104,7 +21191,7 @@ Town.rrestr =
 	  '|\\bcrown\\b' +			// 15
 	  '|\\bdoomhelm\\b' +		// 1
 	  '|\\bheadband\\b' +		// 1
-	  '|\\bhelm\\b' +			// 56
+	  '|\\bhelm\\b' +			// 57
 	  '|\\bhelmet\\b' +			// 4
 	  '|\\bhood\\b' +			// 1
 	  '|\\bhorns\\b' +			// 1
@@ -21489,7 +21576,7 @@ FP.work = function(state) {
 
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
-	$, Workers, Worker, Config, Dashboard, History, Page:true, Queue, Resources, Global,
+	$, Workers, Worker, Config, Dashboard, History, Page, Queue, Resources,
 	Generals, Player,
 	APP, APPID, APPID_, PREFIX, userID, imagepath,
 	isRelease, version, revision, Images, window, browser,
@@ -21517,9 +21604,12 @@ Guild.option = {
 	collect:true,
 	tokens:'min',
 	safety:60000,
+	order:'health',
 	ignore:'',
 	limit:'',
 	cleric:false,
+	active:true,
+	live:true,
 	suppress:false
 };
 
@@ -21531,7 +21621,6 @@ Guild.runtime = {
 	rank:0,
 	points:0,
 	burn:false,
-	last:null, // name of last target, .data[last] then we've lost so skip them
 	stunned:false
 };
 
@@ -21542,7 +21631,8 @@ Guild.temp = {
 		start:'Entering Battle',
 		fight:'In Battle',
 		collect:'Collecting Reward'
-	}
+	},
+	last:null // name of last target, .data[last] then we've lost so skip them
 };
 
 Guild.display = [
@@ -21558,13 +21648,20 @@ Guild.display = [
 		select:'generals'
 	},{
 		id:'start',
-		label:'Automatically Start',
+		label:'Automatically Join',
 		checkbox:true
 	},{
 		id:'delay',
-		label:'Start Delay',
+		label:'Join Delay',
 		require:'start',
-		select:{0:'None',60000:'1 Minute',120000:'2 Minutes',180000:'3 Minutes',240000:'4 Minutes',300000:'5 Minutes'}
+		select:{
+			0:'None',
+			60000:'1 minute',
+			120000:'2 minutes',
+			180000:'3 minutes',
+			240000:'4 minutes',
+			300000:'5 minutes'
+		}
 	},{
 		id:'collect',
 		label:'Collect Rewards',
@@ -21577,11 +21674,31 @@ Guild.display = [
 		id:'safety',
 		label:'Safety Margin',
 		require:'tokens!="min"',
-		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
+		select:{
+			30000:'30 seconds',
+			45000:'45 seconds',
+			60000:'1 minute',
+			90000:'1.5 minutes',
+			120000:'2 minutes',
+			150000:'2.5 minutes',
+			180000:'3 minutes',
+			240000:'4 minutes'
+		}
 	},{
 		id:'order',
 		label:'Attack',
-		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity', levelactive:'Lowest Level with Activity', levelactive2:'Highest Level with Activity'}
+		select:{
+			health:'Lowest Health',
+			level:'Lowest Level',
+			maxhealth:'Lowest Max Health',
+			activity:'Lowest Activity',
+			health2:'Highest Health',
+			level2:'Highest Level',
+			maxhealth2:'Highest Max Health',
+			activity2:'Highest Activity',
+			levelactive:'Lowest Level with Activity',
+			levelactive2:'Highest Level with Activity'
+		}
 	},{
 		advanced:true,
 		id:'limit',
@@ -21592,12 +21709,28 @@ Guild.display = [
 		id:'cleric',
 		label:'Attack Clerics First',
 		checkbox:true,
-		help:'This will attack any *active* clerics first, which might help prevent the enemy from healing up again...'
+		help:'This will attack active clerics first before considering others.'
+		  + ' Note: this works in conjunction with Actives First, Live First'
+		  + ' and the ordering preference.'
+	},{
+		id:'active',
+		label:'Attack Actives First',
+		checkbox:true,
+		help:'This will attack active targets first before considering others.'
+		  + ' Note: this works in conjunction with Clerics First, Live First'
+		  + ' and the ordering preference.'
+	},{
+		id:'live',
+		label:'Attack Live First',
+		checkbox:true,
+		help:'This will attack live targets first before considering others.'
+		  + ' Note: this works in conjunction with Clerics First, Actives First'
+		  + ' and the ordering preference.'
 	},{
 		id:'defeat',
 		label:'Avoid Defeat',
 		checkbox:true,
-		help:'This will prevent you attacking a target that you have already lost to'
+		help:"This will prevent you attacking targets against which you've been defeated."
 	},{
 		advanced:true,
 		id:'suppress',
@@ -21622,114 +21755,143 @@ Guild.init = function() {
 	}
 	// END
 
-	this._remind(180, 'tokens');// Gain more tokens every 5 minutes
+	this._remind(6*60, 'tokens'); // Gain a token every 6 minutes
 	if (this.runtime.start && this.runtime.start > now) {
-		this._remind((this.runtime.start - now) / 1000, 'start');
+		this._remindMs(this.runtime.start - now, 'start');
 	}
 	if (this.runtime.finish && this.runtime.finish > now) {
-		this._remind((this.runtime.finish - now) / 1000, 'finish');
+		this._remindMs(this.runtime.finish - now, 'finish');
 	}
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
-		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
+		this._remindMs(this.runtime.finish - this.option.safety - now, 'fight');
 	}
 	this._trigger('#'+APPID_+'guild_token_current_value', 'tokens'); //fix
 };
 
 Guild.page = function(page, change) {
 	var now = Date.now(), tmp, i;
+
 	switch (page) {
-		case 'battle_guild':
-			if ($('input[src*="dragon_list_btn_2.jpg"]').length) {//fix
-				this.set(['runtime','status'], 'collect');
-				this._forget('finish');
-				this.set(['runtime','start'], 1800000 + now);
-				this._remind(1800, 'start');
-			} else if ($('input[src*="dragon_list_btn_3.jpg"]').length) {
-				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
-					this.set(['runtime','status'], 'start');
-				}
-			} else {
-				this._forget('finish');
-				this.set(['runtime','start'], 1800000 + now);
-				this._remind(1800, 'start');
-				this.set(['runtime','status'], 'wait');
+	case 'battle_guild':
+		if ($('input[src*="dragon_list_btn_2."]').length) {//fix
+			this.set(['runtime','status'], 'collect');
+			this._forget('finish');
+			this.set(['runtime','start'], 30*60*1000 + now);
+			this._remind(30*60, 'start');
+		} else if ($('input[src*="dragon_list_btn_3."]').length) {
+			if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
+				this.set(['runtime','status'], 'start');
 			}
-			break;
-		case 'battle_guild_battle':
-			this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
-			this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
-			i = $('#'+APPID_+'monsterTicker').text().parseTimer();
-			if ($('input[src*="guild_battle_collectbtn_small.gif"]').length) {
-				this.set(['runtime','status'], 'collect');
-			} else if (i === 9999) {
-				this._forget('finish');
-				this.set(['runtime','start'], 1800000 + now);
-				this._remind(1800, 'start');
-				this.set(['runtime','status'], 'wait');
-			} else {
-				this.set(['runtime','status'], 'fight');
-				this.set(['runtime','finish'], (i * 1000) + now);
-				this._remind(i, 'finish');
+		} else {
+			this._forget('finish');
+			this.set(['runtime','start'], 30*60*1000 + now);
+			this._remind(30*60, 'start');
+			this.set(['runtime','status'], 'wait');
+		}
+		break;
+	case 'battle_guild_battle':
+		if ($('#guild_battle_banner_section:contains("You Must Be Apart of Either")').length) { 
+			log(LOG_INFO, '# not our battle');
+			Page.set('temp.page', null);
+			return change;
+		}
+		this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
+		this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
+		i = $('#'+APPID_+'monsterTicker').text().parseTimer();
+		tmp = $('input[src*="guild_battle_collectbtn_small."]'
+		  + ',input[src*="arena3_collectbutton."]');
+		if (tmp.length) {
+			this.set(['runtime','status'], 'collect');
+		} else if (i >= Date.HUGE) {
+			this._forget('finish');
+			this.set(['runtime','start'], 30*60*1000 + now);
+			this._remind(30*60, 'start');
+			this.set(['runtime','status'], 'wait');
+		} else {
+			this.set(['runtime','status'], 'fight');
+			this.set(['runtime','finish'], i*1000 + now);
+			this._remind(i, 'finish');
+		}
+		tmp = $('#'+APPID_+'results_main_wrapper');
+		if (tmp.length) {
+			i = tmp.text().regex(/\+(\d+) \w+ Activity Points/i);
+			if (isNumber(i)) {
+				History.add('guild', i);
+				History.add('guild_count', 1);
+				this._notify('data');// Force dashboard update
 			}
-			tmp = $('#'+APPID_+'results_main_wrapper');
-			if (tmp.length) {
-				i = tmp.text().regex(/\+(\d+) \w+ Activity Points/i);
-				if (isNumber(i)) {
-					History.add('guild', i);
-					History.add('guild_count', 1);
-					this._notify('data');// Force dashboard update
-				}
-			}
-			if ($('img[src*="battle_defeat"]').length && this.runtime.last) {//fix
-				this.set(['data',this.runtime.last], true);
-			}
-			this.set(['runtime','stunned'], !!$('#'+APPID_+'guild_battle_banner_section:contains("Status: Stunned")').length);//fix
-			break;
+		}
+		if ($('img[src*="battle_defeat"]').length && this.temp.last) {//fix
+			this.set(['data',this.temp.last], true);
+		}
+		this.set(['temp','last'], null);
+		this.set(['runtime','stunned'], !!$('#'+APPID_+'guild_battle_banner_section:contains("Status: Stunned")').length);//fix
+		break;
 	}
+
+	return change;
 };
 
-Guild.update = function(event) {
-	var now = Date.now(), status;
-	if (event.type === 'reminder') {
-		if (event.id === 'tokens') {
-			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
-			if (this.runtime.tokens < 10) {
-				this._remind(180, 'tokens');
-			}
-		} else if (event.id === 'start') {
+Guild.update = function(event, events) {
+	var now = Date.now(), i, status;
+
+	if (events.findEvent(null, 'trigger', 'tokens')) {
+		if ((i = $('#'+APPID_+'guild_token_current_value')).length) {//fix
+			this.set(['runtime','tokens'], i.text().regex(/(\d+)/) || 0);
+		}
+	}
+	if (events.findEvent(null, 'reminder', 'tokens')) {
+		this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
+		if (this.runtime.tokens < 10) {
+			this._remind(6*60, 'tokens');
+		}
+	}
+	if (events.findEvent(null, 'reminder', 'start')) {
+		if (this.runtime.status !== 'fight') {
 			this.set(['runtime','status'], 'start');
-		} else if (event.id === 'finish') {
+		}
+	}
+	if (events.findEvent(null, 'reminder', 'finish')) {
+		if (this.runtime.status !== 'wait') {
 			this.set(['runtime','status'], 'collect');
 		}
 	}
-	if (event.type === 'trigger' && event.id === 'tokens') {
-		if ($('#'+APPID_+'guild_token_current_value').length) {//fix
-			this.set(['runtime','tokens'], $('#'+APPID_+'guild_token_current_value').text().regex(/(\d+)/) || 0);//fix
-		}
-	}
+
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
-		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
+		this._remindMs(this.runtime.finish - this.option.safety - now, 'fight');
 	}
 	if (!this.runtime.tokens) {
 		this.set(['runtime','burn'], false);
 	} else if (this.runtime.tokens >= 10 || (this.runtime.finish || 0) - this.option.safety <= now) {
 		this.set(['runtime','burn'], true);
 	}
+
 	this.set(['option','_sleep'],
 		   Page.get('battle_guild')
 		&& !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
 		&& !(this.runtime.status === 'fight' && this.runtime.tokens
-			&& (!this.option.delay || this.runtime.finish - 3600000  >= now - this.option.delay)
+			&& (!this.option.delay || this.runtime.finish - 60*60*1000 >= now - this.option.delay)
 				&& (this.option.tokens === 'min'
 					|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 					|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
+
 	status = this.get('runtime.status', 'wait');
-	Dashboard.status(this, 'Status: ' + this.temp.status[status] + (status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '') + (status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('guild', 'Guild Stamina') + ' ' + this.runtime.tokens + ' / 10');
+
+	Dashboard.status(this, 'Status: ' + this.temp.status[status]
+	  + (status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '')
+	  + (status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '')
+	  + ', Tokens: ' + Config.makeImage('guild', 'Guild Stamina') + ' ' + this.runtime.tokens + ' / 10'
+	);
+
+	return true;
 };
 
 Guild.work = function(state) {
+	var i, j, tmp, txt, skip, test, cleric, target, targetla, ignore,
+		best, besttarget, besttargetla, level, tokens;
+
 	if (state) {
 		if (!Page.get('battle_guild')
 		  || this.get('runtime.status', 'wait') === 'wait'
@@ -21737,106 +21899,173 @@ Guild.work = function(state) {
 			if (!Page.to('battle_guild')) {
 				return QUEUE_FINISH;
 			}
-		} else if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
+		} else if (this.runtime.status !== 'fight'
+		  || Generals.to(this.option.general ? 'duel' : this.option.general_choice)
+		) {
 			if (Page.temp.page !== 'battle_guild_battle') {
 				if (Page.temp.page !== 'battle_guild') {
 					Page.to('battle_guild');
-				} else if (!Page.click('input[src*="dragon_list_btn"]')) {
-					this.set('runtime.status', 'wait');
+				} else {
+					tmp = $('input[src*="dragon_list_btn_3."]'
+					  + ',input[src*="dragon_list_btn_2."]');
+					if (!tmp.length) {
+						this.set('runtime.status', 'wait');
+					} else if (!Page.click(tmp[0])) {
+						log(LOG_INFO, "Can't click enter button, bailing.");
+					}
 					return QUEUE_FINISH;
 				}
 			} else {
 				if (this.runtime.status === 'collect') {
-					if (!$('input[src*="guild_battle_collectbtn_small.gif"]').length) {
+					tmp = $('input[src*="guild_battle_collectbtn_small."]'
+					  + ',input[src*="arena3_collectbutton."]');
+					if (!tmp.length) {
 						Page.to('battle_guild');
 					} else {
 						log('Collecting Reward');
-						Page.click('input[src*="guild_battle_collectbtn_small.gif"]');
+						Page.click(tmp[0]);
 					}
-				} else if (this.runtime.status === 'fight' || this.runtime.status === 'start') {
-					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+				} else if (this.runtime.status === 'start') {
+					tmp = $('input[src*="guild_enter_battle_button."]');
+					if (tmp.length) {
 						log('Entering Battle');
-						Page.click('input[src*="guild_enter_battle_button.gif"]');
-						this.set(['data'], {}); // Forget old "lose" list
+						Page.click(tmp[0]);
+					}
+					this.set(['data'], {}); // Forget old "lose" list
+				} else if (this.runtime.status === 'fight') {
+					tmp = $('input[src*="guild_enter_battle_button."]');
+					if (tmp.length) {
+						log('Entering Battle');
+						Page.click(tmp[0]);
 						return QUEUE_CONTINUE;
 					}
-					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
-					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(a,el){
-
-						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level *: (\d+) Class *: ([^ ]+) Health *: (\d+)\/(\d+) Status *: ([^ ]+) \w+ Points *: (\d+)/i);
+					ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
+					level = Player.get('level', 1, 'number');
+					tokens = this.get(['runtime','tokens'], 0, 'number');
+					best = null;
+					besttarget = null;
+					tmp = $('#'+APPID_+'enemy_guild_member_list_1 > div'
+					  + ', #'+APPID_+'enemy_guild_member_list_2 > div'
+					  + ', #'+APPID_+'enemy_guild_member_list_3 > div'
+					  + ', #'+APPID_+'enemy_guild_member_list_4 > div');
+					for (i = 0; i < tmp.length; i++) {
+						txt = tmp.eq(i).text().trim().replace(/\s+/g,' ');
+						target = txt.regex(/^(.*) Level *: (\d+) Class *: ([^ ]+) Health *: (\d+)\/(\d+) Status *: ([^ ]+) \w+ Points *: (\d+)/);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						if (!target
-								|| (Guild.option.defeat && Guild.data && Guild.data[target[0]])
-								|| (isNumber(Guild.option.limit)
-									&& target[1] > Player.get('level',0) + Guild.option.limit)) {
-							return;
+						  || (this.option.defeat && this.data[target[0]])
+						  || (isNumber(this.option.limit)
+						  && target[1] > level + this.option.limit)
+						) {
+							continue;
 						}
-						while (i--) {
-							if (target[0].indexOf(ignore[i]) >= 0) {
-								return;
+						skip = false;
+						for (j = ignore.length - 1; j >= 0; j--) {
+							if (target[0].indexOf(ignore[j]) >= 0) {
+								skip = true;
+								break;
 							}
 						}
+						if (skip) {
+							continue;
+						}
+						test = false;
 						if (besttarget) {
-							switch(Guild.option.order) {
-								case 'level':		test = target[1] < besttarget[1];	break;
-								case 'health':		test = target[3] < besttarget[3];	break;
-								case 'maxhealth':	test = target[4] < besttarget[4];	break;
-								case 'activity':	test = target[6] < besttarget[6];	break;
-								case 'level2':		test = target[1] > besttarget[1];	break;
-								case 'health2':		test = target[3] > besttarget[3];	break;
-								case 'maxhealth2':	test = target[4] > besttarget[4];	break;
-								case 'activity2':	test = target[6] > besttarget[6];	break;
-								case 'levelactive':
-									besttargetla = besttarget[1];
-									if (besttarget[6]) {
-										besttargetla = -1.0/besttargetla;
-									}
-									targetla = target[1];
-									if (target[6]) {
-										targetla = -1.0/targetla;
-									}
-									test = targetla < besttargetla;
-									break;
-								case 'levelactive2':
-									besttargetla = besttarget[1];
-									if (!besttarget[6]) {
-										besttargetla = -1.0/besttargetla;
-									}
-									targetla = target[1];
-									if (!target[6]) {
-										targetla = -1.0/targetla;
-									}
-									test = targetla > besttargetla;
-									break;
+							switch (this.option.order) {
+							case 'level':		test = target[1] < besttarget[1];	break;
+							case 'health':		test = target[3] < besttarget[3];	break;
+							case 'maxhealth':	test = target[4] < besttarget[4];	break;
+							case 'activity':	test = target[6] < besttarget[6];	break;
+							case 'level2':		test = target[1] > besttarget[1];	break;
+							case 'health2':		test = target[3] > besttarget[3];	break;
+							case 'maxhealth2':	test = target[4] > besttarget[4];	break;
+							case 'activity2':	test = target[6] > besttarget[6];	break;
+							case 'levelactive':
+								besttargetla = besttarget[1];
+								if (besttarget[6]) {
+									besttargetla = -1.0/besttargetla;
+								}
+								targetla = target[1];
+								if (target[6]) {
+									targetla = -1.0/targetla;
+								}
+								test = targetla < besttargetla;
+								break;
+							case 'levelactive2':
+								besttargetla = besttarget[1];
+								if (!besttarget[6]) {
+									besttargetla = -1.0/besttargetla;
+								}
+								targetla = target[1];
+								if (!target[6]) {
+									targetla = -1.0/targetla;
+								}
+								test = targetla > besttargetla;
+								break;
 							}
 						}
-						if (Guild.option.cleric) {
+						cleric = false;
+						if (this.option.cleric) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
-						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Guild.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Guild.option.suppress && besttarget[3] && besttarget[6])) || test))) {
-							best = el;
+						if (((tokens >= 10 || (this.option.suppress && target[6])) ? target[3] : target[3] >= 200)
+						  && (!best
+						  || cleric
+						  || (this.option.active && target[6] && !besttarget[6])
+						  || (this.option.live && target[3] >= 200 && besttarget[3] < 200)
+						  || test)
+						) {
+							log(LOG_INFO, '# ' + (best ? '' : 'initial ')
+							  + 'best.' + i + ':'
+							  + ' ' + (target[6] ? 'active' : 'inactive')
+							  + ' ' + target[1] + '/' + target[2]
+							  + ' ' + target[3] + '/' + target[4]
+							  + ' ' + target[0]
+							);
+							best = tmp.el(i);
 							besttarget = target;
 						}
-					});
-					if (best) {
-						this.set(['runtime','last'], besttarget[0]);
-						log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health');
-						if ($('input[src*="monster_duel_button.gif"]', best).length) {
-							Page.click($('input[src*="monster_duel_button.gif"]', best));
+					}
+					if (!best && tmp.length) {
+						// cheap and dirty gate change hack
+						j = tmp.length;
+						i = tmp.closest('div[id^="enemy_guild_member_list_"]').attr('id').regex(/enemy_guild_member_list_(\d+)/i);
+						tmp = $('#'+APPID_+'enemy_guild_tab_'+(i+1)+'.imgButton');
+						if (tmp.length && Page.click(tmp[0])) {
+							log(LOG_INFO, 'No targets, trying gate ' + (i+1));
+							return QUEUE_CONTINUE;
 						} else {
-							log(LOG_INFO, 'But couldn\'t find button, so backing out.');
+							log(LOG_INFO, 'No targets, no next gate ('+j+')');
+							return QUEUE_FINISH;
+						}
+					} else if (best) {
+						log('Attacking'
+						  + ' ' + (besttarget[6] ? 'active' : 'inactive')
+						  + ' ' + besttarget[1] + '/' + besttarget[2]
+						  + ' ' + besttarget[3] + '/' + besttarget[4]
+						  + ' ' + besttarget[0]
+						);
+						tmp = $('input[src*="monster_duel_button."]', best);
+						if (!tmp.length) {
+							log(LOG_INFO, "Can't find button, backing out.");
 							Page.to('battle_guild');
+						} else if (!Page.click(tmp[0])) {
+							log(LOG_INFO, "Can't click button, backing out.");
+							Page.to('battle_guild');
+							this.set(['temp','last'], null);
+						} else {
+							this.set(['temp','last'], besttarget[0]);
 						}
 					} else {
-						this.set(['runtime','last'], null);
+						log(LOG_INFO, 'No targets, no next gate (0)');
 					}
 				}
 			}
 		}
 	}
+
 	return QUEUE_CONTINUE;
 };
-
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Workers, Worker, Config, Dashboard, History, Page, Queue, Resources,
@@ -21867,9 +22096,12 @@ Festival.option = {
 	collect:true,
 	tokens:'min',
 	safety:60000,
+	order:'health',
 	ignore:'',
 	limit:'',
 	cleric:false,
+	active:true,
+	live:true,
 	suppress:false
 };
 
@@ -21881,7 +22113,6 @@ Festival.runtime = {
 	rank:0,
 	points:0,
 	burn:false,
-	last:null, // name of last target, .data[last] then we've lost so skip them
 	stunned:false
 };
 
@@ -21892,7 +22123,8 @@ Festival.temp = {
 		start:'Entering Battle',
 		fight:'In Battle',
 		collect:'Collecting Reward'
-	}
+	},
+	last:null // name of last target, .data[last] then we've lost so skip them
 };
 
 Festival.display = [
@@ -21908,13 +22140,20 @@ Festival.display = [
 		select:'generals'
 	},{
 		id:'start',
-		label:'Automatically Start',
+		label:'Automatically Join',
 		checkbox:true
 	},{
 		id:'delay',
-		label:'Start Delay',
+		label:'Join Delay',
 		require:'start',
-		select:{0:'None',60000:'1 Minute',120000:'2 Minutes',180000:'3 Minutes',240000:'4 Minutes',300000:'5 Minutes'}
+		select:{
+			0:'None',
+			60000:'1 minute',
+			120000:'2 minutes',
+			180000:'3 minutes',
+			240000:'4 minutes',
+			300000:'5 minutes'
+		}
 	},{
 		id:'collect',
 		label:'Collect Rewards',
@@ -21927,11 +22166,31 @@ Festival.display = [
 		id:'safety',
 		label:'Safety Margin',
 		require:'tokens!="min"',
-		select:{30000:'30 Seconds',45000:'45 Seconds',60000:'60 Seconds',90000:'90 Seconds'}
+		select:{
+			30000:'30 seconds',
+			45000:'45 seconds',
+			60000:'1 minute',
+			90000:'1.5 minutes',
+			120000:'2 minutes',
+			150000:'2.5 minutes',
+			180000:'3 minutes',
+			240000:'4 minutes'
+		}
 	},{
 		id:'order',
 		label:'Attack',
-		select:{health:'Lowest Health', level:'Lowest Level', maxhealth:'Lowest Max Health', activity:'Lowest Activity', health2:'Highest Health', level2:'Highest Level', maxhealth2:'Highest Max Health', activity2:'Highest Activity', levelactive:'Lowest Level with Activity', levelactive2:'Highest Level with Activity'}
+		select:{
+			health:'Lowest Health',
+			level:'Lowest Level',
+			maxhealth:'Lowest Max Health',
+			activity:'Lowest Activity',
+			health2:'Highest Health',
+			level2:'Highest Level',
+			maxhealth2:'Highest Max Health',
+			activity2:'Highest Activity',
+			levelactive:'Lowest Level with Activity',
+			levelactive2:'Highest Level with Activity'
+		}
 	},{
 		advanced:true,
 		id:'limit',
@@ -21942,12 +22201,28 @@ Festival.display = [
 		id:'cleric',
 		label:'Attack Clerics First',
 		checkbox:true,
-		help:'This will attack any *active* clerics first, which might help prevent the enemy from healing up again...'
+		help:'This will attack active clerics first before considering others.'
+		  + ' Note: this works in conjunction with Actives First, Live First'
+		  + ' and the ordering preference.'
+	},{
+		id:'active',
+		label:'Attack Actives First',
+		checkbox:true,
+		help:'This will attack active targets first before considering others.'
+		  + ' Note: this works in conjunction with Clerics First, Live First'
+		  + ' and the ordering preference.'
+	},{
+		id:'live',
+		label:'Attack Live First',
+		checkbox:true,
+		help:'This will attack live targets first before considering others.'
+		  + ' Note: this works in conjunction with Clerics First, Actives First'
+		  + ' and the ordering preference.'
 	},{
 		id:'defeat',
 		label:'Avoid Defeat',
 		checkbox:true,
-		help:'This will prevent you attacking a target that you have already lost to'
+		help:"This will prevent you attacking targets against which you've been defeated."
 	},{
 		advanced:true,
 		id:'suppress',
@@ -21972,92 +22247,108 @@ Festival.init = function() {
 	}
 	// END
 
-	this._remind(300, 'tokens');// Gain more tokens every 5 minutes
+	this._remind(5*60, 'tokens'); // Gain a token every 5 minutes
 	if (this.runtime.start && this.runtime.start > now) {
-		this._remind((this.runtime.start - now) / 1000, 'start');
+		this._remindMs(this.runtime.start - now, 'start');
 	}
 	if (this.runtime.finish && this.runtime.finish > now) {
-		this._remind((this.runtime.finish - now) / 1000, 'finish');
+		this._remindMs(this.runtime.finish - now, 'finish');
 	}
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
-		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
+		this._remindMs(this.runtime.finish - this.option.safety - now, 'fight');
 	}
 	this._trigger('#'+APPID_+'guild_token_current_value', 'tokens'); //fix
 };
 
 Festival.page = function(page, change) {
 	var now = Date.now(), tmp, i;
+
 	switch (page) {
-		case 'festival_guild':
-			tmp = $('#'+APPID_+'current_battle_info').text();
-			if (tmp.indexOf('BATTLE NOW!') > -1) {
-				if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
-					this.set(['runtime','status'], 'start');
-				}
-			} else {
-				this.set(['runtime','status'], tmp.indexOf('COLLECT') > -1 ? 'collect' : 'wait');
-				this._forget('finish');
-				i = tmp.indexOf('HOURS') > -1 ? tmp.regex(/(\d+) HOURS/i) * 3600
-						: tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i) * 60 : 300;
-				this._forget('finish');
-				this.set(['runtime','start'], i*1000 + now);
-				this._remind(i , 'start');
+	case 'festival_guild':
+		tmp = $('#'+APPID_+'current_battle_info').text();
+		if (tmp.indexOf('BATTLE NOW!') > -1) {
+			if (this.runtime.status !== 'fight' && this.runtime.status !== 'start') {
+				this.set(['runtime','status'], 'start');
 			}
-			break;
-		case 'festival_guild_battle':
-			this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
-			this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
-			i = $('#'+APPID_+'monsterTicker').text().parseTimer();
-			if ($('input[src*="guild_battle_collectbtn_small.gif"]').length) {
-				this.set(['runtime','status'], 'collect');
-			} else if (i === 9999) {
-				this.set(['runtime','status'], 'wait');
-				this.set(['runtime','start'], 3600000 + now);
-				this._remind(3600 , 'start');
-			} else {
-				this.set(['runtime','status'], 'fight');
-				this.set(['runtime','finish'], (i * 1000) + now);
-				this._remind(i, 'finish');
+		} else {
+			this.set(['runtime','status'], tmp.indexOf('COLLECT') > -1 ? 'collect' : 'wait');
+			this._forget('finish');
+			i = tmp.indexOf('HOURS') > -1 ? tmp.regex(/(\d+) HOURS/i) * 3600
+					: tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i) * 60 : 300;
+			this._forget('finish');
+			this.set(['runtime','start'], i*1000 + now);
+			this._remind(i , 'start');
+		}
+		break;
+	case 'festival_guild_battle':
+		if ($('#arena_battle_banner_section:contains("You Are Not A Part Of This Festival Battle!")').length) {
+		    log(LOG_INFO, '# not our battle');
+		    Page.set('temp.page', null);
+		    return change;
+		}
+		this.set(['runtime','tokens'], ($('#'+APPID_+'guild_token_current_value').text() || '10').regex(/(\d+)/));//fix
+		this._remind(($('#'+APPID_+'guild_token_time_value').text() || '5:00').parseTimer(), 'tokens');//fix
+		i = $('#'+APPID_+'monsterTicker').text().parseTimer();
+		tmp = $('input[src*="guild_battle_collectbtn_small."]'
+		  + ',input[src*="arena3_collectbutton."]');
+		if (tmp.length) {
+			this.set(['runtime','status'], 'collect');
+		} else if (i >= Date.HUGE) {
+			this.set(['runtime','status'], 'wait');
+			this.set(['runtime','start'], 60*60*1000 + now);
+			this._remind(60*60 , 'start');
+		} else {
+			this.set(['runtime','status'], 'fight');
+			this.set(['runtime','finish'], i*1000 + now);
+			this._remind(i, 'finish');
+		}
+		tmp = $('#'+APPID_+'results_main_wrapper');
+		if (tmp.length) {
+			i = tmp.text().regex(/\+(\d+) \w+ Activity Points/i);
+			if (isNumber(i)) {
+				History.add('festival', i);
+				History.add('festival_count', 1);
+				this._notify('data');// Force dashboard update
 			}
-			tmp = $('#'+APPID_+'results_main_wrapper');
-			if (tmp.length) {
-				i = tmp.text().regex(/\+(\d+) \w+ Activity Points/i);
-				if (isNumber(i)) {
-					History.add('festival', i);
-					History.add('festival_count', 1);
-					this._notify('data');// Force dashboard update
-				}
-			}
-			if ($('img[src*="battle_defeat"]').length && this.runtime.last) {//fix
-				this.set(['data',this.runtime.last], true);
-			}
-			this.set(['runtime','stunned'], !!$('#'+APPID_+'guild_battle_banner_section:contains("Status: Stunned")').length);//fix
-			break;
+		}
+		if ($('img[src*="battle_defeat"]').length && this.temp.last) {//fix
+			this.set(['data',this.temp.last], true);
+		}
+		this.set(['temp','last'], null);
+		this.set(['runtime','stunned'], !!$('#'+APPID_+'guild_battle_banner_section:contains("Status: Stunned")').length);//fix
+		break;
 	}
-	return false;
+
+	return change;
 };
 
-Festival.update = function(event) {
-	var now = Date.now(), status;
-	if (event.type === 'reminder') {
-		if (event.id === 'tokens') {
-			this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
-			if (this.runtime.tokens < 10) {
-				this._remind(300, 'tokens');
-			}
-		} else if (event.id === 'start') {
+Festival.update = function(event, events) {
+	var now = Date.now(), i, status;
+
+	if (events.findEvent(null, 'trigger', 'tokens')) {
+		if ((i = $('#'+APPID_+'guild_token_current_value')).length) {//fix
+			this.set(['runtime','tokens'], i.text().regex(/(\d+)/) || 0);
+		}
+	}
+	if (events.findEvent(null, 'reminder', 'tokens')) {
+		this.set(['runtime','tokens'], Math.min(10, this.runtime.tokens + 1));
+		if (this.runtime.tokens < 10) {
+			this._remind(5*60, 'tokens');
+		}
+	}
+	if (events.findEvent(null, 'reminder', 'start')) {
+		if (this.runtime.status !== 'fight') {
 			this.set(['runtime','status'], 'start');
-		} else if (event.id === 'finish') {
+		}
+	}
+	if (events.findEvent(null, 'reminder', 'finish')) {
+		if (this.runtime.status !== 'wait') {
 			this.set(['runtime','status'], 'collect');
 		}
 	}
-	if (event.type === 'trigger' && event.id === 'tokens') {
-		if ($('#'+APPID_+'guild_token_current_value').length) {//fix
-			this.set(['runtime','tokens'], $('#'+APPID_+'guild_token_current_value').text().regex(/(\d+)/) || 0);
-		}
-	}
+
 	if (this.runtime.status === 'fight' && this.runtime.finish - this.option.safety > now) {
-		this._remind((this.runtime.finish - this.option.safety - now) / 1000, 'fight');
+		this._remindMs(this.runtime.finish - this.option.safety - now, 'fight');
 	}
 	if (!this.runtime.tokens) {
 		this.set(['runtime','burn'], false);
@@ -22070,16 +22361,27 @@ Festival.update = function(event) {
 		&& !(this.runtime.status === 'wait' && this.runtime.start <= now) // Should be handled by an event
 		&& !(this.runtime.status === 'start' && Player.get('stamina',0) >= 20 && this.option.start)
 		&& !(this.runtime.status === 'fight' && this.runtime.tokens
-			&& (!this.option.delay || this.runtime.finish - 3600000 >= now - this.option.delay)
+			&& (!this.option.delay || this.runtime.finish - 60*60*1000 >= now - this.option.delay)
 			&& (this.option.tokens === 'min'
 			|| (this.option.tokens === 'healthy' && (!this.runtime.stunned || this.runtime.burn))
 			|| (this.option.tokens === 'max' && this.runtime.burn)))
 		&& !(this.runtime.status === 'collect' && this.option.collect));
+
 	status = this.get('runtime.status', 'wait');
-	Dashboard.status(this, 'Status: ' + this.temp.status[status] + (status === 'wait' ? ' (' + Page.addTimer('festival_start', this.runtime.start) + ')' : '') + (status === 'fight' ? ' (' + Page.addTimer('festival_start', this.runtime.finish) + ')' : '') + ', Tokens: ' + Config.makeImage('arena', 'Festival Tokens') + ' ' + this.runtime.tokens + ' / 10');
+
+	Dashboard.status(this, 'Status: ' + this.temp.status[status]
+	  + (status === 'wait' ? ' (' + Page.addTimer('festival_start', this.runtime.start) + ')' : '')
+	  + (status === 'fight' ? ' (' + Page.addTimer('festival_start', this.runtime.finish) + ')' : '')
+	  + ', Tokens: ' + Config.makeImage('arena', 'Festival Tokens') + ' ' + this.runtime.tokens + ' / 10'
+	);
+
+	return true;
 };
 
 Festival.work = function(state) {
+	var i, j, tmp, txt, skip, test, cleric, target, targetla, ignore,
+		best, besttarget, besttargetla, level, tokens;
+
 	if (state) {
 		if (!Page.get('festival_guild')
 		  || this.get('runtime.status', 'wait') === 'wait'
@@ -22087,108 +22389,170 @@ Festival.work = function(state) {
 			if (!Page.to('festival_guild')) {
 				return QUEUE_FINISH;
 			}
-		} else if (this.runtime.status !== 'fight' || Generals.to(this.option.general ? 'duel' : this.option.general_choice)) {
+		} else if (this.runtime.status !== 'fight'
+		  || Generals.to(this.option.general ? 'duel' : this.option.general_choice)
+		) {
 			if (Page.temp.page !== 'festival_guild_battle') {
 				if (Page.temp.page !== 'festival_guild') {
 					Page.to('festival_guild');
 				} else {
-					Page.click('img.imgButton[src*="festival_arena_enter.jpg"]');
+					tmp = $('img.imgButton[src*="festival_arena_enter."]');
+					if (!tmp.length) {
+						this.set('runtime.status', 'wait');
+					} else if (!Page.click(tmp[0])) {
+						log(LOG_INFO, "Can't click enter button, bailing.");
+					}
+					return QUEUE_FINISH;
 				}
 			} else {
 				if (this.runtime.status === 'collect') {
-					if (!$('input[src*="guild_battle_collectbtn_small.gif"]').length) {//fix
+					tmp = $('input[src*="guild_battle_collectbtn_small."]'
+					  + ',input[src*="arena3_collectbutton."]');
+					if (!tmp.length) {
 						Page.to('festival_guild');
 					} else {
 						log('Collecting Reward');
-						Page.click('input[src*="guild_battle_collectbtn_small.gif"]');//fix
+						Page.click(tmp[0]);
 					}
 				} else if (this.runtime.status === 'start') {
-					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+					tmp = $('input[src*="guild_enter_battle_button."]');
+					if (tmp.length) {
 						log('Entering Battle');
-						Page.click('input[src*="guild_enter_battle_button.gif"]');
+						Page.click(tmp[0]);
 					}
 					this.set(['data'], {}); // Forget old "lose" list
 				} else if (this.runtime.status === 'fight') {
-					if ($('input[src*="guild_enter_battle_button.gif"]').length) {
+					tmp = $('input[src*="guild_enter_battle_button."]');
+					if (tmp.length) {
 						log('Entering Battle');
-						Page.click('input[src*="guild_enter_battle_button.gif"]');
+						Page.click(tmp[0]);
+						return QUEUE_CONTINUE;
 					}
-					var best = null, besttarget, besthealth, ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
-					$('#'+APPID_+'enemy_guild_member_list_1 > div, #'+APPID_+'enemy_guild_member_list_2 > div, #'+APPID_+'enemy_guild_member_list_3 > div, #'+APPID_+'enemy_guild_member_list_4 > div').each(function(a,el){
-
-						var test = false, cleric = false, i = ignore.length, targetla = 0.0, besttargetla = 0.0, $el = $(el), txt = $el.text().trim().replace(/\s+/g,' '), target = txt.regex(/^(.*) Level *: (\d+) Class *: ([^ ]+) Health *: (\d+)\/(\d+) Status *: ([^ ]+) \w+ Points *: (\d+)/);
+					ignore = this.option.ignore && this.option.ignore.length ? this.option.ignore.split('|') : [];
+					level = Player.get('level', 1, 'number');
+					tokens = this.get(['runtime','tokens'], 0, 'number');
+					best = null;
+					besttarget = null;
+					tmp = $('#'+APPID_+'enemy_guild_member_list_1 > div'
+					  + ', #'+APPID_+'enemy_guild_member_list_2 > div'
+					  + ', #'+APPID_+'enemy_guild_member_list_3 > div'
+					  + ', #'+APPID_+'enemy_guild_member_list_4 > div');
+					for (i = 0; i < tmp.length; i++) {
+						txt = tmp.eq(i).text().trim().replace(/\s+/g,' ');
+						target = txt.regex(/^(.*) Level *: (\d+) Class *: ([^ ]+) Health *: (\d+)\/(\d+) Status *: ([^ ]+) \w+ Points *: (\d+)/);
 						// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
 						if (!target
-								|| (Festival.option.defeat && Festival.data
-									&& Festival.data[target[0]])
-								|| (isNumber(Festival.option.limit)
-									&& target[1] > Player.get('level',0) + Festival.option.limit)) {
-							return;
+						  || (this.option.defeat && this.data[target[0]])
+						  || (isNumber(this.option.limit)
+						  && target[1] > level + this.option.limit)
+						) {
+							continue;
 						}
-						while (i--) {
-							if (target[0].indexOf(ignore[i]) >= 0) {
-								return;
+						skip = false;
+						for (j = ignore.length - 1; j >= 0; j--) {
+							if (target[0].indexOf(ignore[j]) >= 0) {
+								skip = true;
+								break;
 							}
 						}
+						if (skip) {
+							continue;
+						}
+						test = false;
 						if (besttarget) {
-							switch(Festival.option.order) {
-								case 'level':		test = target[1] < besttarget[1];	break;
-								case 'health':		test = target[3] < besttarget[3];	break;
-								case 'maxhealth':	test = target[4] < besttarget[4];	break;
-								case 'activity':	test = target[6] < besttarget[6];	break;
-								case 'level2':		test = target[1] > besttarget[1];	break;
-								case 'health2':		test = target[3] > besttarget[3];	break;
-								case 'maxhealth2':	test = target[4] > besttarget[4];	break;
-								case 'activity2':	test = target[6] > besttarget[6];	break;
-								case 'levelactive':
-									besttargetla = besttarget[1];
-									if (besttarget[6]) {
-										besttargetla = -1.0/besttargetla;
-									}
-									targetla = target[1];
-									if (target[6]) {
-										targetla = -1.0/targetla;
-									}
-									test = targetla < besttargetla;
-									break;
-								case 'levelactive2':
-									besttargetla = besttarget[1];
-									if (!besttarget[6]) {
-										besttargetla = -1.0/besttargetla;
-									}
-									targetla = target[1];
-									if (!target[6]) {
-										targetla = -1.0/targetla;
-									}
-									test = targetla > besttargetla;
-									break;
+							switch (this.option.order) {
+							case 'level':		test = target[1] < besttarget[1];	break;
+							case 'health':		test = target[3] < besttarget[3];	break;
+							case 'maxhealth':	test = target[4] < besttarget[4];	break;
+							case 'activity':	test = target[6] < besttarget[6];	break;
+							case 'level2':		test = target[1] > besttarget[1];	break;
+							case 'health2':		test = target[3] > besttarget[3];	break;
+							case 'maxhealth2':	test = target[4] > besttarget[4];	break;
+							case 'activity2':	test = target[6] > besttarget[6];	break;
+							case 'levelactive':
+								besttargetla = besttarget[1];
+								if (besttarget[6]) {
+									besttargetla = -1.0/besttargetla;
+								}
+								targetla = target[1];
+								if (target[6]) {
+									targetla = -1.0/targetla;
+								}
+								test = targetla < besttargetla;
+								break;
+							case 'levelactive2':
+								besttargetla = besttarget[1];
+								if (!besttarget[6]) {
+									besttargetla = -1.0/besttargetla;
+								}
+								targetla = target[1];
+								if (!target[6]) {
+									targetla = -1.0/targetla;
+								}
+								test = targetla > besttargetla;
+								break;
 							}
 						}
-						if (Festival.option.cleric) {
+						cleric = false;
+						if (this.option.cleric) {
 							cleric = target[2] === 'Cleric' && target[6] && (!best || besttarget[2] !== 'Cleric');
 						}
-						//log('cname ' + target[0] + ' cleric ' + cleric + ' test ' + test + ' bh ' + (best ? besttarget[3] : 'none') + ' candidate healt ' + target[3]);
-						if ((target[3] && (!best || cleric)) || ((target[3] >= 200 || (Festival.option.suppress && target[3] && target[6])) && ((besttarget[3] < 200 && !(Festival.option.suppress && besttarget[3] && besttarget[6])) || test))) {
-							best = el;
+						if (((tokens >= 10 || (this.option.suppress && target[6])) ? target[3] : target[3] >= 200)
+						  && (!best
+						  || cleric
+						  || (this.option.active && target[6] && !besttarget[6])
+						  || (this.option.live && target[3] >= 200 && besttarget[3] < 200)
+						  || test)
+						) {
+							log(LOG_INFO, '# ' + (best ? '' : 'initial ')
+							  + 'best.' + i + ':'
+							  + ' ' + (target[6] ? 'active' : 'inactive')
+							  + ' ' + target[1] + '/' + target[2]
+							  + ' ' + target[3] + '/' + target[4]
+							  + ' ' + target[0]
+							);
+							best = tmp.el(i);
 							besttarget = target;
 						}
-					});
-					if (best) {
-						this.set(['runtime','last'], besttarget[0]);
-						log('Attacking '+besttarget[0]+' with '+besttarget[3]+' health');
-						if ($('input[src*="monster_duel_button.gif"]', best).length) {
-							Page.click($('input[src*="monster_duel_button.gif"]', best));
+					}
+					if (!best && tmp.length) {
+						// cheap and dirty gate change hack
+						j = tmp.length;
+						i = tmp.closest('div[id^="enemy_guild_member_list_"]').attr('id').regex(/enemy_guild_member_list_(\d+)/i);
+						tmp = $('#'+APPID_+'enemy_arena_tab_'+(i+1)+'.imgButton');
+						if (tmp.length && Page.click(tmp[0])) {
+							log(LOG_INFO, 'No targets, trying gate ' + (i+1));
+							return QUEUE_CONTINUE;
 						} else {
-							log(LOG_INFO, 'But couldn\'t find button, so backing out.');
+							log(LOG_INFO, 'No targets, no next gate ('+j+')');
+							return QUEUE_FINISH;
+						}
+					} else if (best) {
+						log('Attacking'
+						  + ' ' + (besttarget[6] ? 'active' : 'inactive')
+						  + ' ' + besttarget[1] + '/' + besttarget[2]
+						  + ' ' + besttarget[3] + '/' + besttarget[4]
+						  + ' ' + besttarget[0]
+						);
+						tmp = $('input[src*="monster_duel_button."]', best);
+						if (!tmp.length) {
+							log(LOG_INFO, "Can't find button, backing out.");
 							Page.to('festival_guild');
+						} else if (!Page.click(tmp[0])) {
+							log(LOG_INFO, "Can't click button, backing out.");
+							Page.to('battle_guild');
+							this.set(['temp','last'], null);
+						} else {
+							this.set(['temp','last'], besttarget[0]);
 						}
 					} else {
-						this.set(['runtime','last'], null);
+						log(LOG_INFO, 'No targets, no next gate (0)');
 					}
 				}
 			}
 		}
 	}
+
 	return QUEUE_CONTINUE;
 };
 }(jQuery.noConflict(true)));
