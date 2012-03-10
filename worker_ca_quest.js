@@ -281,7 +281,7 @@ Quest.page = function(page, change) {
 	// determine quest area lock state
 	tmp = $('img[src]');
 	for (i = 0; i < tmp.length; i++) {
-		icon = tmp.el(i).attr('src').filepart();
+		icon = tmp.eq(i).attr('src').filepart();
 		if (isString(j = this.temp.ilocked[icon])) {
 			// pretend we saw it far into the future
 			Page.set(['data',j], Date.HUGE);
