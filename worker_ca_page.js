@@ -11,31 +11,163 @@
 
 Page.defaults.castle_age = {
 	setup:function() {
-		this.pageCheck = ['#'+APPID_+'globalContainer', '#'+APPID_+'globalcss', '#'+APPID_+'main_bntp', '#'+APPID_+'main_sts_container', '#'+APPID_+'app_body_container', /*'#'+APPID_+'nvbar',*/ '#'+APPID_+'current_pg_url', '#'+APPID_+'current_pg_info'];
+		this.pageCheck = [
+			'#'+APPID_+'globalContainer',
+			'#'+APPID_+'globalcss',
+			'#'+APPID_+'main_bntp',
+			'#'+APPID_+'main_sts_container',
+			'#'+APPID_+'app_body_container',
+			//'#'+APPID_+'nvbar',
+			'#'+APPID_+'current_pg_url',
+			'#'+APPID_+'current_pg_info'
+		];
 		// '#app_content_'+APPID, 
 		this.pageNames = {
 //			facebook:			- not real, but used in worker.pages for worker.page('facebook') on fb popup dialogs
 			index:				{url:'index.php', selector:'#'+APPID_+'indexNewFeaturesBox'},
-			quests_quest:			{url:'quests.php', image:'tab_quest_on.gif', skip:true}, // If we ever get this then it means a new land...
-			quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif', skip:true},
-			quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif', skip:true},
-			quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif', skip:true},
-			quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif', skip:true},
-			quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif', skip:true},
-			quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif', skip:true},
-			quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif', skip:true},
-			quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif', skip:true},
-			quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif', skip:true},
-			quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif', skip:true},
-			quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif', skip:true},
-			quests_quest12:			{url:'quests.php?land=12', image:'tab_mist2_big.gif', skip:true},
-			quests_quest13:			{url:'quests.php?land=13', image:'tab_mist3_big.gif', skip:true},
-			quests_quest14:			{url:'quests.php?land=14', image:'tab_fire2_big.gif', skip:true},
-			quests_quest15:			{url:'quests.php?land=15', image:'tab_pangaea_big.gif', skip:true},
-			quests_quest16:			{url:'quests.php?land=16', image:'tab_perdition_big.gif', skip:true},
-			quests_quest17:			{url:'quests.php?land=17', image:'tab_fire4_big.gif', skip:true},
-			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif', skip:true},
-			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif', skip:true},
+			quests_quest: { // If we ever get this then it means a new land...
+				url:'quests.php',
+				image:'tab_quest_on.gif',
+				skip:true
+			},
+			quests_quest1: {
+				url:'quests.php?land=1',
+				image:'land_fire_sel.gif',
+				unlocked:'land_fire.gif',
+				locked:'land_fire_lock.gif',
+				skip:true
+			},
+			quests_quest2: {
+				url:'quests.php?land=2',
+				image:'land_earth_sel.gif',
+				unlocked:'land_earth.gif',
+				locked:'land_earth_lock.gif',
+				skip:true
+			},
+			quests_quest3: {
+				url:'quests.php?land=3',
+				image:'land_mist_sel.gif',
+				unlocked:'land_mist.gif',
+				locked:'land_mist_lock.gif',
+				skip:true
+			},
+			quests_quest4: {
+				url:'quests.php?land=4',
+				image:'land_water_sel.gif',
+				unlocked:'land_water.gif',
+				locked:'land_water_lock.gif',
+				skip:true
+			},
+			quests_quest5: {
+				url:'quests.php?land=5',
+				image:'land_demon_realm_sel.gif',
+				unlocked:'land_demon_realm.gif',
+				locked:'land_demon_realm_lock.gif',
+				skip:true
+			},
+			quests_quest6: {
+				url:'quests.php?land=6',
+				image:'land_undead_realm_sel.gif',
+				unlocked:'land_undead_realm.gif',
+				locked:'land_undead_realm_locked.gif',
+				skip:true
+			},
+			quests_quest7: {
+				url:'quests.php?land=7',
+				image:'tab_underworld_big.gif',
+				unlocked:'tab_underworld_small.gif',
+				locked:'tab_underworld_locked.gif',
+				skip:true
+			},
+			quests_quest8: {
+				url:'quests.php?land=8',
+				image:'tab_heaven_big2.gif',
+				unlocked:'tab_heaven_small2.gif',
+				locked:'tab_heaven_locked.gif',
+				skip:true
+			},
+			quests_quest9: {
+				url:'quests.php?land=9',
+				image:'tab_ivory_big.gif',
+				unlocked:'tab_ivory_small.gif',
+				locked:'tab_ivory_locked.gif',
+				skip:true
+			},
+			quests_quest10: {
+				url:'quests.php?land=10',
+				image:'tab_earth2_big.gif',
+				unlocked:'tab_earth2_small.gif',
+				locked:'tab_earth2_locked.gif',
+				skip:true
+			},
+			quests_quest11: {
+				url:'quests.php?land=11',
+				image:'tab_water2_big.gif',
+				unlocked:'tab_water2_small.gif',
+				locked:'tab_water2_locked.gif',
+				skip:true
+			},
+			quests_quest12: {
+				url:'quests.php?land=12',
+				image:'tab_mist2_big.gif',
+				unlocked:'tab_mist2_small.gif',
+				locked:'tab_mist2_locked.gif',
+				skip:true
+			},
+			quests_quest13: {
+				url:'quests.php?land=13',
+				image:'tab_mist3_big.gif',
+				unlocked:'tab_mist3_small.gif',
+				locked:'tab_mist3_locked.gif',
+				skip:true
+			},
+			quests_quest14: {
+				url:'quests.php?land=14',
+				image:'tab_fire2_big.gif',
+				unlocked:'tab_fire2_small.gif',
+				locked:'tab_fire2_locked.gif',
+				skip:true
+			},
+			quests_quest15: {
+				url:'quests.php?land=15',
+				image:'tab_pangaea_big.gif',
+				unlocked:'tab_pangaea_small.gif',
+				locked:'tab_pangaea_locked.gif',
+				skip:true
+			},
+			quests_quest16: {
+				url:'quests.php?land=16',
+				image:'tab_perdition_big.gif',
+				unlocked:'tab_perdition_small.gif',
+				locked:'tab_perdition_locked.gif',
+				skip:true
+			},
+			quests_quest17: {
+				url:'quests.php?land=17',
+				image:'tab_fire4_big.gif',
+				unlocked:'tab_fire4_small.gif',
+				locked:'tab_fire4_locked.gif',
+				skip:true
+			},
+			quests_demiquests: {
+				url:'symbolquests.php',
+				image:'demi_quest_on.gif',
+				skip:true
+			},
+			quests_atlantis: {
+				url:'monster_quests.php',
+				image:'tab_atlantis_on.gif',
+				unlocked:'land_atlantis.gif',
+				locked:'land_atlantis_lock.gif',
+				skip:true
+			},
+			quests_atlantis2: {
+				url:'monster_quests.php?land=2',
+				image:'land_atlantis_realm_sel_2.gif',
+				unlocked:'land_atlantis_2.gif',
+				locked:'land_atlantis_lock_2.gif',
+				skip:true
+			},
 			battle_battle:			{url:'battle.php', image:'battle_on.gif', skip:true},
 			battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif', skip:true},
 			battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},

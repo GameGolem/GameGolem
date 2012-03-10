@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1179
+ * GameGolem v31.6.1180
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1179
+ * GameGolem v31.6.1180
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1179;
+var revision = 1180;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1178;
+var trunk_revision = 1179;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -9508,10 +9508,10 @@ Generals.page = function(page, change) {
 					}
 				}
 				this.set(['data',name,'skillsbase'], s = $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim(true));
-				j = parseInt($('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
+				j = $('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im);
 				if (j) {
 					k = this.get(['data',name,'skills']) || s || '';
-					this.set(['data',name,'charge'], now + Math.floor(3600000 * ((1-j/100) * (k.regex(/(\d*) Hours? Cooldown/im) || 0))));
+					this.set(['data',name,'charge'], now + Math.ceil(60*60*10 * (100-j) * (k.regex(/(\d+) Hours? Cooldown/im) || 0)));
 					//log(LOG_WARN, name + ' ' + makeTime(this.data[name].charge, 'g:i a'));
 				}
 				this.set(['data',name,'own'], 1);
@@ -15409,31 +15409,163 @@ News.page = function(page, change) {
 
 Page.defaults.castle_age = {
 	setup:function() {
-		this.pageCheck = ['#'+APPID_+'globalContainer', '#'+APPID_+'globalcss', '#'+APPID_+'main_bntp', '#'+APPID_+'main_sts_container', '#'+APPID_+'app_body_container', /*'#'+APPID_+'nvbar',*/ '#'+APPID_+'current_pg_url', '#'+APPID_+'current_pg_info'];
+		this.pageCheck = [
+			'#'+APPID_+'globalContainer',
+			'#'+APPID_+'globalcss',
+			'#'+APPID_+'main_bntp',
+			'#'+APPID_+'main_sts_container',
+			'#'+APPID_+'app_body_container',
+			//'#'+APPID_+'nvbar',
+			'#'+APPID_+'current_pg_url',
+			'#'+APPID_+'current_pg_info'
+		];
 		// '#app_content_'+APPID, 
 		this.pageNames = {
 //			facebook:			- not real, but used in worker.pages for worker.page('facebook') on fb popup dialogs
 			index:				{url:'index.php', selector:'#'+APPID_+'indexNewFeaturesBox'},
-			quests_quest:			{url:'quests.php', image:'tab_quest_on.gif', skip:true}, // If we ever get this then it means a new land...
-			quests_quest1:			{url:'quests.php?land=1', image:'land_fire_sel.gif', skip:true},
-			quests_quest2:			{url:'quests.php?land=2', image:'land_earth_sel.gif', skip:true},
-			quests_quest3:			{url:'quests.php?land=3', image:'land_mist_sel.gif', skip:true},
-			quests_quest4:			{url:'quests.php?land=4', image:'land_water_sel.gif', skip:true},
-			quests_quest5:			{url:'quests.php?land=5', image:'land_demon_realm_sel.gif', skip:true},
-			quests_quest6:			{url:'quests.php?land=6', image:'land_undead_realm_sel.gif', skip:true},
-			quests_quest7:			{url:'quests.php?land=7', image:'tab_underworld_big.gif', skip:true},
-			quests_quest8:			{url:'quests.php?land=8', image:'tab_heaven_big2.gif', skip:true},
-			quests_quest9:			{url:'quests.php?land=9', image:'tab_ivory_big.gif', skip:true},
-			quests_quest10:			{url:'quests.php?land=10', image:'tab_earth2_big.gif', skip:true},
-			quests_quest11:			{url:'quests.php?land=11', image:'tab_water2_big.gif', skip:true},
-			quests_quest12:			{url:'quests.php?land=12', image:'tab_mist2_big.gif', skip:true},
-			quests_quest13:			{url:'quests.php?land=13', image:'tab_mist3_big.gif', skip:true},
-			quests_quest14:			{url:'quests.php?land=14', image:'tab_fire2_big.gif', skip:true},
-			quests_quest15:			{url:'quests.php?land=15', image:'tab_pangaea_big.gif', skip:true},
-			quests_quest16:			{url:'quests.php?land=16', image:'tab_perdition_big.gif', skip:true},
-			quests_quest17:			{url:'quests.php?land=17', image:'tab_fire4_big.gif', skip:true},
-			quests_demiquests:		{url:'symbolquests.php', image:'demi_quest_on.gif', skip:true},
-			quests_atlantis:		{url:'monster_quests.php', image:'tab_atlantis_on.gif', skip:true},
+			quests_quest: { // If we ever get this then it means a new land...
+				url:'quests.php',
+				image:'tab_quest_on.gif',
+				skip:true
+			},
+			quests_quest1: {
+				url:'quests.php?land=1',
+				image:'land_fire_sel.gif',
+				unlocked:'land_fire.gif',
+				locked:'land_fire_lock.gif',
+				skip:true
+			},
+			quests_quest2: {
+				url:'quests.php?land=2',
+				image:'land_earth_sel.gif',
+				unlocked:'land_earth.gif',
+				locked:'land_earth_lock.gif',
+				skip:true
+			},
+			quests_quest3: {
+				url:'quests.php?land=3',
+				image:'land_mist_sel.gif',
+				unlocked:'land_mist.gif',
+				locked:'land_mist_lock.gif',
+				skip:true
+			},
+			quests_quest4: {
+				url:'quests.php?land=4',
+				image:'land_water_sel.gif',
+				unlocked:'land_water.gif',
+				locked:'land_water_lock.gif',
+				skip:true
+			},
+			quests_quest5: {
+				url:'quests.php?land=5',
+				image:'land_demon_realm_sel.gif',
+				unlocked:'land_demon_realm.gif',
+				locked:'land_demon_realm_lock.gif',
+				skip:true
+			},
+			quests_quest6: {
+				url:'quests.php?land=6',
+				image:'land_undead_realm_sel.gif',
+				unlocked:'land_undead_realm.gif',
+				locked:'land_undead_realm_locked.gif',
+				skip:true
+			},
+			quests_quest7: {
+				url:'quests.php?land=7',
+				image:'tab_underworld_big.gif',
+				unlocked:'tab_underworld_small.gif',
+				locked:'tab_underworld_locked.gif',
+				skip:true
+			},
+			quests_quest8: {
+				url:'quests.php?land=8',
+				image:'tab_heaven_big2.gif',
+				unlocked:'tab_heaven_small2.gif',
+				locked:'tab_heaven_locked.gif',
+				skip:true
+			},
+			quests_quest9: {
+				url:'quests.php?land=9',
+				image:'tab_ivory_big.gif',
+				unlocked:'tab_ivory_small.gif',
+				locked:'tab_ivory_locked.gif',
+				skip:true
+			},
+			quests_quest10: {
+				url:'quests.php?land=10',
+				image:'tab_earth2_big.gif',
+				unlocked:'tab_earth2_small.gif',
+				locked:'tab_earth2_locked.gif',
+				skip:true
+			},
+			quests_quest11: {
+				url:'quests.php?land=11',
+				image:'tab_water2_big.gif',
+				unlocked:'tab_water2_small.gif',
+				locked:'tab_water2_locked.gif',
+				skip:true
+			},
+			quests_quest12: {
+				url:'quests.php?land=12',
+				image:'tab_mist2_big.gif',
+				unlocked:'tab_mist2_small.gif',
+				locked:'tab_mist2_locked.gif',
+				skip:true
+			},
+			quests_quest13: {
+				url:'quests.php?land=13',
+				image:'tab_mist3_big.gif',
+				unlocked:'tab_mist3_small.gif',
+				locked:'tab_mist3_locked.gif',
+				skip:true
+			},
+			quests_quest14: {
+				url:'quests.php?land=14',
+				image:'tab_fire2_big.gif',
+				unlocked:'tab_fire2_small.gif',
+				locked:'tab_fire2_locked.gif',
+				skip:true
+			},
+			quests_quest15: {
+				url:'quests.php?land=15',
+				image:'tab_pangaea_big.gif',
+				unlocked:'tab_pangaea_small.gif',
+				locked:'tab_pangaea_locked.gif',
+				skip:true
+			},
+			quests_quest16: {
+				url:'quests.php?land=16',
+				image:'tab_perdition_big.gif',
+				unlocked:'tab_perdition_small.gif',
+				locked:'tab_perdition_locked.gif',
+				skip:true
+			},
+			quests_quest17: {
+				url:'quests.php?land=17',
+				image:'tab_fire4_big.gif',
+				unlocked:'tab_fire4_small.gif',
+				locked:'tab_fire4_locked.gif',
+				skip:true
+			},
+			quests_demiquests: {
+				url:'symbolquests.php',
+				image:'demi_quest_on.gif',
+				skip:true
+			},
+			quests_atlantis: {
+				url:'monster_quests.php',
+				image:'tab_atlantis_on.gif',
+				unlocked:'land_atlantis.gif',
+				locked:'land_atlantis_lock.gif',
+				skip:true
+			},
+			quests_atlantis2: {
+				url:'monster_quests.php?land=2',
+				image:'land_atlantis_realm_sel_2.gif',
+				unlocked:'land_atlantis_2.gif',
+				locked:'land_atlantis_lock_2.gif',
+				skip:true
+			},
 			battle_battle:			{url:'battle.php', image:'battle_on.gif', skip:true},
 			battle_training:		{url:'battle_train.php', image:'training_grounds_on_new.gif', skip:true},
 			battle_rank:			{url:'battlerank.php', image:'tab_battle_rank_on.gif'},
@@ -15982,7 +16114,9 @@ Quest.data = {
 };
 
 Quest.temp = {
-	order: []
+	order: [],
+	ilocked: {},
+	iunlocked: {}
 };
 
 Quest.land = [
@@ -16146,6 +16280,24 @@ Quest.init = function(old_revision, fresh) {
 	}
 	// END
 
+	// set up locked/unlocked image sets
+	list = this.defaults['castle_age'].pages.split(/\s+/);
+	this.temp.ilocked = {};
+	this.temp.iunlocked = {};
+	for (i = 0; i < list.length; i++) {
+		if (isObject(x = Page.pageNames[list[i]]) && (x.locked || x.unlocked)) {
+			if (x.image) {
+				this.temp.iunlocked[x.image] = list[i];
+			}
+			if (x.unlocked) {
+				this.temp.iunlocked[x.unlocked] = list[i];
+			}
+			if (x.locked) {
+				this.temp.ilocked[x.locked] = list[i];
+			}
+		}
+	}
+
 //	this._watch(this, 'runtime.page');				// for stale pages
 //	this._watch(this, 'runtime.best');				// for best quest
 	this._watch(Player, 'data.energy');				// for available energy
@@ -16174,7 +16326,10 @@ Quest.menu = function(worker, key) {
 };
 
 Quest.page = function(page, change) {
-	var now = Date.now(), last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units, item, icon, c;
+	var now = Date.now(), c, i, j, tmp, el, icon, quests,
+		name, item, id, level, influence, reward, energy, exp, type, units,
+		m_c, m_d, m_l, m_i, reps, purge = {},
+		last_main = 0, area = null, land = null;
 
 	if (page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
@@ -16185,6 +16340,21 @@ Quest.page = function(page, change) {
 	} else {
 		area = 'quest';
 		land = page.regex(/quests_quest(\d+)/i) - 1;
+	}
+
+	// determine quest area lock state
+	tmp = $('img[src]');
+	for (i = 0; i < tmp.length; i++) {
+		icon = tmp.el(i).attr('src').filepart();
+		if (isString(j = this.temp.ilocked[icon])) {
+			// pretend we saw it far into the future
+			Page.set(['data',j], Date.HUGE);
+		} else if (isString(j = this.temp.iunlocked[icon])
+		  && Page.get(['data',j]) === Date.HUGE
+		) {
+			// mark it as unseen, as it recently became unlocked
+			Page.set(['data',j], 0);
+		}
 	}
 
 	for (i in this.data.id) {
@@ -17431,9 +17601,9 @@ Quest.wiki_reps = function(quest, pure) {
 /*jslint
 */
 
-Quest.rts = 1330709959;		// Fri Mar  2 17:39:19 2012 UTC
+Quest.rts = 1331322768;		// Fri Mar  9 19:52:48 2012 UTC
 
-Quest.rdata =				// #558
+Quest.rdata =				// #585
 {
 	'a demonic transformation':			{ 'reps_q4':  34 },
 	'a forest in peril':				{ 'reps_d4':   9 },
@@ -17444,6 +17614,7 @@ Quest.rdata =				// #558
 	'across the sea':					{ 'reps_q11':  8 },
 	'aid corvintheus':					{ 'reps_d3':   9 },
 	'aid the angels':					{ 'reps_q9':  14 },
+	'ambush':							{ 'reps_q17':  0 },
 	'angels descend':					{ 'reps_q9':  10 },
 	'approach the prayer chamber':		{ 'reps_d1':   9 },
 	'approach the tree of life':		{ 'reps_d4':   9 },
@@ -17459,12 +17630,13 @@ Quest.rdata =				// #558
 	'avoid fungal poison':				{ 'reps_q12':  0 },
 	'avoid patrols':					{ 'reps_q14':  0 },
 	'avoid poison':						{ 'reps_q12':  0 },
+	'avoid poisonous clouds':			{ 'reps_q17':  0 },
 	'avoid shades':						{ 'reps_q12':  0 },
 	'avoid the guards':					{ 'reps_q8':  14 },
 	'avoid the patrols':				{ 'reps_q9':  14 },
+	'bandit riders':					{ 'reps_q17':  0 },
 	'banish the horde':					{ 'reps_q9':  14 },
 	'banish undead':					{ 'reps_q15':  0 },
-	'battle a wraith':					{ 'reps_q2':  14 },
 	'battle earth and fire demons':		{ 'reps_q4':  12 },
 	'battle gang of bandits':			{ 'reps_q1':   8 },
 	'battle orc captain':				{ 'reps_q3':  14 },
@@ -17488,8 +17660,8 @@ Quest.rdata =				// #558
 	'breaking through the guard':		{ 'reps_q9':  14 },
 	'bridge of elim':					{ 'reps_q8':  10 },
 	'bridge of fire':					{ 'reps_q14': 10, 'reps_q17': 11 },
+	'bring order':						{ 'reps_q17':  0 },
 	'burn barracks':					{ 'reps_q14':  0 },
-	'burning gates':					{ 'reps_q7':  10 },
 	'burning of karth':					{ 'reps_q14': 12 },
 	'burning ridge':					{ 'reps_q17': 10 },
 	'bury corpses':						{ 'reps_q15':  0 },
@@ -17535,16 +17707,21 @@ Quest.rdata =				// #558
 	'confront the black lion':			{ 'reps_d5':   9 },
 	'confront the rebels':				{ 'reps_q10': 10 },
 	'consult aurora':					{ 'reps_d4':   9 },
+	'contain threat':					{ 'reps_q17':  0 },
 	'corruption of nature':				{ 'reps_d4':  17 },
 	'counter life drain':				{ 'reps_q14':  0 },
+	'counterattack':					{ 'reps_q17':  0 },
+	'cover of darkness':				{ 'reps_q17':  0 },
 	'cover tracks':						{ 'reps_q7':  16 },
 	'create artifact relic':			{ 'reps_q13':  0 },
 	'create wall':						{ 'reps_q12':  0 },
 	'cross astral bridge':				{ 'reps_q16':  0 },
 	'cross chasm':						{ 'reps_q15':  0 },
+	'cross fire bridge':				{ 'reps_q17':  0 },
 	'cross lava pools':					{ 'reps_q14':  0 },
 	'cross lava river':					{ 'reps_q7':  16 },
 	'cross the bridge':					{ 'reps_q8':  14, 'reps_q10': 14 },
+	'cross the canyon':					{ 'reps_q17':  0 },
 	'cross the chasm':					{ 'reps_q16':  0 },
 	'cross the falls':					{ 'reps_q13':  0 },
 	'cross the moat':					{ 'reps_q11':  0 },
@@ -17552,6 +17729,7 @@ Quest.rdata =				// #558
 	'crossing the white plains':		{ 'reps_q14':  9 },
 	'cure infested soldiers':			{ 'reps_q6':  23 },
 	'dark chasm':						{ 'reps_q15': 12 },
+	'dark elves':						{ 'reps_q17':  0 },
 	'dark heart of the woods':			{ 'reps_q12':  9 },
 	'darkness arrives':					{ 'reps_q17': 11 },
 	'deal final blow to bloodwing':		{ 'reps_d2':   9 },
@@ -17568,6 +17746,8 @@ Quest.rdata =				// #558
 	'defeat darien woesteel':			{ 'reps_d5':   9 },
 	'defeat demonic guards':			{ 'reps_q7':  16 },
 	'defeat fire elementals':			{ 'reps_q10': 14 },
+	'defeat fire guardians':			{ 'reps_q17':  0 },
+	'defeat firelords':					{ 'reps_q17':  0 },
 	'defeat frost minions':				{ 'reps_q3':  32 },
 	'defeat ghoul':						{ 'reps_q15':  0 },
 	'defeat guardian':					{ 'reps_q12':  0 },
@@ -17648,6 +17828,7 @@ Quest.rdata =				// #558
 	'entrap souls':						{ 'reps_q15':  0 },
 	'equip soldiers':					{ 'reps_q6':  23 },
 	'eradicate spores':					{ 'reps_q13':  0 },
+	'escape':							{ 'reps_q17':  0 },
 	'escape from trakan':				{ 'reps_q12':  7 },
 	'escape the darkness':				{ 'reps_q16':  0 },
 	'escape trakan':					{ 'reps_q12':  0 },
@@ -17717,6 +17898,9 @@ Quest.rdata =				// #558
 	'find your way out':				{ 'reps_q7':  14 },
 	'finding mephistopheles':			{ 'reps_q9':  10 },
 	'fire and brimstone':				{ 'reps_q7':  10 },
+	'fire elementals':					{ 'reps_q17':  0 },
+	'fire essences':					{ 'reps_q17':  0 },
+	'first trial of fire':				{ 'reps_q17':  0 },
 	'forest of ash':					{ 'reps_d4':  11 },
 	'fortress':							{ 'reps_a2':   0 },
 	'freeing arielle':					{ 'reps_q12': 10 },
@@ -17727,6 +17911,7 @@ Quest.rdata =				// #558
 	'gateway':							{ 'reps_q8':  10 },
 	'gather crystals':					{ 'reps_q15':  0 },
 	'gather earth essence':				{ 'reps_q13':  0 },
+	'gather fire shards':				{ 'reps_q17':  0 },
 	'gather life dust':					{ 'reps_q13':  0 },
 	'gather nature essence':			{ 'reps_q13':  0 },
 	'gather samples':					{ 'reps_q13':  0 },
@@ -17739,7 +17924,8 @@ Quest.rdata =				// #558
 	'hakkal woods':						{ 'reps_q13':  7 },
 	'heal arielle':						{ 'reps_q12':  0 },
 	'heal wounds':						{ 'reps_q7':  16 },
-	'heat the villagers':				{ 'reps_q1':   4 },
+	'heat the villagers':				{ 'reps_q1':   8 },
+	'help the wounded':					{ 'reps_q17':  0 },
 	'holy fire':						{ 'reps_d4':  10 },
 	'hunt for food':					{ 'reps_q13':  0 },
 	'iapetian gateway':					{ 'reps_q15': 11 },
@@ -17748,6 +17934,7 @@ Quest.rdata =				// #558
 	'inside the palace':				{ 'reps_q9':  10 },
 	'inspire soldiers':					{ 'reps_q12':  0 },
 	'interrogate the prisoners':		{ 'reps_q9':  14 },
+	'interrogation':					{ 'reps_q17':  0 },
 	'investigate temple':				{ 'reps_q13':  0 },
 	'investigate the gateway':			{ 'reps_q8':  14 },
 	'inviting vengeance':				{ 'reps_q16': 12 },
@@ -17779,6 +17966,7 @@ Quest.rdata =				// #558
 	'make camp':						{ 'reps_q13':  0, 'reps_q14':  0 },
 	'make leap of faith':				{ 'reps_q16':  0 },
 	'make preparations':				{ 'reps_q14':  0 },
+	'make preperations':				{ 'reps_q17':  0 },
 	'marauders!':						{ 'reps_d5':   9 },
 	'march into the undead lands':		{ 'reps_q6':  23 },
 	'march to the unholy war':			{ 'reps_q6':  23 },
@@ -17786,12 +17974,14 @@ Quest.rdata =				// #558
 	'misty hills of boralis':			{ 'reps_q3':  17 },
 	'mount aretop':						{ 'reps_d2':  21 },
 	'move supplies':					{ 'reps_q14':  0 },
+	'mutual respect':					{ 'reps_q17':  0 },
 	'navigate passage':					{ 'reps_q15':  0 },
 	'navigate the labryrinth':			{ 'reps_q16':  0 },
 	'navigate the waters':				{ 'reps_q16':  0 },
 	'nightfall':						{ 'reps_q12':  9 },
 	'nightmare':						{ 'reps_q6':  17 },
 	'nighttime infiltration':			{ 'reps_q14': 11 },
+	'open fire gate':					{ 'reps_q17':  0 },
 	'open portal':						{ 'reps_q15':  0 },
 	'open the shadowgates':				{ 'reps_q16':  0 },
 	'outmaneuver lothar':				{ 'reps_q12':  0 },
@@ -17806,7 +17996,7 @@ Quest.rdata =				// #558
 	'portal of atlantis':				{ 'reps_a1':  17 },
 	'power of excalibur':				{ 'reps_q8':  10 },
 	'prepare for ambush':				{ 'reps_q1':   5 },
-	'prepare for battle':				{ 'reps_d2':   9, 'reps_q5':  23 },
+	'prepare for battle':				{ 'reps_d2':   9, 'reps_q5':  23, 'reps_q17':  0 },
 	'prepare for dark':					{ 'reps_q13':  0 },
 	'prepare for journey':				{ 'reps_q15':  0, 'reps_q16':  0 },
 	'prepare for the trials':			{ 'reps_q9':  14 },
@@ -17829,9 +18019,12 @@ Quest.rdata =				// #558
 	'reborn excitement':				{ 'reps_q17':  7 },
 	'recover the key':					{ 'reps_q9':  14 },
 	'recruit allies':					{ 'reps_q10': 14 },
+	'recruit clerics':					{ 'reps_q17':  0 },
 	'recruit elekin to join you':		{ 'reps_d2':   8 },
 	'recruit furest to join you':		{ 'reps_d3':   9 },
 	'recruit guide':					{ 'reps_q15':  0 },
+	'recruit mages':					{ 'reps_q17':  0 },
+	'recruit paladins':					{ 'reps_q17':  0 },
 	'redeemers message':				{ 'reps_q16': 12 },
 	'regain strength':					{ 'reps_q15':  0 },
 	'reinforcements':					{ 'reps_q9':  10 },
@@ -17854,9 +18047,11 @@ Quest.rdata =				// #558
 	'save stranded soldiers':			{ 'reps_q10': 14 },
 	'scale the cliffs':					{ 'reps_q16':  0 },
 	'scout karth':						{ 'reps_q14':  0 },
+	'second trial of fire':				{ 'reps_q17':  0 },
 	'seek out elekin':					{ 'reps_d2':   8 },
 	'seek out furest hellblade':		{ 'reps_d3':   9 },
 	'seek out jeweled heart':			{ 'reps_d5':   9 },
+	'setup shelter':					{ 'reps_q17':  0 },
 	'setup siege':						{ 'reps_q14':  0 },
 	'shadowspire':						{ 'reps_q16': 10 },
 	'shield of the stars':				{ 'reps_d3':  17 },
@@ -17959,7 +18154,9 @@ Quest.rdata =				// #558
 	'the throne chamber':				{ 'reps_q9':  10 },
 	'the tree of life':					{ 'reps_d4':  21 },
 	'the vanguard of destruction':		{ 'reps_d1':  21 },
+	'the war camp':						{ 'reps_q17':  0 },
 	'the water temple':					{ 'reps_q2':  17 },
+	'third trial of fire':				{ 'reps_q17':  0 },
 	'til morning comes':				{ 'reps_q12': 12 },
 	'towards rodinia':					{ 'reps_q15':  9 },
 	'town':								{ 'reps_a2':   0 },
@@ -19666,9 +19863,9 @@ Town.dup_map = {
 /*jslint
 */
 
-Town.rts = 1330701967;	// Fri Mar  2 15:26:07 2012 UTC
+Town.rts = 1331115191;	// Wed Mar  7 10:13:11 2012 UTC
 
-Town.rdata =			// #1339
+Town.rdata =			// #1360
 {
 	'Absolution':					{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_azul_shield.jpg' },
 	'Adjucators Gauntlets':			{ 'atk':  12, 'def':   8, 'type': 'gloves', 'img': 'eq_azeron_gauntlet.jpg' },
@@ -19683,6 +19880,7 @@ Town.rdata =			// #1339
 	'Aegis of the Winds':			{ 'atk':  28, 'def':  22, 'type': 'shield', 'img': 'eq_valhalla_shield.jpg' },
 	'Aeris':						{ 'atk':   5, 'def':   5, 'type': 'hero', 'img': 'hero_aeris.jpg', 'skills': 'Decrease Bank fee' },
 	'Aeris Dagger':					{ 'atk':   4, 'def':  10, 'type': 'weapon', 'img': 'gift_aeris2_complete.jpg' },
+	'Aesir':						{ 'atk':  28, 'def':  23, 'type': 'hero', 'img': 'hero_aesir.jpg', 'skills': 'Grants Physical Pierce Ability' },
 	'Aesirs Battle Armor':			{ 'atk':  24, 'def':  22, 'type': 'armor', 'img': 'eq_aesir_armor.jpg' },
 	'Aethyx':						{ 'atk':  24, 'def':  18, 'type': 'hero', 'img': 'hero_aethyx.jpg', 'skills': 'Increase Poison damage and duration' },
 	'Agamemnon':					{ 'atk':  35, 'def':  28, 'type': 'hero', 'img': 'hero_agamemnon.jpg', 'skills': 'Increase Player Attack by ; +3% vs. Monsters, Increase Critical Hit %' },
@@ -19720,6 +19918,7 @@ Town.rdata =			// #1339
 	'Amulet of Despair':			{ 'atk':   6, 'def':   5, 'type': 'amulet', 'img': 'eq_strider_evilamulet.jpg' },
 	'Amulet of Shadows':			{ 'atk':  17, 'def':  20, 'type': 'amulet', 'img': 'eq_raziel_amulet.jpg' },
 	'Amulet of the Tempest':		{ 'atk':  10, 'def':  11, 'type': 'amulet', 'img': 'demi_energy_amu.jpg' },
+	'Ancient Deathplate':			{ 'atk':  20, 'def':  16, 'type': 'armor' },
 	'Ancient Egg':					{ 'type': 'alchemy', 'img': 'gift_sea_egg_ancient.jpg' },
 	'Ancient Frost Hilt':			{ 'type': 'alchemy', 'img': 'eq_jagsword_hilt.jpg' },
 	'Ancient Hatchet':				{ 'type': 'alchemy', 'img': 'gift_turkeyday_promo_1.jpg' },
@@ -19749,6 +19948,7 @@ Town.rdata =			// #1339
 	'Arachnid Claw':				{ 'atk':   5, 'def':   0, 'type': 'weapon' },
 	'Arachnid Poison':				{ 'atk':   5, 'def':   5, 'type': 'magic' },
 	'Arachnid Slayer':				{ 'atk':   6, 'def':   4, 'type': 'weapon', 'img': 'eq_spider_reward_weapon.jpg' },
+	'Aravoss':						{ 'atk':  33, 'def':  44, 'type': 'hero', 'skills': 'Increase Physical Pierce and Earth Offense' },
 	'Araxin Blade':					{ 'atk':   7, 'def':   8, 'type': 'weapon', 'img': 'gift_araxis_complete.jpg' },
 	'Araxis':						{ 'atk':  17, 'def':  19, 'type': 'hero', 'img': 'hero_araxis.jpg', 'skills': 'Convert' },
 	'Arcane Blast':					{ 'atk':   4, 'def':   4, 'type': 'magic', 'img': 'war_reward_3.jpg' },
@@ -19808,6 +20008,8 @@ Town.rdata =			// #1339
 	'Backdraft':					{ 'atk':  12, 'def':   7, 'type': 'magic', 'img': 'eq_kaiser_magic.jpg' },
 	'Bahamut, the Volcanic Dragon':	{ 'atk':  75, 'def':  75, 'type': 'unit', 'img': 'soldier_volcanic_dragon.jpg' },
 	'Bahamuts Blood':				{ 'type': 'alchemy', 'img': 'eq_dragan_1.jpg' },
+	'Band of Firemight':			{ 'atk':  18, 'def':  12, 'type': 'amulet' },
+	'Band of Frostmight':			{ 'atk':  10, 'def':  18, 'type': 'amulet' },
 	'Banthus Archfiend':			{ 'atk':  24, 'def':  22, 'type': 'hero', 'img': 'boss_banthus.jpg', 'skills': 'Increase Monster Crits by +50%, cooldown 12 hours' },
 	'Barbarian':					{ 'atk':  10, 'def':   6, 'type': 'unit', 'img': 'soldier_barbarian.jpg' },
 	'Barbarian Captain':			{ 'atk':  23, 'def':  20, 'type': 'unit', 'img': 'war_reward_2.jpg' },
@@ -19902,6 +20104,7 @@ Town.rdata =			// #1339
 	'Charlotte':					{ 'atk':  25, 'def':  27, 'type': 'hero', 'img': 'hero_charlotte.jpg', 'skills': 'Increase Monster Crits by +4%' },
 	'Chase':						{ 'atk':  20, 'def':  16, 'type': 'hero', 'img': 'hero_chase.jpg', 'skills': 'Increase Max Army Size by +20' },
 	'Chase Family Heirloom':		{ 'atk':   5, 'def':   5, 'type': 'amulet', 'img': 'gift_chase_complete.jpg' },
+	'Chasm Scythe':					{ 'atk':  27, 'def':  24, 'type': 'weapon' },
 	'Chillstrike':					{ 'atk':  24, 'def':  26, 'type': 'weapon', 'img': 'eq_frost_weapon.jpg' },
 	'Chimera Claw':					{ 'type': 'alchemy', 'img': 'gift_chimera_1.jpg' },
 	'Chimera Horns':				{ 'type': 'alchemy', 'img': 'gift_chimera_2.jpg' },
@@ -19922,6 +20125,7 @@ Town.rdata =			// #1339
 	'Cleric':						{ 'atk':   1, 'def':   5, 'type': 'unit', 'img': 'upgrade_cleric.jpg' },
 	'Cloak of Shadows':				{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'conquest_ingredient_rogue.jpg' },
 	'Clockatrice Feathers':			{ 'type': 'alchemy', 'img': 'gift_terra_3.jpg' },
+	'Cloudsilk Cloak':				{ 'atk':  12, 'def':  25, 'type': 'armor' },
 	'Cloudslayer Blade':			{ 'atk':  15, 'def':  15, 'type': 'weapon', 'img': 'eq_cloudslayer_weapon.jpg' },
 	'Cloudslayer Gauntlet':			{ 'atk':   7, 'def':   8, 'type': 'gloves', 'img': 'eq_cloudslayer_glove.jpg' },
 	'Cloudslayer Pendant':			{ 'atk':   9, 'def':  10, 'type': 'amulet', 'img': 'eq_cloudslayer_amulet.jpg' },
@@ -19946,6 +20150,7 @@ Town.rdata =			// #1339
 	'Consecration':					{ 'atk':  14, 'def':  14, 'type': 'magic', 'img': 'eq_azriel_magic_2.jpg' },
 	'Corvintheus':					{ 'atk':  28, 'def':  28, 'type': 'hero', 'img': 'boss_corvintheus.jpg', 'skills': 'Increase Player Defense by +1' },
 	'Cowl of the Avenger':			{ 'atk':  12, 'def':   7, 'type': 'helmet', 'img': 'demi_stamina_helm.jpg' },
+	'Cranial Helm':					{ 'atk':  18, 'def':  15, 'type': 'helmet' },
 	'Crest Shard 1 of 4':			{ 'type': 'alchemy', 'img': 'gift_red_1.jpg' },
 	'Crest Shard 2 of 4':			{ 'type': 'alchemy', 'img': 'gift_red_2.jpg' },
 	'Crest Shard 3 of 4':			{ 'type': 'alchemy', 'img': 'gift_red_3.jpg' },
@@ -19960,6 +20165,7 @@ Town.rdata =			// #1339
 	'Crom':							{ 'atk':  17, 'def':  17, 'type': 'hero', 'img': 'crom.jpg', 'skills': 'Increase Max Army Size by +20' },
 	'Cronus, The World Hydra':		{ 'atk':  60, 'def':  60, 'type': 'unit', 'img': 'soldier_hydra_final.jpg' },
 	'Crossgate Shield':				{ 'atk':  20, 'def':  24, 'type': 'shield', 'img': 'eq_kothas_shield.jpg' },
+	'Crossguard Plate':				{ 'atk':  15, 'def':  20, 'type': 'armor', 'img': 'eq_reinhardt_armor.jpg' },
 	'Crown of Darius':				{ 'atk':   8, 'def':   7, 'type': 'helmet', 'img': 'eq_darius_crown.jpg' },
 	'Crown of Deliverance':			{ 'atk':  13, 'def':   9, 'type': 'helmet', 'img': 'eq_elaida_helm.jpg' },
 	'Crown of Flames':				{ 'atk':  33, 'def':  32, 'type': 'helmet', 'img': 'eq_gehenna_helm_2.jpg' },
@@ -20099,6 +20305,7 @@ Town.rdata =			// #1339
 	'Empyrean Plate':				{ 'atk':  10, 'def':   6, 'type': 'armor', 'img': 'eq_empryean_plate.jpg' },
 	'Enchanted Lantern':			{ 'atk':   2, 'def':  12, 'type': 'amulet', 'img': 'eq_sylvanus_lantern.jpg' },
 	'Enchanted Mythril':			{ 'type': 'alchemy', 'img': 'gift_chase_2.jpg' },
+	'Ender':						{ 'atk':  43, 'def':  31, 'type': 'hero', 'skills': 'Increase Physical Pierce, Decreases Fire and Water Resistance' },
 	'Enduring Winter':				{ 'atk':  16, 'def':  18, 'type': 'magic', 'img': 'eq_glacius_spell.jpg' },
 	'Energy Bolt':					{ 'atk':   1, 'def':   1, 'type': 'magic', 'img': 'magic_energybolt.jpg' },
 	'Enriched Mineral':				{ 'type': 'alchemy', 'img': 'eq_gift_elizabeth_1.jpg' },
@@ -20119,6 +20326,7 @@ Town.rdata =			// #1339
 	'Evergreen Cloak':				{ 'atk':   2, 'def':   6, 'type': 'armor', 'img': 'eq_sylvanus_cape.jpg' },
 	'Excalibur':					{ 'atk':  25, 'def':  12, 'type': 'weapon', 'img': 'eq_excalibur.jpg', 'uniq': 1 },
 	'Excelsior':					{ 'atk':  20, 'def':  25, 'type': 'hero', 'img': 'hero_excelsior.jpg', 'skills': 'Increase Max Health by +22' },
+	'Exorcist Cross':				{ 'atk':  20, 'def':  19, 'type': 'weapon', 'img': 'eq_reinhardt_weapon.jpg' },
 	'Exsanguinator':				{ 'atk':  32, 'def':  22, 'type': 'weapon', 'img': 'eq_vincent_weapon.jpg' },
 	'Eye of Transcendence':			{ 'atk':  25, 'def':  28, 'type': 'amulet', 'img': 'eq_alexandra_amulet.jpg' },
 	'Eye of the Bull 1 of 2':		{ 'type': 'alchemy', 'img': 'gift_zarevok2_1.jpg' },
@@ -20171,6 +20379,7 @@ Town.rdata =			// #1339
 	'Force of Nature':				{ 'atk':  35, 'def':  50, 'type': 'amulet', 'img': 'eq_jahanna_amulet.jpg' },
 	'Forsaken Tome':				{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_dolomar_shield.jpg' },
 	'Fox Totem':					{ 'type': 'alchemy', 'img': 'gift_araxis_3.jpg' },
+	'Frost':						{ 'atk':  25, 'def':  25, 'type': 'hero', 'img': 'hero_frost.jpg', 'skills': 'Grants Physical Pierce And Water Piercing' },
 	'Frost Armor':					{ 'atk':   4, 'def':   3, 'type': 'armor', 'img': 'eq_raida1_1.jpg' },
 	'Frost Bolt':					{ 'atk':  12, 'def':  25, 'type': 'magic', 'img': 'eq_water_epic_magic.jpg' },
 	'Frost Edge':					{ 'atk':  17, 'def':  10, 'type': 'weapon', 'img': 'eq_water_epic_sword.jpg' },
@@ -20180,6 +20389,7 @@ Town.rdata =			// #1339
 	'Frost Tear Dagger':			{ 'atk':   5, 'def':   5, 'type': 'shield', 'img': 'eq_frost_tear_dagger.jpg' },
 	'Frost Tear Jewel':				{ 'atk':   2, 'def':   2, 'type': 'amulet', 'img': 'eq_frost_tear.jpg' },
 	'Frost Tiger':					{ 'atk':  26, 'def':  30, 'type': 'unit', 'img': 'soldier_tiger.jpg' },
+	'Frostfire':					{ 'atk':  20, 'def':  20, 'type': 'magic' },
 	'Frostfire Staves':				{ 'atk':  10, 'def':   8, 'type': 'weapon', 'img': 'eq_wizard_staff.jpg' },
 	'Frostwolf Axe':				{ 'atk':  10, 'def':   5, 'type': 'weapon', 'img': 'gift_shino_complete.jpg' },
 	'Frostwyrm Hide':				{ 'type': 'alchemy', 'img': 'gift_edea2_1.jpg' },
@@ -20187,6 +20397,8 @@ Town.rdata =			// #1339
 	'Frozen Signet':				{ 'atk':   8, 'def':   8, 'type': 'amulet', 'img': 'eq_water_rare_ring.jpg' },
 	'Fury Maul Axe':				{ 'atk':  11, 'def':   7, 'type': 'weapon', 'img': 'eq_barbarian_axe.jpg' },
 	'Gabrielle':					{ 'atk':  22, 'def':  18, 'type': 'hero', 'img': 'hero_gabrielle.jpg', 'skills': 'Deals extra damage in guild battles' },
+	'Gale':							{ 'atk':  41, 'def':  35, 'type': 'hero', 'skills': 'Increase Physical Pierce and Wind Offense' },
+	'Galeforce Bow':				{ 'atk':  38, 'def':  27, 'type': 'weapon' },
 	'Gallador':						{ 'atk':  13, 'def':  15, 'type': 'hero', 'img': 'hero_gallador.jpg', 'skills': 'Increase Player Defense by +1.0 per 50 Valor Knight, max 10' },
 	'Galvanized Helm':				{ 'atk':  11, 'def':  13, 'type': 'helmet', 'img': 'eq_gehenna_helm_3.jpg' },
 	'Gargoyle Statue':				{ 'type': 'alchemy', 'img': 'gift_zarevok_1.jpg' },
@@ -20392,6 +20604,7 @@ Town.rdata =			// #1339
 	'Kingblade':					{ 'atk':  31, 'def':  24, 'type': 'weapon', 'img': 'eq_agamemnon_weapon.jpg' },
 	'Kingsguard Blade':				{ 'atk':  20, 'def':  24, 'type': 'weapon', 'img': 'eq_isidra_weapon.jpg' },
 	'Kingsguard Helm':				{ 'atk':  30, 'def':  22, 'type': 'helmet', 'img': 'eq_isidra_helm.jpg' },
+	'Kitsune':						{ 'atk':  38, 'def':  38, 'type': 'hero', 'skills': 'Increase Physical Pierce, Fire Offense and Water Offense' },
 	'Knight':						{ 'atk':   3, 'def':   2, 'type': 'unit', 'img': 'upgrade_knight.jpg' },
 	'Kobo':							{ 'atk':   0, 'def':  41, 'type': 'hero', 'img': 'hero_kobo.jpg', 'skills': 'Goblin Emporium Items +2 Needed for Goblin Emporium' },
 	'Kothas':						{ 'atk':  33, 'def':  36, 'type': 'hero', 'img': 'hero_kothas.jpg', 'skills': 'Increase Revive/Resurrect Effect' },
@@ -20519,6 +20732,7 @@ Town.rdata =			// #1339
 	'Necromancer Disciple':			{ 'atk':  35, 'def':  33, 'type': 'unit', 'img': 'soldier_necromancer_disciple.jpg' },
 	'Necronic Blast':				{ 'atk':  18, 'def':  18, 'type': 'magic', 'img': 'eq_zurran_spell.jpg' },
 	'Necronic Ring':				{ 'atk':  20, 'def':  24, 'type': 'amulet', 'img': 'eq_zurran_amulet.jpg' },
+	'Necrosis Gauntlets':			{ 'atk':  12, 'def':  12, 'type': 'gloves' },
 	'Nether Flask':					{ 'type': 'alchemy', 'img': 'gift_morrigan2_3.jpg' },
 	'Nether Soulstone':				{ 'type': 'alchemy', 'img': 'eq_red_soul.jpg' },
 	'Nether Tome':					{ 'atk':   6, 'def':   9, 'type': 'shield', 'img': 'gift_morrigan2_complete.jpg' },
@@ -20739,6 +20953,7 @@ Town.rdata =			// #1339
 	'Silverlight Seal':				{ 'atk':  11, 'def':  11, 'type': 'amulet', 'img': 'eq_solara_amulet.jpg' },
 	'Silverlight Tome':				{ 'atk':   3, 'def':   8, 'type': 'shield', 'img': 'eq_gift_elizabeth2_complete.jpg' },
 	'Skaar Deathrune':				{ 'atk':  22, 'def':  20, 'type': 'hero', 'img': 'boss_skaar.jpg', 'skills': 'Convert -24 Player Energy to +20 Player Defense' },
+	'Skeletal Necklace':			{ 'atk':  20, 'def':  11, 'type': 'amulet' },
 	'Skeleton Knight':				{ 'atk':  18, 'def':  27, 'type': 'unit', 'img': 'soldier_skeleton_knight.jpg' },
 	'Skeleton Warrior':				{ 'atk':   4, 'def':   4, 'type': 'unit', 'img': 'soldier_skeleton.jpg' },
 	'Skullcrush Mace':				{ 'atk':   5, 'def':   2, 'type': 'weapon', 'img': 'eq_karn_weapon.jpg' },
@@ -20772,6 +20987,7 @@ Town.rdata =			// #1339
 	'Spartan Warrior':				{ 'atk':   2, 'def':   1, 'type': 'unit', 'img': 'soldier_spartan.jpg' },
 	'Spellweaver Cloak':			{ 'atk':  13, 'def':  13, 'type': 'armor', 'img': 'eq_godric_armor.jpg' },
 	'Spiral Seashell':				{ 'type': 'alchemy', 'img': 'gift_nautica_3.jpg' },
+	'Spirit Render':				{ 'atk':  35, 'def':  30, 'type': 'weapon' },
 	'Staff of Jahanna':				{ 'atk':  26, 'def':  30, 'type': 'weapon', 'img': 'eq_jahanna_weapon.jpg' },
 	'Staff of Prayers':				{ 'atk':  19, 'def':  23, 'type': 'weapon', 'img': 'eq_tefaera_weapon.jpg' },
 	'Staff of Veils':				{ 'atk':  19, 'def':  20, 'type': 'weapon', 'img': 'eq_alexandria_weapon.jpg' },
@@ -20920,6 +21136,7 @@ Town.rdata =			// #1339
 	'Vanguard Doomhelm':			{ 'atk':  45, 'def':  45, 'type': 'helmet', 'img': 'arena3_helm.jpg' },
 	'Vanguard Helm':				{ 'atk':  35, 'def':  35, 'type': 'helmet', 'img': 'arena2_helm.jpg' },
 	'Vanguards Power Gauntlet':		{ 'atk':  22, 'def':  18, 'type': 'gloves', 'img': 'arena_reward_6.jpg', alias: 'Vanguards Power Glaive' },
+	'Vanir':						{ 'atk':  22, 'def':  31, 'type': 'hero', 'img': 'hero_vanir.jpg', 'skills': 'Grants Physical Resistance Ability' },
 	'Vanishing Dagger':				{ 'atk':  26, 'def':  23, 'type': 'weapon', 'img': 'eq_esmeralda_weapon.jpg' },
 	'Vanquish':						{ 'atk':  18, 'def':  17, 'type': 'hero', 'img': 'hero_vanquish.jpg', 'skills': 'Convert' },
 	'Vanquish Dust':				{ 'type': 'alchemy', 'img': 'eq_vanquish_3.jpg' },
@@ -20980,6 +21197,7 @@ Town.rdata =			// #1339
 	'Wildwalker Tunic':				{ 'atk':   9, 'def':  12, 'type': 'armor', 'img': 'eq_anwar_armor.jpg' },
 	'Willow Wisp':					{ 'atk':   4, 'def':   4, 'type': 'unit', 'img': 'soldier_wisp.jpg' },
 	'Windchaser Helm':				{ 'atk':  29, 'def':  29, 'type': 'helmet', 'img': 'eq_valhalla_helm.jpg' },
+	'Windmaster Gauntlet':			{ 'atk':  10, 'def':   9, 'type': 'gloves' },
 	'Windstalker Crown':			{ 'atk':  10, 'def':  12, 'type': 'helmet', 'img': 'eq_zin_helmet.jpg' },
 	'Windswept Crown':				{ 'atk':   8, 'def':  12, 'type': 'helmet', 'img': 'eq_kaylen_helmet.jpg' },
 	'Windthorn Wand':				{ 'atk':  16, 'def':  14, 'type': 'weapon', 'img': 'eq_suri_weapon.jpg' },
@@ -21024,45 +21242,45 @@ Town.rrestr =
 	  // Sword of Redemption is a multi-pass match:
 	  //   shield.19{Sword of Redemption}, weapon.5{Sword}
 	'weapon':
-	  '\\baxe\\b' +				// 14
-	  '|\\bblade\\b' +			// 31 (mismatches 1)
-	  '|\\bblades\\b' +			// 2
-	  '|\\bbow\\b' +			// 12
-	  '|\\bclaymore\\b' +		// 1
-	  '|\\bcleaver\\b' +		// 2
-	  '|\\bcudgel\\b' +			// 1
-	  '|\\bdagger\\b' +			// 10 (mismatches 2)
-	  '|\\bedge\\b' +			// 1
-	  '|\\bfangblade\\b' +		// 1
-	  '|\\bflail\\b' +			// 1
-	  '|\\bgreatsword\\b' +		// 5
-	  '|\\bgrinder\\b' +		// 1
-	  '|\\bhalberd\\b' +		// 2
-	  '|\\bhammer\\b' +			// 3
-	  '|\\bhellblade\\b' +		// 1
-	  '|\\bkatara\\b' +			// 1
-	  '|\\bkingblade\\b' +		// 1
-	  '|\\blance\\b' +			// 3
-	  '|\\blongsword\\b' +		// 1
-	  '|\\bmace\\b' +			// 7
-	  '|\\bmorningstar\\b' +	// 1
-	  '|\\bpike\\b' +			// 1
-	  '|\\brapier\\b' +			// 1
-	  '|\\brelicblade\\b' +		// 1
-	  '|\\brod\\b' +			// 2
-	  '|\\bsaber\\b' +			// 4
-	  '|\\bscepter\\b' +		// 1
-	  '|\\bshortsword\\b' +		// 1
-	  '|\\bslicer\\b' +			// 1
-	  '|\\bspear\\b' +			// 4
-	  '|\\bstaff\\b' +			// 13 (mismatches 1)
-	  '|\\bstaves\\b' +			// 1
-	  '|\\bsword\\b' +			// 17 (mismatches 1)
-	  '|\\btalon\\b' +			// 1
-	  '|\\btrident\\b' +		// 2
-	  '|\\bvoidblade\\b' +		// 1
-	  '|\\bwand\\b' +			// 7
-	  '|\\bweapon\\b' +			// 2
+	  '\\baxe\\b' +						// 14
+	  '|\\bblade\\b' +					// 32 (mismatches 1)
+	  '|\\bblades\\b' +					// 2
+	  '|\\bbow\\b' +					// 13
+	  '|\\bchasm\\b' +					// 1
+	  '|\\bclaymore\\b' +				// 1
+	  '|\\bcleaver\\b' +				// 2
+	  '|\\bcudgel\\b' +					// 1
+	  '|\\bdagger\\b' +					// 10 (mismatches 2)
+	  '|\\bedge\\b' +					// 1
+	  '|\\bfangblade\\b' +				// 1
+	  '|\\bflail\\b' +					// 1
+	  '|\\bgreatsword\\b' +				// 5
+	  '|\\bgrinder\\b' +				// 1
+	  '|\\bhalberd\\b' +				// 2
+	  '|\\bhammer\\b' +					// 3
+	  '|\\bhellblade\\b' +				// 1
+	  '|\\bkatara\\b' +					// 1
+	  '|\\bkingblade\\b' +				// 1
+	  '|\\blance\\b' +					// 3
+	  '|\\blongsword\\b' +				// 1
+	  '|\\bmace\\b' +					// 7
+	  '|\\bmorningstar\\b' +			// 1
+	  '|\\bpike\\b' +					// 1
+	  '|\\brapier\\b' +					// 1
+	  '|\\brelicblade\\b' +				// 1
+	  '|\\brod\\b' +					// 2
+	  '|\\bsaber\\b' +					// 4
+	  '|\\bscepter\\b' +				// 1
+	  '|\\bshortsword\\b' +				// 1
+	  '|\\bslicer\\b' +					// 1
+	  '|\\bspear\\b' +					// 4
+	  '|\\bstaff\\b' +					// 14 (mismatches 1)
+	  '|\\bstaves\\b' +					// 1
+	  '|\\bsword\\b' +					// 17 (mismatches 1)
+	  '|\\btalon\\b' +					// 1
+	  '|\\btrident\\b' +				// 2
+	  '|\\bvoidblade\\b' +				// 1
+	  '|\\bwand\\b' +					// 7
 	  '|^Amazons Warpath$' +
 	  '|^Arachnid Claw$' +
 	  '|^Arachnid Slayer$' +
@@ -21080,6 +21298,7 @@ Town.rrestr =
 	  '|^Draganblade$' +
 	  '|^Dragonbane$' +
 	  '|^Excalibur$' +
+	  '|^Exorcist Cross$' +
 	  '|^Exsanguinator$' +
 	  '|^Flamewaker$' +
 	  '|^Guiding Light$' +
@@ -21108,6 +21327,7 @@ Town.rrestr =
 	  '|^Skullseeker$' +
 	  '|^Soul Siphon$' +
 	  '|^Soulforge$' +
+	  '|^Spirit Render$' +
 	  '|^Stonebreaker$' +
 	  '|^Stormcrusher$' +
 	  '|^Syrens Call$' +
@@ -21120,14 +21340,15 @@ Town.rrestr =
 	  '|^Virtue of Justice$' +
 	  '',
 	'shield':
-	  '\\baegis\\b' +			// 11
-	  '|\\bbuckler\\b' +		// 2
-	  '|\\bdeathshield\\b' +	// 1
-	  '|\\bdefender\\b' +		// 6
-	  '|\\bmanual\\b' +			// 1
-	  '|\\bprotector\\b' +		// 2
-	  '|\\bshield\\b' +			// 32
-	  '|\\btome\\b' +			// 5
+	  '\\baegis\\b' +					// 11
+	  '|\\bbuckler\\b' +				// 2
+	  '|\\bdeathshield\\b' +			// 1
+	  '|\\bdefender\\b' +				// 6
+	  '|\\bmanual\\b' +					// 1
+	  '|\\bprotector\\b' +				// 2
+	  '|\\bscroll\\b' +					// 1
+	  '|\\bshield\\b' +					// 31
+	  '|\\btome\\b' +					// 5
 	  '|^Absolution$' +
 	  '|^Alyzias Crest$' +
 	  '|^Crest of the Griffin$' +
@@ -21153,28 +21374,29 @@ Town.rrestr =
 	  '|^Zenarean Crest$' +
 	  '',
 	'armor':
-	  '\\barmor\\b' +			// 33
-	  '|\\bbattlearmor\\b' +	// 1
-	  '|\\bbattlegarb\\b' +		// 1
-	  '|\\bbattlegear\\b' +		// 4
-	  '|\\bbattleplate\\b' +	// 1
-	  '|\\bbelt\\b' +			// 1
-	  '|\\bcarapace\\b' +		// 1
-	  '|\\bchainmail\\b' +		// 2
-	  '|\\bchestplate\\b' +		// 1
-	  '|\\bcloak\\b' +			// 9
-	  '|\\bepaulets\\b' +		// 1
-	  '|\\bgarb\\b' +			// 1
-	  '|\\bhellplate\\b' +		// 1
-	  '|\\bkarapace\\b' +		// 1
-	  '|\\bpauldrons\\b' +		// 1
-	  '|\\bplate\\b' +			// 46
-	  '|\\bplatemail\\b' +		// 2
-	  '|\\braiments\\b' +		// 5
-	  '|\\bregalia\\b' +		// 1
-	  '|\\brobes?\\b' +			// 3+8
-	  '|\\btunic\\b' +			// 1
-	  '|\\bvestment\\b' +		// 1
+	  '\\barmor\\b' +					// 33
+	  '|\\bbattlearmor\\b' +			// 1
+	  '|\\bbattlegarb\\b' +				// 1
+	  '|\\bbattlegear\\b' +				// 4
+	  '|\\bbattleplate\\b' +			// 1
+	  '|\\bbelt\\b' +					// 1
+	  '|\\bcarapace\\b' +				// 1
+	  '|\\bchainmail\\b' +				// 2
+	  '|\\bchestplate\\b' +				// 1
+	  '|\\bcloak\\b' +					// 10
+	  '|\\bdeathplate\\b' +				// 1
+	  '|\\bepaulets\\b' +				// 1
+	  '|\\bgarb\\b' +					// 1
+	  '|\\bhellplate\\b' +				// 1
+	  '|\\bkarapace\\b' +				// 1
+	  '|\\bpauldrons\\b' +				// 1
+	  '|\\bplate\\b' +					// 47
+	  '|\\bplatemail\\b' +				// 2
+	  '|\\braiments\\b' +				// 5
+	  '|\\bregalia\\b' +				// 1
+	  '|\\brobes?\\b' +					// 3+8
+	  '|\\btunic\\b' +					// 1
+	  '|\\bvestment\\b' +				// 1
 	  '|^Ambitions Guard$' +
 	  '|^Braving the Storm$' +
 	  '|^Castle Rampart$' +
@@ -21186,56 +21408,56 @@ Town.rrestr =
 	  '|^Strength of Oaks$' +
 	  '',
 	'helmet':
-	  '\\bcirclet\\b' +			// 1
-	  '|\\bcowl\\b' +			// 1
-	  '|\\bcrown\\b' +			// 15
-	  '|\\bdoomhelm\\b' +		// 1
-	  '|\\bheadband\\b' +		// 1
-	  '|\\bhelm\\b' +			// 57
-	  '|\\bhelmet\\b' +			// 4
-	  '|\\bhood\\b' +			// 1
-	  '|\\bhorns\\b' +			// 1
-	  '|\\bkrown\\b' +			// 1
-	  '|\\bmane\\b' +			// 1
-	  '|\\bmask\\b' +			// 3
-	  '|\\btiara\\b' +			// 1
-	  '|\\bveil\\b' +			// 1
+	  '\\bcirclet\\b' +					// 1
+	  '|\\bcowl\\b' +					// 1
+	  '|\\bcrown\\b' +					// 15
+	  '|\\bdoomhelm\\b' +				// 1
+	  '|\\bheadband\\b' +				// 1
+	  '|\\bhelm\\b' +					// 59
+	  '|\\bhelmet\\b' +					// 2
+	  '|\\bhood\\b' +					// 2
+	  '|\\bhorns\\b' +					// 1
+	  '|\\bkrown\\b' +					// 1
+	  '|\\bmane\\b' +					// 1
+	  '|\\bmask\\b' +					// 3
+	  '|\\btiara\\b' +					// 1
+	  '|\\bveil\\b' +					// 1
 	  '|^Virtue of Fortitude$' +
 	  '',
 	'amulet':
-	  '\\bamulet\\b' +			// 23
-	  '|\\bband\\b' +			// 5
-	  '|\\bbauble\\b' +			// 1
-	  '|\\bbrooch\\b' +			// 1
-	  '|\\bcharm\\b' +			// 3
-	  '|\\bchoker\\b' +			// 1
-	  '|\\bcollar\\b' +			// 1
-	  '|\\bcross\\b' +			// 1
-	  '|\\bearrings\\b' +		// 1
-	  '|\\bflask\\b' +			// 1
-	  '|\\bheirloom\\b' +		// 2
-	  '|\\binsignia\\b' +		// 3
-	  '|\\bjewel\\b' +			// 3
-	  '|\\blantern\\b' +		// 1
-	  '|\\blocket\\b' +			// 2
-	  '|\\bmark\\b' +			// 1
-	  '|\\bmedallion\\b' +		// 1
-	  '|\\bmemento\\b' +		// 1
-	  '|\\bnecklace\\b' +		// 6
-	  '|\\borb\\b' +			// 4
-	  '|\\bpendant\\b' +		// 20
-	  '|\\brelic\\b' +			// 1
-	  '|\\bring\\b' +			// 18
-	  '|\\bruby\\b' +			// 2
-	  '|\\bseal\\b' +			// 5
-	  '|\\bshard\\b' +			// 6
-	  '|\\bsignet\\b' +			// 12
-	  '|\\bsunstone\\b' +		// 1
-	  '|\\btalisman\\b' +		// 1
-	  '|\\btrinket\\b' +		// 2
+	  '\\bamulet\\b' +					// 22
+	  '|\\bband\\b' +					// 7
+	  '|\\bbauble\\b' +					// 1
+	  '|\\bbrooch\\b' +					// 1
+	  '|\\bcharm\\b' +					// 3
+	  '|\\bchoker\\b' +					// 1
+	  '|\\bcollar\\b' +					// 1
+	  '|\\bearrings\\b' +				// 1
+	  '|\\bflask\\b' +					// 1
+	  '|\\bheirloom\\b' +				// 2
+	  '|\\binsignia\\b' +				// 3
+	  '|\\bjewel\\b' +					// 3
+	  '|\\blantern\\b' +				// 1
+	  '|\\blocket\\b' +					// 2
+	  '|\\bmark\\b' +					// 1
+	  '|\\bmedallion\\b' +				// 1
+	  '|\\bmemento\\b' +				// 1
+	  '|\\bnecklace\\b' +				// 7
+	  '|\\borb\\b' +					// 4
+	  '|\\bpendant\\b' +				// 21
+	  '|\\brelic\\b' +					// 1
+	  '|\\bring\\b' +					// 18
+	  '|\\bruby\\b' +					// 2
+	  '|\\bseal\\b' +					// 5
+	  '|\\bshard\\b' +					// 6
+	  '|\\bsignet\\b' +					// 12
+	  '|\\bsunstone\\b' +				// 1
+	  '|\\btalisman\\b' +				// 1
+	  '|\\btrinket\\b' +				// 2
 	  '|^All-Seeing Eye$' +
 	  '|^Blade Charm$' +
 	  '|^Blue Lotus Petal$' +
+	  '|^Crusaders Cross \\(Sanna\\)$' +
 	  '|^Crystal of Lament$' +
 	  '|^Dragon Ashes$' +
 	  '|^Eye of Transcendence$' +
@@ -21261,16 +21483,16 @@ Town.rrestr =
 	  '|^Vincents Soul$' +
 	  '',
 	'gloves':
-	  '\\barmguards\\b' +		// 1
-	  '|\\barmlet\\b' +			// 1
-	  '|\\bbracer\\b' +			// 1
-	  '|\\bfists?\\b' +			// 1+3
-	  '|\\bgauntlets?\\b' +		// 15+8
-	  '|\\bgloves?\\b' +		// 3+4
-	  '|\\bgrasp\\b' +			// 2
-	  '|\\bhandguards?\\b' +	// 1+1
-	  '|\\bhands?\\b' +			// 6+3
-	  '|\\bshackles\\b' +		// 1
+	  '\\barmguards\\b' +				// 1
+	  '|\\barmlet\\b' +					// 1
+	  '|\\bbracer\\b' +					// 1
+	  '|\\bfists?\\b' +					// 1+3
+	  '|\\bgauntlets?\\b' +				// 16+10
+	  '|\\bgloves?\\b' +				// 2+4
+	  '|\\bgrasp\\b' +					// 2
+	  '|\\bhandguards?\\b' +			// 1+1
+	  '|\\bhands?\\b' +					// 6+3
+	  '|\\bshackles\\b' +				// 1
 	  '|^Dragonform Claw$' +
 	  '|^Kromash Krusher$' +
 	  '|^Natures Reach$' +
@@ -21285,8 +21507,8 @@ Town.rrestr =
 	  '|^Virtue of Temperance$' +
 	  '',
 	'boots':
-	  '\\bgreaves\\b' +			// 2
-	  '|\\btreads\\b' +			// 1
+	  '\\bgreaves\\b' +					// 2
+	  '|\\btreads\\b' +					// 1
 	  ''
 };
 

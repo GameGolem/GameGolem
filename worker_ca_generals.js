@@ -134,10 +134,10 @@ Generals.page = function(page, change) {
 					}
 				}
 				this.set(['data',name,'skillsbase'], s = $(el).children(':last').html().replace(/<[^>]*>|\s+/gm,' ').trim(true));
-				j = parseInt($('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im), 10);
+				j = $('.generals_indv_stats', el).next().next().text().regex(/(\d*\.*\d+)% Charged!/im);
 				if (j) {
 					k = this.get(['data',name,'skills']) || s || '';
-					this.set(['data',name,'charge'], now + Math.floor(3600000 * ((1-j/100) * (k.regex(/(\d*) Hours? Cooldown/im) || 0))));
+					this.set(['data',name,'charge'], now + Math.ceil(60*60*10 * (100-j) * (k.regex(/(\d+) Hours? Cooldown/im) || 0)));
 					//log(LOG_WARN, name + ' ' + makeTime(this.data[name].charge, 'g:i a'));
 				}
 				this.set(['data',name,'own'], 1);

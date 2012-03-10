@@ -50,7 +50,9 @@ Quest.data = {
 };
 
 Quest.temp = {
-	order: []
+	order: [],
+	ilocked: {},
+	iunlocked: {}
 };
 
 Quest.land = [
@@ -214,6 +216,24 @@ Quest.init = function(old_revision, fresh) {
 	}
 	// END
 
+	// set up locked/unlocked image sets
+	list = this.defaults['castle_age'].pages.split(/\s+/);
+	this.temp.ilocked = {};
+	this.temp.iunlocked = {};
+	for (i = 0; i < list.length; i++) {
+		if (isObject(x = Page.pageNames[list[i]]) && (x.locked || x.unlocked)) {
+			if (x.image) {
+				this.temp.iunlocked[x.image] = list[i];
+			}
+			if (x.unlocked) {
+				this.temp.iunlocked[x.unlocked] = list[i];
+			}
+			if (x.locked) {
+				this.temp.ilocked[x.locked] = list[i];
+			}
+		}
+	}
+
 //	this._watch(this, 'runtime.page');				// for stale pages
 //	this._watch(this, 'runtime.best');				// for best quest
 	this._watch(Player, 'data.energy');				// for available energy
@@ -242,7 +262,10 @@ Quest.menu = function(worker, key) {
 };
 
 Quest.page = function(page, change) {
-	var now = Date.now(), last_main = 0, area = null, land = null, i, j, m_c, m_d, m_l, m_i, reps, purge = {}, quests, el, id, name, level, influence, reward, energy, exp, tmp, type, units, item, icon, c;
+	var now = Date.now(), c, i, j, tmp, el, icon, quests,
+		name, item, id, level, influence, reward, energy, exp, type, units,
+		m_c, m_d, m_l, m_i, reps, purge = {},
+		last_main = 0, area = null, land = null;
 
 	if (page === 'quests_quest') {
 		return false; // This is if we're looking at a page we don't have access to yet...
@@ -253,6 +276,21 @@ Quest.page = function(page, change) {
 	} else {
 		area = 'quest';
 		land = page.regex(/quests_quest(\d+)/i) - 1;
+	}
+
+	// determine quest area lock state
+	tmp = $('img[src]');
+	for (i = 0; i < tmp.length; i++) {
+		icon = tmp.el(i).attr('src').filepart();
+		if (isString(j = this.temp.ilocked[icon])) {
+			// pretend we saw it far into the future
+			Page.set(['data',j], Date.HUGE);
+		} else if (isString(j = this.temp.iunlocked[icon])
+		  && Page.get(['data',j]) === Date.HUGE
+		) {
+			// mark it as unseen, as it recently became unlocked
+			Page.set(['data',j], 0);
+		}
 	}
 
 	for (i in this.data.id) {

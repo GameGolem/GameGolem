@@ -1,9 +1,9 @@
 /*jslint
 */
 
-Town.rts = 1330701967;	// Fri Mar  2 15:26:07 2012 UTC
+Town.rts = 1331115191;	// Wed Mar  7 10:13:11 2012 UTC
 
-Town.rdata =			// #1339
+Town.rdata =			// #1360
 {
 	'Absolution':					{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_azul_shield.jpg' },
 	'Adjucators Gauntlets':			{ 'atk':  12, 'def':   8, 'type': 'gloves', 'img': 'eq_azeron_gauntlet.jpg' },
@@ -18,6 +18,7 @@ Town.rdata =			// #1339
 	'Aegis of the Winds':			{ 'atk':  28, 'def':  22, 'type': 'shield', 'img': 'eq_valhalla_shield.jpg' },
 	'Aeris':						{ 'atk':   5, 'def':   5, 'type': 'hero', 'img': 'hero_aeris.jpg', 'skills': 'Decrease Bank fee' },
 	'Aeris Dagger':					{ 'atk':   4, 'def':  10, 'type': 'weapon', 'img': 'gift_aeris2_complete.jpg' },
+	'Aesir':						{ 'atk':  28, 'def':  23, 'type': 'hero', 'img': 'hero_aesir.jpg', 'skills': 'Grants Physical Pierce Ability' },
 	'Aesirs Battle Armor':			{ 'atk':  24, 'def':  22, 'type': 'armor', 'img': 'eq_aesir_armor.jpg' },
 	'Aethyx':						{ 'atk':  24, 'def':  18, 'type': 'hero', 'img': 'hero_aethyx.jpg', 'skills': 'Increase Poison damage and duration' },
 	'Agamemnon':					{ 'atk':  35, 'def':  28, 'type': 'hero', 'img': 'hero_agamemnon.jpg', 'skills': 'Increase Player Attack by ; +3% vs. Monsters, Increase Critical Hit %' },
@@ -55,6 +56,7 @@ Town.rdata =			// #1339
 	'Amulet of Despair':			{ 'atk':   6, 'def':   5, 'type': 'amulet', 'img': 'eq_strider_evilamulet.jpg' },
 	'Amulet of Shadows':			{ 'atk':  17, 'def':  20, 'type': 'amulet', 'img': 'eq_raziel_amulet.jpg' },
 	'Amulet of the Tempest':		{ 'atk':  10, 'def':  11, 'type': 'amulet', 'img': 'demi_energy_amu.jpg' },
+	'Ancient Deathplate':			{ 'atk':  20, 'def':  16, 'type': 'armor' },
 	'Ancient Egg':					{ 'type': 'alchemy', 'img': 'gift_sea_egg_ancient.jpg' },
 	'Ancient Frost Hilt':			{ 'type': 'alchemy', 'img': 'eq_jagsword_hilt.jpg' },
 	'Ancient Hatchet':				{ 'type': 'alchemy', 'img': 'gift_turkeyday_promo_1.jpg' },
@@ -84,6 +86,7 @@ Town.rdata =			// #1339
 	'Arachnid Claw':				{ 'atk':   5, 'def':   0, 'type': 'weapon' },
 	'Arachnid Poison':				{ 'atk':   5, 'def':   5, 'type': 'magic' },
 	'Arachnid Slayer':				{ 'atk':   6, 'def':   4, 'type': 'weapon', 'img': 'eq_spider_reward_weapon.jpg' },
+	'Aravoss':						{ 'atk':  33, 'def':  44, 'type': 'hero', 'skills': 'Increase Physical Pierce and Earth Offense' },
 	'Araxin Blade':					{ 'atk':   7, 'def':   8, 'type': 'weapon', 'img': 'gift_araxis_complete.jpg' },
 	'Araxis':						{ 'atk':  17, 'def':  19, 'type': 'hero', 'img': 'hero_araxis.jpg', 'skills': 'Convert' },
 	'Arcane Blast':					{ 'atk':   4, 'def':   4, 'type': 'magic', 'img': 'war_reward_3.jpg' },
@@ -143,6 +146,8 @@ Town.rdata =			// #1339
 	'Backdraft':					{ 'atk':  12, 'def':   7, 'type': 'magic', 'img': 'eq_kaiser_magic.jpg' },
 	'Bahamut, the Volcanic Dragon':	{ 'atk':  75, 'def':  75, 'type': 'unit', 'img': 'soldier_volcanic_dragon.jpg' },
 	'Bahamuts Blood':				{ 'type': 'alchemy', 'img': 'eq_dragan_1.jpg' },
+	'Band of Firemight':			{ 'atk':  18, 'def':  12, 'type': 'amulet' },
+	'Band of Frostmight':			{ 'atk':  10, 'def':  18, 'type': 'amulet' },
 	'Banthus Archfiend':			{ 'atk':  24, 'def':  22, 'type': 'hero', 'img': 'boss_banthus.jpg', 'skills': 'Increase Monster Crits by +50%, cooldown 12 hours' },
 	'Barbarian':					{ 'atk':  10, 'def':   6, 'type': 'unit', 'img': 'soldier_barbarian.jpg' },
 	'Barbarian Captain':			{ 'atk':  23, 'def':  20, 'type': 'unit', 'img': 'war_reward_2.jpg' },
@@ -237,6 +242,7 @@ Town.rdata =			// #1339
 	'Charlotte':					{ 'atk':  25, 'def':  27, 'type': 'hero', 'img': 'hero_charlotte.jpg', 'skills': 'Increase Monster Crits by +4%' },
 	'Chase':						{ 'atk':  20, 'def':  16, 'type': 'hero', 'img': 'hero_chase.jpg', 'skills': 'Increase Max Army Size by +20' },
 	'Chase Family Heirloom':		{ 'atk':   5, 'def':   5, 'type': 'amulet', 'img': 'gift_chase_complete.jpg' },
+	'Chasm Scythe':					{ 'atk':  27, 'def':  24, 'type': 'weapon' },
 	'Chillstrike':					{ 'atk':  24, 'def':  26, 'type': 'weapon', 'img': 'eq_frost_weapon.jpg' },
 	'Chimera Claw':					{ 'type': 'alchemy', 'img': 'gift_chimera_1.jpg' },
 	'Chimera Horns':				{ 'type': 'alchemy', 'img': 'gift_chimera_2.jpg' },
@@ -257,6 +263,7 @@ Town.rdata =			// #1339
 	'Cleric':						{ 'atk':   1, 'def':   5, 'type': 'unit', 'img': 'upgrade_cleric.jpg' },
 	'Cloak of Shadows':				{ 'atk':   0, 'def':   0, 'type': 'magic', 'img': 'conquest_ingredient_rogue.jpg' },
 	'Clockatrice Feathers':			{ 'type': 'alchemy', 'img': 'gift_terra_3.jpg' },
+	'Cloudsilk Cloak':				{ 'atk':  12, 'def':  25, 'type': 'armor' },
 	'Cloudslayer Blade':			{ 'atk':  15, 'def':  15, 'type': 'weapon', 'img': 'eq_cloudslayer_weapon.jpg' },
 	'Cloudslayer Gauntlet':			{ 'atk':   7, 'def':   8, 'type': 'gloves', 'img': 'eq_cloudslayer_glove.jpg' },
 	'Cloudslayer Pendant':			{ 'atk':   9, 'def':  10, 'type': 'amulet', 'img': 'eq_cloudslayer_amulet.jpg' },
@@ -281,6 +288,7 @@ Town.rdata =			// #1339
 	'Consecration':					{ 'atk':  14, 'def':  14, 'type': 'magic', 'img': 'eq_azriel_magic_2.jpg' },
 	'Corvintheus':					{ 'atk':  28, 'def':  28, 'type': 'hero', 'img': 'boss_corvintheus.jpg', 'skills': 'Increase Player Defense by +1' },
 	'Cowl of the Avenger':			{ 'atk':  12, 'def':   7, 'type': 'helmet', 'img': 'demi_stamina_helm.jpg' },
+	'Cranial Helm':					{ 'atk':  18, 'def':  15, 'type': 'helmet' },
 	'Crest Shard 1 of 4':			{ 'type': 'alchemy', 'img': 'gift_red_1.jpg' },
 	'Crest Shard 2 of 4':			{ 'type': 'alchemy', 'img': 'gift_red_2.jpg' },
 	'Crest Shard 3 of 4':			{ 'type': 'alchemy', 'img': 'gift_red_3.jpg' },
@@ -295,6 +303,7 @@ Town.rdata =			// #1339
 	'Crom':							{ 'atk':  17, 'def':  17, 'type': 'hero', 'img': 'crom.jpg', 'skills': 'Increase Max Army Size by +20' },
 	'Cronus, The World Hydra':		{ 'atk':  60, 'def':  60, 'type': 'unit', 'img': 'soldier_hydra_final.jpg' },
 	'Crossgate Shield':				{ 'atk':  20, 'def':  24, 'type': 'shield', 'img': 'eq_kothas_shield.jpg' },
+	'Crossguard Plate':				{ 'atk':  15, 'def':  20, 'type': 'armor', 'img': 'eq_reinhardt_armor.jpg' },
 	'Crown of Darius':				{ 'atk':   8, 'def':   7, 'type': 'helmet', 'img': 'eq_darius_crown.jpg' },
 	'Crown of Deliverance':			{ 'atk':  13, 'def':   9, 'type': 'helmet', 'img': 'eq_elaida_helm.jpg' },
 	'Crown of Flames':				{ 'atk':  33, 'def':  32, 'type': 'helmet', 'img': 'eq_gehenna_helm_2.jpg' },
@@ -434,6 +443,7 @@ Town.rdata =			// #1339
 	'Empyrean Plate':				{ 'atk':  10, 'def':   6, 'type': 'armor', 'img': 'eq_empryean_plate.jpg' },
 	'Enchanted Lantern':			{ 'atk':   2, 'def':  12, 'type': 'amulet', 'img': 'eq_sylvanus_lantern.jpg' },
 	'Enchanted Mythril':			{ 'type': 'alchemy', 'img': 'gift_chase_2.jpg' },
+	'Ender':						{ 'atk':  43, 'def':  31, 'type': 'hero', 'skills': 'Increase Physical Pierce, Decreases Fire and Water Resistance' },
 	'Enduring Winter':				{ 'atk':  16, 'def':  18, 'type': 'magic', 'img': 'eq_glacius_spell.jpg' },
 	'Energy Bolt':					{ 'atk':   1, 'def':   1, 'type': 'magic', 'img': 'magic_energybolt.jpg' },
 	'Enriched Mineral':				{ 'type': 'alchemy', 'img': 'eq_gift_elizabeth_1.jpg' },
@@ -454,6 +464,7 @@ Town.rdata =			// #1339
 	'Evergreen Cloak':				{ 'atk':   2, 'def':   6, 'type': 'armor', 'img': 'eq_sylvanus_cape.jpg' },
 	'Excalibur':					{ 'atk':  25, 'def':  12, 'type': 'weapon', 'img': 'eq_excalibur.jpg', 'uniq': 1 },
 	'Excelsior':					{ 'atk':  20, 'def':  25, 'type': 'hero', 'img': 'hero_excelsior.jpg', 'skills': 'Increase Max Health by +22' },
+	'Exorcist Cross':				{ 'atk':  20, 'def':  19, 'type': 'weapon', 'img': 'eq_reinhardt_weapon.jpg' },
 	'Exsanguinator':				{ 'atk':  32, 'def':  22, 'type': 'weapon', 'img': 'eq_vincent_weapon.jpg' },
 	'Eye of Transcendence':			{ 'atk':  25, 'def':  28, 'type': 'amulet', 'img': 'eq_alexandra_amulet.jpg' },
 	'Eye of the Bull 1 of 2':		{ 'type': 'alchemy', 'img': 'gift_zarevok2_1.jpg' },
@@ -506,6 +517,7 @@ Town.rdata =			// #1339
 	'Force of Nature':				{ 'atk':  35, 'def':  50, 'type': 'amulet', 'img': 'eq_jahanna_amulet.jpg' },
 	'Forsaken Tome':				{ 'atk':  13, 'def':  11, 'type': 'shield', 'img': 'eq_dolomar_shield.jpg' },
 	'Fox Totem':					{ 'type': 'alchemy', 'img': 'gift_araxis_3.jpg' },
+	'Frost':						{ 'atk':  25, 'def':  25, 'type': 'hero', 'img': 'hero_frost.jpg', 'skills': 'Grants Physical Pierce And Water Piercing' },
 	'Frost Armor':					{ 'atk':   4, 'def':   3, 'type': 'armor', 'img': 'eq_raida1_1.jpg' },
 	'Frost Bolt':					{ 'atk':  12, 'def':  25, 'type': 'magic', 'img': 'eq_water_epic_magic.jpg' },
 	'Frost Edge':					{ 'atk':  17, 'def':  10, 'type': 'weapon', 'img': 'eq_water_epic_sword.jpg' },
@@ -515,6 +527,7 @@ Town.rdata =			// #1339
 	'Frost Tear Dagger':			{ 'atk':   5, 'def':   5, 'type': 'shield', 'img': 'eq_frost_tear_dagger.jpg' },
 	'Frost Tear Jewel':				{ 'atk':   2, 'def':   2, 'type': 'amulet', 'img': 'eq_frost_tear.jpg' },
 	'Frost Tiger':					{ 'atk':  26, 'def':  30, 'type': 'unit', 'img': 'soldier_tiger.jpg' },
+	'Frostfire':					{ 'atk':  20, 'def':  20, 'type': 'magic' },
 	'Frostfire Staves':				{ 'atk':  10, 'def':   8, 'type': 'weapon', 'img': 'eq_wizard_staff.jpg' },
 	'Frostwolf Axe':				{ 'atk':  10, 'def':   5, 'type': 'weapon', 'img': 'gift_shino_complete.jpg' },
 	'Frostwyrm Hide':				{ 'type': 'alchemy', 'img': 'gift_edea2_1.jpg' },
@@ -522,6 +535,8 @@ Town.rdata =			// #1339
 	'Frozen Signet':				{ 'atk':   8, 'def':   8, 'type': 'amulet', 'img': 'eq_water_rare_ring.jpg' },
 	'Fury Maul Axe':				{ 'atk':  11, 'def':   7, 'type': 'weapon', 'img': 'eq_barbarian_axe.jpg' },
 	'Gabrielle':					{ 'atk':  22, 'def':  18, 'type': 'hero', 'img': 'hero_gabrielle.jpg', 'skills': 'Deals extra damage in guild battles' },
+	'Gale':							{ 'atk':  41, 'def':  35, 'type': 'hero', 'skills': 'Increase Physical Pierce and Wind Offense' },
+	'Galeforce Bow':				{ 'atk':  38, 'def':  27, 'type': 'weapon' },
 	'Gallador':						{ 'atk':  13, 'def':  15, 'type': 'hero', 'img': 'hero_gallador.jpg', 'skills': 'Increase Player Defense by +1.0 per 50 Valor Knight, max 10' },
 	'Galvanized Helm':				{ 'atk':  11, 'def':  13, 'type': 'helmet', 'img': 'eq_gehenna_helm_3.jpg' },
 	'Gargoyle Statue':				{ 'type': 'alchemy', 'img': 'gift_zarevok_1.jpg' },
@@ -727,6 +742,7 @@ Town.rdata =			// #1339
 	'Kingblade':					{ 'atk':  31, 'def':  24, 'type': 'weapon', 'img': 'eq_agamemnon_weapon.jpg' },
 	'Kingsguard Blade':				{ 'atk':  20, 'def':  24, 'type': 'weapon', 'img': 'eq_isidra_weapon.jpg' },
 	'Kingsguard Helm':				{ 'atk':  30, 'def':  22, 'type': 'helmet', 'img': 'eq_isidra_helm.jpg' },
+	'Kitsune':						{ 'atk':  38, 'def':  38, 'type': 'hero', 'skills': 'Increase Physical Pierce, Fire Offense and Water Offense' },
 	'Knight':						{ 'atk':   3, 'def':   2, 'type': 'unit', 'img': 'upgrade_knight.jpg' },
 	'Kobo':							{ 'atk':   0, 'def':  41, 'type': 'hero', 'img': 'hero_kobo.jpg', 'skills': 'Goblin Emporium Items +2 Needed for Goblin Emporium' },
 	'Kothas':						{ 'atk':  33, 'def':  36, 'type': 'hero', 'img': 'hero_kothas.jpg', 'skills': 'Increase Revive/Resurrect Effect' },
@@ -854,6 +870,7 @@ Town.rdata =			// #1339
 	'Necromancer Disciple':			{ 'atk':  35, 'def':  33, 'type': 'unit', 'img': 'soldier_necromancer_disciple.jpg' },
 	'Necronic Blast':				{ 'atk':  18, 'def':  18, 'type': 'magic', 'img': 'eq_zurran_spell.jpg' },
 	'Necronic Ring':				{ 'atk':  20, 'def':  24, 'type': 'amulet', 'img': 'eq_zurran_amulet.jpg' },
+	'Necrosis Gauntlets':			{ 'atk':  12, 'def':  12, 'type': 'gloves' },
 	'Nether Flask':					{ 'type': 'alchemy', 'img': 'gift_morrigan2_3.jpg' },
 	'Nether Soulstone':				{ 'type': 'alchemy', 'img': 'eq_red_soul.jpg' },
 	'Nether Tome':					{ 'atk':   6, 'def':   9, 'type': 'shield', 'img': 'gift_morrigan2_complete.jpg' },
@@ -1074,6 +1091,7 @@ Town.rdata =			// #1339
 	'Silverlight Seal':				{ 'atk':  11, 'def':  11, 'type': 'amulet', 'img': 'eq_solara_amulet.jpg' },
 	'Silverlight Tome':				{ 'atk':   3, 'def':   8, 'type': 'shield', 'img': 'eq_gift_elizabeth2_complete.jpg' },
 	'Skaar Deathrune':				{ 'atk':  22, 'def':  20, 'type': 'hero', 'img': 'boss_skaar.jpg', 'skills': 'Convert -24 Player Energy to +20 Player Defense' },
+	'Skeletal Necklace':			{ 'atk':  20, 'def':  11, 'type': 'amulet' },
 	'Skeleton Knight':				{ 'atk':  18, 'def':  27, 'type': 'unit', 'img': 'soldier_skeleton_knight.jpg' },
 	'Skeleton Warrior':				{ 'atk':   4, 'def':   4, 'type': 'unit', 'img': 'soldier_skeleton.jpg' },
 	'Skullcrush Mace':				{ 'atk':   5, 'def':   2, 'type': 'weapon', 'img': 'eq_karn_weapon.jpg' },
@@ -1107,6 +1125,7 @@ Town.rdata =			// #1339
 	'Spartan Warrior':				{ 'atk':   2, 'def':   1, 'type': 'unit', 'img': 'soldier_spartan.jpg' },
 	'Spellweaver Cloak':			{ 'atk':  13, 'def':  13, 'type': 'armor', 'img': 'eq_godric_armor.jpg' },
 	'Spiral Seashell':				{ 'type': 'alchemy', 'img': 'gift_nautica_3.jpg' },
+	'Spirit Render':				{ 'atk':  35, 'def':  30, 'type': 'weapon' },
 	'Staff of Jahanna':				{ 'atk':  26, 'def':  30, 'type': 'weapon', 'img': 'eq_jahanna_weapon.jpg' },
 	'Staff of Prayers':				{ 'atk':  19, 'def':  23, 'type': 'weapon', 'img': 'eq_tefaera_weapon.jpg' },
 	'Staff of Veils':				{ 'atk':  19, 'def':  20, 'type': 'weapon', 'img': 'eq_alexandria_weapon.jpg' },
@@ -1255,6 +1274,7 @@ Town.rdata =			// #1339
 	'Vanguard Doomhelm':			{ 'atk':  45, 'def':  45, 'type': 'helmet', 'img': 'arena3_helm.jpg' },
 	'Vanguard Helm':				{ 'atk':  35, 'def':  35, 'type': 'helmet', 'img': 'arena2_helm.jpg' },
 	'Vanguards Power Gauntlet':		{ 'atk':  22, 'def':  18, 'type': 'gloves', 'img': 'arena_reward_6.jpg', alias: 'Vanguards Power Glaive' },
+	'Vanir':						{ 'atk':  22, 'def':  31, 'type': 'hero', 'img': 'hero_vanir.jpg', 'skills': 'Grants Physical Resistance Ability' },
 	'Vanishing Dagger':				{ 'atk':  26, 'def':  23, 'type': 'weapon', 'img': 'eq_esmeralda_weapon.jpg' },
 	'Vanquish':						{ 'atk':  18, 'def':  17, 'type': 'hero', 'img': 'hero_vanquish.jpg', 'skills': 'Convert' },
 	'Vanquish Dust':				{ 'type': 'alchemy', 'img': 'eq_vanquish_3.jpg' },
@@ -1315,6 +1335,7 @@ Town.rdata =			// #1339
 	'Wildwalker Tunic':				{ 'atk':   9, 'def':  12, 'type': 'armor', 'img': 'eq_anwar_armor.jpg' },
 	'Willow Wisp':					{ 'atk':   4, 'def':   4, 'type': 'unit', 'img': 'soldier_wisp.jpg' },
 	'Windchaser Helm':				{ 'atk':  29, 'def':  29, 'type': 'helmet', 'img': 'eq_valhalla_helm.jpg' },
+	'Windmaster Gauntlet':			{ 'atk':  10, 'def':   9, 'type': 'gloves' },
 	'Windstalker Crown':			{ 'atk':  10, 'def':  12, 'type': 'helmet', 'img': 'eq_zin_helmet.jpg' },
 	'Windswept Crown':				{ 'atk':   8, 'def':  12, 'type': 'helmet', 'img': 'eq_kaylen_helmet.jpg' },
 	'Windthorn Wand':				{ 'atk':  16, 'def':  14, 'type': 'weapon', 'img': 'eq_suri_weapon.jpg' },
@@ -1359,45 +1380,45 @@ Town.rrestr =
 	  // Sword of Redemption is a multi-pass match:
 	  //   shield.19{Sword of Redemption}, weapon.5{Sword}
 	'weapon':
-	  '\\baxe\\b' +				// 14
-	  '|\\bblade\\b' +			// 31 (mismatches 1)
-	  '|\\bblades\\b' +			// 2
-	  '|\\bbow\\b' +			// 12
-	  '|\\bclaymore\\b' +		// 1
-	  '|\\bcleaver\\b' +		// 2
-	  '|\\bcudgel\\b' +			// 1
-	  '|\\bdagger\\b' +			// 10 (mismatches 2)
-	  '|\\bedge\\b' +			// 1
-	  '|\\bfangblade\\b' +		// 1
-	  '|\\bflail\\b' +			// 1
-	  '|\\bgreatsword\\b' +		// 5
-	  '|\\bgrinder\\b' +		// 1
-	  '|\\bhalberd\\b' +		// 2
-	  '|\\bhammer\\b' +			// 3
-	  '|\\bhellblade\\b' +		// 1
-	  '|\\bkatara\\b' +			// 1
-	  '|\\bkingblade\\b' +		// 1
-	  '|\\blance\\b' +			// 3
-	  '|\\blongsword\\b' +		// 1
-	  '|\\bmace\\b' +			// 7
-	  '|\\bmorningstar\\b' +	// 1
-	  '|\\bpike\\b' +			// 1
-	  '|\\brapier\\b' +			// 1
-	  '|\\brelicblade\\b' +		// 1
-	  '|\\brod\\b' +			// 2
-	  '|\\bsaber\\b' +			// 4
-	  '|\\bscepter\\b' +		// 1
-	  '|\\bshortsword\\b' +		// 1
-	  '|\\bslicer\\b' +			// 1
-	  '|\\bspear\\b' +			// 4
-	  '|\\bstaff\\b' +			// 13 (mismatches 1)
-	  '|\\bstaves\\b' +			// 1
-	  '|\\bsword\\b' +			// 17 (mismatches 1)
-	  '|\\btalon\\b' +			// 1
-	  '|\\btrident\\b' +		// 2
-	  '|\\bvoidblade\\b' +		// 1
-	  '|\\bwand\\b' +			// 7
-	  '|\\bweapon\\b' +			// 2
+	  '\\baxe\\b' +						// 14
+	  '|\\bblade\\b' +					// 32 (mismatches 1)
+	  '|\\bblades\\b' +					// 2
+	  '|\\bbow\\b' +					// 13
+	  '|\\bchasm\\b' +					// 1
+	  '|\\bclaymore\\b' +				// 1
+	  '|\\bcleaver\\b' +				// 2
+	  '|\\bcudgel\\b' +					// 1
+	  '|\\bdagger\\b' +					// 10 (mismatches 2)
+	  '|\\bedge\\b' +					// 1
+	  '|\\bfangblade\\b' +				// 1
+	  '|\\bflail\\b' +					// 1
+	  '|\\bgreatsword\\b' +				// 5
+	  '|\\bgrinder\\b' +				// 1
+	  '|\\bhalberd\\b' +				// 2
+	  '|\\bhammer\\b' +					// 3
+	  '|\\bhellblade\\b' +				// 1
+	  '|\\bkatara\\b' +					// 1
+	  '|\\bkingblade\\b' +				// 1
+	  '|\\blance\\b' +					// 3
+	  '|\\blongsword\\b' +				// 1
+	  '|\\bmace\\b' +					// 7
+	  '|\\bmorningstar\\b' +			// 1
+	  '|\\bpike\\b' +					// 1
+	  '|\\brapier\\b' +					// 1
+	  '|\\brelicblade\\b' +				// 1
+	  '|\\brod\\b' +					// 2
+	  '|\\bsaber\\b' +					// 4
+	  '|\\bscepter\\b' +				// 1
+	  '|\\bshortsword\\b' +				// 1
+	  '|\\bslicer\\b' +					// 1
+	  '|\\bspear\\b' +					// 4
+	  '|\\bstaff\\b' +					// 14 (mismatches 1)
+	  '|\\bstaves\\b' +					// 1
+	  '|\\bsword\\b' +					// 17 (mismatches 1)
+	  '|\\btalon\\b' +					// 1
+	  '|\\btrident\\b' +				// 2
+	  '|\\bvoidblade\\b' +				// 1
+	  '|\\bwand\\b' +					// 7
 	  '|^Amazons Warpath$' +
 	  '|^Arachnid Claw$' +
 	  '|^Arachnid Slayer$' +
@@ -1415,6 +1436,7 @@ Town.rrestr =
 	  '|^Draganblade$' +
 	  '|^Dragonbane$' +
 	  '|^Excalibur$' +
+	  '|^Exorcist Cross$' +
 	  '|^Exsanguinator$' +
 	  '|^Flamewaker$' +
 	  '|^Guiding Light$' +
@@ -1443,6 +1465,7 @@ Town.rrestr =
 	  '|^Skullseeker$' +
 	  '|^Soul Siphon$' +
 	  '|^Soulforge$' +
+	  '|^Spirit Render$' +
 	  '|^Stonebreaker$' +
 	  '|^Stormcrusher$' +
 	  '|^Syrens Call$' +
@@ -1455,14 +1478,15 @@ Town.rrestr =
 	  '|^Virtue of Justice$' +
 	  '',
 	'shield':
-	  '\\baegis\\b' +			// 11
-	  '|\\bbuckler\\b' +		// 2
-	  '|\\bdeathshield\\b' +	// 1
-	  '|\\bdefender\\b' +		// 6
-	  '|\\bmanual\\b' +			// 1
-	  '|\\bprotector\\b' +		// 2
-	  '|\\bshield\\b' +			// 32
-	  '|\\btome\\b' +			// 5
+	  '\\baegis\\b' +					// 11
+	  '|\\bbuckler\\b' +				// 2
+	  '|\\bdeathshield\\b' +			// 1
+	  '|\\bdefender\\b' +				// 6
+	  '|\\bmanual\\b' +					// 1
+	  '|\\bprotector\\b' +				// 2
+	  '|\\bscroll\\b' +					// 1
+	  '|\\bshield\\b' +					// 31
+	  '|\\btome\\b' +					// 5
 	  '|^Absolution$' +
 	  '|^Alyzias Crest$' +
 	  '|^Crest of the Griffin$' +
@@ -1488,28 +1512,29 @@ Town.rrestr =
 	  '|^Zenarean Crest$' +
 	  '',
 	'armor':
-	  '\\barmor\\b' +			// 33
-	  '|\\bbattlearmor\\b' +	// 1
-	  '|\\bbattlegarb\\b' +		// 1
-	  '|\\bbattlegear\\b' +		// 4
-	  '|\\bbattleplate\\b' +	// 1
-	  '|\\bbelt\\b' +			// 1
-	  '|\\bcarapace\\b' +		// 1
-	  '|\\bchainmail\\b' +		// 2
-	  '|\\bchestplate\\b' +		// 1
-	  '|\\bcloak\\b' +			// 9
-	  '|\\bepaulets\\b' +		// 1
-	  '|\\bgarb\\b' +			// 1
-	  '|\\bhellplate\\b' +		// 1
-	  '|\\bkarapace\\b' +		// 1
-	  '|\\bpauldrons\\b' +		// 1
-	  '|\\bplate\\b' +			// 46
-	  '|\\bplatemail\\b' +		// 2
-	  '|\\braiments\\b' +		// 5
-	  '|\\bregalia\\b' +		// 1
-	  '|\\brobes?\\b' +			// 3+8
-	  '|\\btunic\\b' +			// 1
-	  '|\\bvestment\\b' +		// 1
+	  '\\barmor\\b' +					// 33
+	  '|\\bbattlearmor\\b' +			// 1
+	  '|\\bbattlegarb\\b' +				// 1
+	  '|\\bbattlegear\\b' +				// 4
+	  '|\\bbattleplate\\b' +			// 1
+	  '|\\bbelt\\b' +					// 1
+	  '|\\bcarapace\\b' +				// 1
+	  '|\\bchainmail\\b' +				// 2
+	  '|\\bchestplate\\b' +				// 1
+	  '|\\bcloak\\b' +					// 10
+	  '|\\bdeathplate\\b' +				// 1
+	  '|\\bepaulets\\b' +				// 1
+	  '|\\bgarb\\b' +					// 1
+	  '|\\bhellplate\\b' +				// 1
+	  '|\\bkarapace\\b' +				// 1
+	  '|\\bpauldrons\\b' +				// 1
+	  '|\\bplate\\b' +					// 47
+	  '|\\bplatemail\\b' +				// 2
+	  '|\\braiments\\b' +				// 5
+	  '|\\bregalia\\b' +				// 1
+	  '|\\brobes?\\b' +					// 3+8
+	  '|\\btunic\\b' +					// 1
+	  '|\\bvestment\\b' +				// 1
 	  '|^Ambitions Guard$' +
 	  '|^Braving the Storm$' +
 	  '|^Castle Rampart$' +
@@ -1521,56 +1546,56 @@ Town.rrestr =
 	  '|^Strength of Oaks$' +
 	  '',
 	'helmet':
-	  '\\bcirclet\\b' +			// 1
-	  '|\\bcowl\\b' +			// 1
-	  '|\\bcrown\\b' +			// 15
-	  '|\\bdoomhelm\\b' +		// 1
-	  '|\\bheadband\\b' +		// 1
-	  '|\\bhelm\\b' +			// 57
-	  '|\\bhelmet\\b' +			// 4
-	  '|\\bhood\\b' +			// 1
-	  '|\\bhorns\\b' +			// 1
-	  '|\\bkrown\\b' +			// 1
-	  '|\\bmane\\b' +			// 1
-	  '|\\bmask\\b' +			// 3
-	  '|\\btiara\\b' +			// 1
-	  '|\\bveil\\b' +			// 1
+	  '\\bcirclet\\b' +					// 1
+	  '|\\bcowl\\b' +					// 1
+	  '|\\bcrown\\b' +					// 15
+	  '|\\bdoomhelm\\b' +				// 1
+	  '|\\bheadband\\b' +				// 1
+	  '|\\bhelm\\b' +					// 59
+	  '|\\bhelmet\\b' +					// 2
+	  '|\\bhood\\b' +					// 2
+	  '|\\bhorns\\b' +					// 1
+	  '|\\bkrown\\b' +					// 1
+	  '|\\bmane\\b' +					// 1
+	  '|\\bmask\\b' +					// 3
+	  '|\\btiara\\b' +					// 1
+	  '|\\bveil\\b' +					// 1
 	  '|^Virtue of Fortitude$' +
 	  '',
 	'amulet':
-	  '\\bamulet\\b' +			// 23
-	  '|\\bband\\b' +			// 5
-	  '|\\bbauble\\b' +			// 1
-	  '|\\bbrooch\\b' +			// 1
-	  '|\\bcharm\\b' +			// 3
-	  '|\\bchoker\\b' +			// 1
-	  '|\\bcollar\\b' +			// 1
-	  '|\\bcross\\b' +			// 1
-	  '|\\bearrings\\b' +		// 1
-	  '|\\bflask\\b' +			// 1
-	  '|\\bheirloom\\b' +		// 2
-	  '|\\binsignia\\b' +		// 3
-	  '|\\bjewel\\b' +			// 3
-	  '|\\blantern\\b' +		// 1
-	  '|\\blocket\\b' +			// 2
-	  '|\\bmark\\b' +			// 1
-	  '|\\bmedallion\\b' +		// 1
-	  '|\\bmemento\\b' +		// 1
-	  '|\\bnecklace\\b' +		// 6
-	  '|\\borb\\b' +			// 4
-	  '|\\bpendant\\b' +		// 20
-	  '|\\brelic\\b' +			// 1
-	  '|\\bring\\b' +			// 18
-	  '|\\bruby\\b' +			// 2
-	  '|\\bseal\\b' +			// 5
-	  '|\\bshard\\b' +			// 6
-	  '|\\bsignet\\b' +			// 12
-	  '|\\bsunstone\\b' +		// 1
-	  '|\\btalisman\\b' +		// 1
-	  '|\\btrinket\\b' +		// 2
+	  '\\bamulet\\b' +					// 22
+	  '|\\bband\\b' +					// 7
+	  '|\\bbauble\\b' +					// 1
+	  '|\\bbrooch\\b' +					// 1
+	  '|\\bcharm\\b' +					// 3
+	  '|\\bchoker\\b' +					// 1
+	  '|\\bcollar\\b' +					// 1
+	  '|\\bearrings\\b' +				// 1
+	  '|\\bflask\\b' +					// 1
+	  '|\\bheirloom\\b' +				// 2
+	  '|\\binsignia\\b' +				// 3
+	  '|\\bjewel\\b' +					// 3
+	  '|\\blantern\\b' +				// 1
+	  '|\\blocket\\b' +					// 2
+	  '|\\bmark\\b' +					// 1
+	  '|\\bmedallion\\b' +				// 1
+	  '|\\bmemento\\b' +				// 1
+	  '|\\bnecklace\\b' +				// 7
+	  '|\\borb\\b' +					// 4
+	  '|\\bpendant\\b' +				// 21
+	  '|\\brelic\\b' +					// 1
+	  '|\\bring\\b' +					// 18
+	  '|\\bruby\\b' +					// 2
+	  '|\\bseal\\b' +					// 5
+	  '|\\bshard\\b' +					// 6
+	  '|\\bsignet\\b' +					// 12
+	  '|\\bsunstone\\b' +				// 1
+	  '|\\btalisman\\b' +				// 1
+	  '|\\btrinket\\b' +				// 2
 	  '|^All-Seeing Eye$' +
 	  '|^Blade Charm$' +
 	  '|^Blue Lotus Petal$' +
+	  '|^Crusaders Cross \\(Sanna\\)$' +
 	  '|^Crystal of Lament$' +
 	  '|^Dragon Ashes$' +
 	  '|^Eye of Transcendence$' +
@@ -1596,16 +1621,16 @@ Town.rrestr =
 	  '|^Vincents Soul$' +
 	  '',
 	'gloves':
-	  '\\barmguards\\b' +		// 1
-	  '|\\barmlet\\b' +			// 1
-	  '|\\bbracer\\b' +			// 1
-	  '|\\bfists?\\b' +			// 1+3
-	  '|\\bgauntlets?\\b' +		// 15+8
-	  '|\\bgloves?\\b' +		// 3+4
-	  '|\\bgrasp\\b' +			// 2
-	  '|\\bhandguards?\\b' +	// 1+1
-	  '|\\bhands?\\b' +			// 6+3
-	  '|\\bshackles\\b' +		// 1
+	  '\\barmguards\\b' +				// 1
+	  '|\\barmlet\\b' +					// 1
+	  '|\\bbracer\\b' +					// 1
+	  '|\\bfists?\\b' +					// 1+3
+	  '|\\bgauntlets?\\b' +				// 16+10
+	  '|\\bgloves?\\b' +				// 2+4
+	  '|\\bgrasp\\b' +					// 2
+	  '|\\bhandguards?\\b' +			// 1+1
+	  '|\\bhands?\\b' +					// 6+3
+	  '|\\bshackles\\b' +				// 1
 	  '|^Dragonform Claw$' +
 	  '|^Kromash Krusher$' +
 	  '|^Natures Reach$' +
@@ -1620,8 +1645,8 @@ Town.rrestr =
 	  '|^Virtue of Temperance$' +
 	  '',
 	'boots':
-	  '\\bgreaves\\b' +			// 2
-	  '|\\btreads\\b' +			// 1
+	  '\\bgreaves\\b' +					// 2
+	  '|\\btreads\\b' +					// 1
 	  ''
 };
 
