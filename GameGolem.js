@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1185
+ * GameGolem v31.6.1186
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1185
+ * GameGolem v31.6.1186
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1185;
+var revision = 1186;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1184;
+var trunk_revision = 1185;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -10227,6 +10227,11 @@ Generals.update = function(event, events) {
 			  + sum(skillcombo.regex(/\bDeals? (\d+) Extra Damage In Battles?\b/gi))
 			  + sum(skillcombo.regex(/\b(\d+) Damage in Battles?\b/gi));
 			if (j) { stats['guild_damage'] = j; }
+
+			// Deshara
+			j = nmax(0,
+			  skillcombo.regex(/\bDeal \+?(\d+) Damage as Rogue\b/i));
+			if (j) { stats['guild_rogue_damage'] = j; }
 
 			// Sanna
 			j = nmax(0,
@@ -22028,6 +22033,7 @@ Guild.init = function(old_revision, fresh) {
 	// END
 
 	this._trigger('#'+APPID_+'guild_token_current_value', 'tokens'); //fix
+	this._watch(this, 'option.collect'); // force a collect retry on toggle
 };
 
 Guild.page = function(page, change) {
@@ -22056,7 +22062,7 @@ Guild.page = function(page, change) {
 				this.set('runtime.status', 'collect');
 			} else {
 				this.set('runtime.status', 'wait');
-				this.set('runtime.collected');
+				this.set('runtime.collected', 0);
 			}
 			this.set('runtime.next', now + (i = 30*60*1000));
 			this._remindMs(i, 'start');
@@ -22075,7 +22081,7 @@ Guild.page = function(page, change) {
 		if (tmp.length) {
 			this.set('runtime.status', 'start');
 			this.set('skip'); // Forget old "lose" list
-			this.set('runtime.collected');
+			this.set('runtime.collected', 0);
 		}
 
 		// collect button
@@ -22083,7 +22089,9 @@ Guild.page = function(page, change) {
 		  + ',input[src*="arena3_collectbutton."]');
 		if (tmp.length) {
 			this.set('runtime.status', 'collect');
-			this.set('runtime.collected');
+			this.set('runtime.collected', 0);
+		} else {
+			this.set('runtime.collected', now);
 		}
 
 		// battle timer
@@ -22127,7 +22135,7 @@ Guild.page = function(page, change) {
 
 		// token timer
 		tmp = $('#'+APPID_+'guild_token_time_value');
-		if (tmp.length && isNumber(i = tmp.text().parseTime())
+		if (tmp.length && isNumber(i = tmp.text().parseTimer())
 		  && i >= 0 && i < Date.HUGE
 		) {
 			this.set('runtime.next_token', now + i*1000);
@@ -22194,6 +22202,16 @@ Guild.update = function(event, events) {
 	}
 	if (!isString(this.runtime.status)) {
 		visit = true;
+	}
+
+	if (events.findEvent(this, 'watch', 'option.collect')
+	  && this.option.collect
+	) {
+		// force a collect attempt on collect option toggle
+		if (this.runtime.status === 'wait') {
+			this.set('runtime.status', 'collect');
+		}
+		this.set('runtime.collected', 0);
 	}
 
 	if (events.findEvent(null, 'trigger', 'tokens')
@@ -22265,7 +22283,7 @@ Guild.work = function(state) {
 	if (state) {
 		if (this.runtime.status === 'fight') {
 			if (!this.option.generals) {
-				general = this.option._general_choice || 'any';
+				general = this.option.general_choice || 'any';
 			} else {
 				if (!general || general === 'any') {
 					switch (this.runtime.my_class || 'any') {
@@ -22276,7 +22294,10 @@ Guild.work = function(state) {
 						general = Generals.best('guild_mage_damage_gate');
 						break;
 					case 'Rogue':
-						general = Generals.best('guild_rogue_evade');
+						general = Generals.best('guild_rogue_damage');
+						if (!general || general === 'any') {
+							general = Generals.best('guild_rogue_evade');
+						}
 						break;
 					case 'Warrior':
 						general = Generals.best('guild_warrior_confidence');
@@ -22699,6 +22720,7 @@ Festival.init = function(old_revision, fresh) {
 	// END
 
 	this._trigger('#'+APPID_+'guild_token_current_value', 'tokens'); //fix
+	this._watch(this, 'option.collect'); // force a collect retry on toggle
 };
 
 Festival.page = function(page, change) {
@@ -22748,7 +22770,7 @@ Festival.page = function(page, change) {
 		if (tmp.length) {
 			this.set('runtime.status', 'start');
 			this.set('skip'); // Forget old "lose" list
-			this.set('runtime.collected');
+			this.set('runtime.collected', 0);
 		}
 
 		// collect button
@@ -22756,7 +22778,9 @@ Festival.page = function(page, change) {
 		  + ',input[src*="arena3_collectbutton."]');
 		if (tmp.length) {
 			this.set('runtime.status', 'collect');
-			this.set('runtime.collected');
+			this.set('runtime.collected', 0);
+		} else {
+			this.set('runtime.collected', now);
 		}
 
 		// battle timer
@@ -22800,7 +22824,7 @@ Festival.page = function(page, change) {
 
 		// token timer
 		tmp = $('#'+APPID_+'guild_token_time_value');
-		if (tmp.length && isNumber(i = tmp.text().parseTime())
+		if (tmp.length && isNumber(i = tmp.text().parseTimer())
 		  && i >= 0 && i < Date.HUGE
 		) {
 			this.set('runtime.next_token', now + i*1000);
@@ -22867,6 +22891,16 @@ Festival.update = function(event, events) {
 	}
 	if (!isString(this.runtime.status)) {
 		visit = true;
+	}
+
+	if (events.findEvent(this, 'watch', 'option.collect')
+	  && this.option.collect
+	) {
+		// force a collect attempt on collect option toggle
+		if (this.runtime.status === 'wait') {
+			this.set('runtime.status', 'collect');
+		}
+		this.set('runtime.collected', 0);
 	}
 
 	if (events.findEvent(null, 'trigger', 'tokens')
@@ -22938,7 +22972,7 @@ Festival.work = function(state) {
 	if (state) {
 		if (this.runtime.status === 'fight') {
 			if (!this.option.generals) {
-				general = this.option._general_choice || 'any';
+				general = this.option.general_choice || 'any';
 			} else {
 				if (!general || general === 'any') {
 					switch (this.runtime.my_class || 'any') {
@@ -22949,7 +22983,10 @@ Festival.work = function(state) {
 						general = Generals.best('guild_mage_damage_gate');
 						break;
 					case 'Rogue':
-						general = Generals.best('guild_rogue_evade');
+						general = Generals.best('guild_rogue_damage');
+						if (!general || general === 'any') {
+							general = Generals.best('guild_rogue_evade');
+						}
 						break;
 					case 'Warrior':
 						general = Generals.best('guild_warrior_confidence');

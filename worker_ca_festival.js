@@ -212,6 +212,7 @@ Festival.init = function(old_revision, fresh) {
 	// END
 
 	this._trigger('#'+APPID_+'guild_token_current_value', 'tokens'); //fix
+	this._watch(this, 'option.collect'); // force a collect retry on toggle
 };
 
 Festival.page = function(page, change) {
@@ -261,7 +262,7 @@ Festival.page = function(page, change) {
 		if (tmp.length) {
 			this.set('runtime.status', 'start');
 			this.set('skip'); // Forget old "lose" list
-			this.set('runtime.collected');
+			this.set('runtime.collected', 0);
 		}
 
 		// collect button
@@ -269,7 +270,9 @@ Festival.page = function(page, change) {
 		  + ',input[src*="arena3_collectbutton."]');
 		if (tmp.length) {
 			this.set('runtime.status', 'collect');
-			this.set('runtime.collected');
+			this.set('runtime.collected', 0);
+		} else {
+			this.set('runtime.collected', now);
 		}
 
 		// battle timer
@@ -313,7 +316,7 @@ Festival.page = function(page, change) {
 
 		// token timer
 		tmp = $('#'+APPID_+'guild_token_time_value');
-		if (tmp.length && isNumber(i = tmp.text().parseTime())
+		if (tmp.length && isNumber(i = tmp.text().parseTimer())
 		  && i >= 0 && i < Date.HUGE
 		) {
 			this.set('runtime.next_token', now + i*1000);
@@ -380,6 +383,16 @@ Festival.update = function(event, events) {
 	}
 	if (!isString(this.runtime.status)) {
 		visit = true;
+	}
+
+	if (events.findEvent(this, 'watch', 'option.collect')
+	  && this.option.collect
+	) {
+		// force a collect attempt on collect option toggle
+		if (this.runtime.status === 'wait') {
+			this.set('runtime.status', 'collect');
+		}
+		this.set('runtime.collected', 0);
 	}
 
 	if (events.findEvent(null, 'trigger', 'tokens')
@@ -451,7 +464,7 @@ Festival.work = function(state) {
 	if (state) {
 		if (this.runtime.status === 'fight') {
 			if (!this.option.generals) {
-				general = this.option._general_choice || 'any';
+				general = this.option.general_choice || 'any';
 			} else {
 				if (!general || general === 'any') {
 					switch (this.runtime.my_class || 'any') {
@@ -462,7 +475,10 @@ Festival.work = function(state) {
 						general = Generals.best('guild_mage_damage_gate');
 						break;
 					case 'Rogue':
-						general = Generals.best('guild_rogue_evade');
+						general = Generals.best('guild_rogue_damage');
+						if (!general || general === 'any') {
+							general = Generals.best('guild_rogue_evade');
+						}
 						break;
 					case 'Warrior':
 						general = Generals.best('guild_warrior_confidence');

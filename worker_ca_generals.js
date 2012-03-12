@@ -836,6 +836,11 @@ Generals.update = function(event, events) {
 			  + sum(skillcombo.regex(/\b(\d+) Damage in Battles?\b/gi));
 			if (j) { stats['guild_damage'] = j; }
 
+			// Deshara
+			j = nmax(0,
+			  skillcombo.regex(/\bDeal \+?(\d+) Damage as Rogue\b/i));
+			if (j) { stats['guild_rogue_damage'] = j; }
+
 			// Sanna
 			j = nmax(0,
 			  skillcombo.regex(/\bHeal for additional (\d+) Health as a Cleric in a Guild Battle\b/i),
