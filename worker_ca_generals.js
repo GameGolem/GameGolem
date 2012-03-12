@@ -1211,7 +1211,7 @@ Generals.dashboard = function(sort, rev) {
 			}
 			vv += v;
 			if (v !== this.runtime.max_priority) {
-				vv += + ' <a class="golem-movedown" name="'+v+'">&darr;</a>';
+				vv += ' <a class="golem-movedown" name="'+v+'">&darr;</a>';
 			}
 		} else if (isNumber(v = p.charge)) {
 			if (v > now) {

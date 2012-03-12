@@ -8,7 +8,7 @@
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	isArray, isFunction, isNumber, isObject, isString, isWorker
 *//********** Worker.Guild() **********
-* Build your guild army
+* Handle guild battles
 * Auto-attack Guild targets
 */
 var Guild = new Worker('Guild');
@@ -24,7 +24,7 @@ Guild.defaults['castle_age'] = {
 Guild.option = {
 	general:true,
 	general_choice:'any',
-	start:false,
+	join:false,
 	collect:true,
 	tokens:'min',
 	safety:60000,
@@ -38,21 +38,22 @@ Guild.option = {
 };
 
 Guild.data = {
+	skip:{}		// dangerous target list - name based
 };
 
 Guild.runtime = {
-	status:null, // wait, start, fight, collect
-	next:0,
-	start:0,
-	finish:0,
-	tokens:10,
-	next_token:0,
+	status:null,	// wait, start, fight, collect
+	next:0,			// next battle (or when we'll next check for a battle)
+	start:0,		// start of battle
+	finish:0,		// end of battle
+	tokens:10,		// current token count
+	next_token:0,	// next token point
 	rank:0,
 	points:0,
 	burn:false,
 	stunned:false,
-	my_class:null,
-	collected:0
+	my_class:null,	// current class
+	collected:0		// last collection mark
 };
 
 Guild.temp = {
@@ -78,13 +79,13 @@ Guild.display = [
 		require:'!general',
 		select:'generals'
 	},{
-		id:'start',
+		id:'join',
 		label:'Automatically Join',
 		checkbox:true
 	},{
 		id:'delay',
 		label:'Join Delay',
-		require:'start',
+		require:'join',
 		select:{
 			0:'None',
 			60000:'1 minute',
@@ -201,6 +202,15 @@ Guild.init = function(old_revision, fresh) {
 	}
 	// END
 
+	// BEGIN: Map old option.start to option.join
+	if (old_revision < 1183 && revision >= 1183 && !fresh) {
+		if (this.option.hasOwnProperty('start')) {
+			this.set('option.join', this.option.start || false);
+			this.set('option.start');
+		}
+	}
+	// END
+
 	this._trigger('#'+APPID_+'guild_token_current_value', 'tokens'); //fix
 };
 
@@ -216,33 +226,24 @@ Guild.page = function(page, change) {
 			) {
 				this.set('runtime.status', 'start');
 			}
-		} else if ($('input[src*="dragon_list_btn_2."]').length) {
-			// collect button - battle is done
+		} else {
+			// battle is done
 			if ((this.runtime.start || 0) > now) {
 				this.set('runtime.start', now - 2);
 			}
 			if ((this.runtime.finish || 0) > now) {
 				this.set('runtime.finish', now - 1);
 			}
-			if ((this.runtime.collected || 0) < (this.runtime.start || 0)) {
+			if ($('input[src*="dragon_list_btn_2."]').length
+			  && (this.runtime.collected || 0) < (this.runtime.start || 0)
+			) {
 				this.set('runtime.status', 'collect');
 			} else {
 				this.set('runtime.status', 'wait');
+				this.set('runtime.collected');
 			}
 			this.set('runtime.next', now + (i = 30*60*1000));
 			this._remindMs(i, 'start');
-		} else {
-			// neither button - no recent battle
-			if ((this.runtime.start || 0) > now) {
-				this.set('runtime.start', now - 2);
-			}
-			if ((this.runtime.finish || 0) > now) {
-				this.set('runtime.finish', now - 1);
-			}
-			this.set('runtime.next', now + (i = 30*60*1000));
-			this._remindMs(i, 'start');
-			this.set('runtime.status', 'wait');
-			this.set('runtime.collected');
 		}
 		break;
 
@@ -277,7 +278,7 @@ Guild.page = function(page, change) {
 			if (this.runtime.status !== 'start') {
 				this.set('runtime.status', 'fight');
 			}
-			this.set('runtime.start', now + (5*60*60 - i)*1000);
+			this.set('runtime.start', now + (1*60*60 - i)*1000);
 			this.set('runtime.finish', now + i*1000);
 			if (i*1000 > this.option.safety) {
 				this._remind(i*1000 - this.option.safety, 'fight');
@@ -293,8 +294,12 @@ Guild.page = function(page, change) {
 			if ((this.runtime.finish || 0) > now) {
 				this.set('runtime.finish', now - 1);
 			}
-			if (this.runtime.status !== 'wait' && !this.runtime.collected) {
+			if (this.runtime.status !== 'wait'
+			  && (this.runtime.collected || 0) < (this.runtime.start || 0)
+			) {
 				this.set('runtime.status', 'collect');
+			} else {
+				this.set('runtime.status', 'wait');
 			}
 		}
 
@@ -313,6 +318,7 @@ Guild.page = function(page, change) {
 			this._remind(i, 'tokens');
 		}
 
+		// record activity points
 		tmp = $('#'+APPID_+'results_main_wrapper');
 		if (tmp.length) {
 			i = tmp.text().regex(/\+(\d+) \w+ Activity Points/i);
@@ -361,9 +367,6 @@ Guild.update = function(event, events) {
 				this.set('runtime.tokens',
 				  Math.min(10, (this.runtime.tokens || 0) + 1 + Math.floor(j)));
 				this.set('runtime.next_token', i + Math.ceil(j) * 6*60*1000);
-				if (this.runtime.finish - this.option.safety <= now) {
-					this.set('runtime.burn', true);
-				}
 				if (this.runtime.tokens < 10) {
 					this._remindMs(this.runtime.next_token - now, 'tokens');
 				}
@@ -380,9 +383,12 @@ Guild.update = function(event, events) {
 	if (events.findEvent(null, 'trigger', 'tokens')
 	  || events.findEvent(null, 'reminder', 'tokens')
 	) {
-		this.set('runtime.tokens', Math.min(10, (this.runtime.tokens || 0) + 1));
+		this.set('runtime.tokens',
+		  Math.min(10, (this.runtime.tokens || 0) + 1));
 		if (this.runtime.tokens < 10) {
-			this._remind(6*60, 'tokens');
+			this.set('runtime.next_token',
+			  (this.runtime.next_token || now) + 6*60*1000);
+			this._remindMs(this.runtime.next_token - now, 'tokens');
 		}
 	}
 
@@ -400,7 +406,7 @@ Guild.update = function(event, events) {
 	  && !(this.runtime.status === 'wait' && (this.runtime.next || 0) <= now)
 	  && !(this.runtime.status === 'start'
 		&& (this.runtime.finish || 0) > now
-	    && this.option.start
+	    && this.option.join
 		&& Player.get('stamina', 0, 'number') >= 20
 		&& (this.runtime.start || 0) + this.option.delay <= now)
 	  && !(this.runtime.status === 'fight'
@@ -418,8 +424,8 @@ Guild.update = function(event, events) {
 	status = this.get('runtime.status', 'wait');
 
 	Dashboard.status(this, 'Status: ' + this.temp.status[status]
-	  + (status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.start) + ')' : '')
-	  + (status === 'fight' ? ' (' + Page.addTimer('guild_start', this.runtime.finish) + ')' : '')
+	  + (status === 'wait' ? ' (' + Page.addTimer('guild_start', this.runtime.next) + ')' : '')
+	  + (status === 'fight' ? ' (' + Page.addTimer('guild_finish', this.runtime.finish) + ')' : '')
 	  + ', Tokens: ' + Config.makeImage('guild', 'Guild Stamina') + ' ' + this.runtime.tokens + ' / 10'
 	);
 
@@ -504,7 +510,7 @@ Guild.work = function(state) {
 		}
 
 		// is there a join button?
-		if (this.option.start && Page.temp.page === 'battle_guild_battle'
+		if (this.option.join && Page.temp.page === 'battle_guild_battle'
 		  && (this.runtime.start || 0) + this.option.delay <= now
 		) {
 			tmp = $('input[src*="guild_enter_battle_button."]');

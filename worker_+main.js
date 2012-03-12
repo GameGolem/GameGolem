@@ -65,7 +65,8 @@ Main.page = function() {
 
 // Using events with multiple returns because any of them are before normal running and are to stop Golem...
 Main.update = function(event, events) {
-	var a, b, i, j, k, v, head, tmp, old_revision, fresh = false;
+	var a, b, i, j, k, v, head, tmp,
+		key1, key2, force_save, old_revision, fresh = false;
 
 	if (events.findEvent(null, 'startup')
 	  || events.findEvent(null, 'reminder', 'startup')
@@ -155,9 +156,11 @@ Main.update = function(event, events) {
 		// if we got here, we have an app, a userid, so we are set
 		// -----------------------------------------------------------
 
-		Main.scheme = window.location.protocol + '//';
-		Main.domain = window.location.hostname;
-		Main.path = window.location.pathname.pathpart();
+		this.scheme = window.location.protocol + '//';
+		this.domain = window.location.hostname;
+		this.path = window.location.pathname.pathpart();
+		this.js = 'javascript';
+		this.js += ':'; // split to avoid jslint gripes
 
 		// jQuery selector extensions
 
@@ -305,7 +308,13 @@ Main.update = function(event, events) {
 	}
 
 	if (events.findEvent(null, 'reminder', 'kickstart')) {
-		old_revision = parseInt(localStorage['golem.' + APP + '.revision'], 10);
+		key1 = 'golem.'+APP+'.'+userID+'.revision';
+		key2 = 'golem.'+APP+'.revision';
+		old_revision = parseInt(localStorage.getItem(key1), 10);
+		if (!old_revision) {
+			old_revision = parseInt(localStorage.getItem(key2), 10);
+			force_save = true;
+		}
 		if (!old_revision) {
 			log(LOG_INFO, 'GameGolem: Fresh install of ' + APPNAME + ' r' + revision);
 			fresh = true;
@@ -339,9 +348,10 @@ Main.update = function(event, events) {
 		for (i in Workers) {
 			Workers[i]._update('init', 'run');
 		}
-		if (old_revision !== revision) {
-			localStorage['golem.' + APP + '.revision'] = revision;
+		if (old_revision < revision || force_save) {
+			localStorage.setItem(key1, revision);
 		}
+		localStorage.removeItem(key2);
 
 		try {
 		k = 0;

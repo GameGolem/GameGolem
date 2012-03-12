@@ -1,8 +1,15 @@
-/*
+/**
  * Scripting withing Golem.
  * This is a scripting language built inside javascript.
  * It has a javascript like syntax, however all local variables must begin with a # (#test etc)
  */
+
+/*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
+/*global
+	Worker, Workers,
+	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
+	isArray, isNumber, isObject, isString, isUndefined,
+*/
 
 // '!testing.blah=1234 & yet.another.path | !something & test.me > 5'
 // [[false,"testing","blah"],"=",1234,"&",["yet","another","path"],"|",[false,"something"],"&",["test","me"],">",5]
@@ -42,7 +49,7 @@ function Script(source, options) {
 	this['result'] = undefined;
 
 	this.parse();
-};
+}
 
 Script.prototype.toString = Script.prototype.toJSON = function() {
 	return '[script \'' + this.source + '\']';
@@ -129,7 +136,8 @@ Script.prototype._functions = [ // [name, expand_args, function]
 		}
 	}],
 	['for',	Script.FN_CUSTOM,	function(script, value_list, op_list) {
-		var a, i = 0; x = [[],[],[]], tmp = script.shift(), fn = script.shift(), now = Date.now();
+		var now = Date.now(), a, i = 0, x = [[],[],[]], tmp = script.shift(),
+			fn = script.shift();
 		while ((a = tmp.shift())) {
 			if (a === ';') {
 				x[++i] = [];
@@ -145,7 +153,7 @@ Script.prototype._functions = [ // [name, expand_args, function]
 		}
 	}],
 	['while',	Script.FN_CUSTOM,	function(script, value_list, op_list) {
-		var x = script.shift(), fn = script.shift(), now = Date.now();
+		var now = Date.now(), x = script.shift(), fn = script.shift();
 		while (this._interpret(x).pop() && Date.now() - now < 3000) { // 3 second limit on loops
 			this._interpret(fn);
 		}
@@ -160,7 +168,7 @@ Script.prototype._functions = [ // [name, expand_args, function]
  * Find the value of a variable using const, default and data
  */
 Script.prototype._rvalue = function(variable) { // Expand variables into values
-	var i, x, worker;
+	var i, x, y, worker;
 	if (isArray(variable)) { // Special case - an array of variables
 		i = variable.length;
 		while (i--) {
@@ -170,7 +178,7 @@ Script.prototype._rvalue = function(variable) { // Expand variables into values
 		if (/^".*"$/.test(variable) || /^'.*'$/.test(variable)) {
 			variable = variable.replace(/^"|^'|'$|"$/g, '');
 			i = '';
-			while (y = variable.match(/^(.*)\\(.)(.*)$/)) {
+			while ((y = variable.match(/^(.*)\\(.)(.*)$/))) {
 				i = y[1] + y[2];
 				variable = y[3];
 			}
@@ -183,7 +191,7 @@ Script.prototype._rvalue = function(variable) { // Expand variables into values
 				i = this['data'][variable];
 			} else if (isString(this['data'])) {
 				x = (this['data'] + '.' + variable).split('.');
-				i = Workers[x[0]].get(x.slice(1))
+				i = Workers[x[0]].get(x.slice(1));
 			} else {
 				i = undefined; // Error!!!
 			}

@@ -1538,7 +1538,7 @@ Monster.page = function(page, change) {
 			  || $('input[src*="monster_buttons_collectreward."]').length
 			) {
 				this.set(['data',mid,'state'], 'reward');
-			} else if ($('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser=' + userID + '"]').length) {
+			} else if ($('td.dragonContainer table table a[href*="keep.php?casuser=' + userID + '"]').length) {
 				if (!this.get(['data',mid,'dead'])) {
 					History.add(type_label,1);
 					this.set(['data',mid,'dead'], true);

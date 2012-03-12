@@ -155,7 +155,7 @@ Page.defaults.castle_age = {
 				skip:true
 			},
 			quests_atlantis: {
-				url:'monster_quests.php',
+				url:'monster_quests.php?land=1',
 				image:'tab_atlantis_on.gif',
 				unlocked:'land_atlantis.gif',
 				locked:'land_atlantis_lock.gif',

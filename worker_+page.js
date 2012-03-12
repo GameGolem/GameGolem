@@ -207,7 +207,7 @@ Page.update = function(event, events) {
 };
 
 Page.makeURL = function(url, args) {
-	var abs = 'apps.facebook.com/' + APP + '/';
+	var abs = Main.domain + Main.path;
 	if (url in this.pageNames) {
 		url = this.pageNames[url].url;
 	} else {
@@ -225,7 +225,7 @@ Page.makeURL = function(url, args) {
 
 Page.makeLink = function(url, args, content) {
 	var page = this.makeURL(url, args);
-	return '<a href="' + window.location.protocol + '//apps.facebook.com/' + APP + '/' + page + '" onclick="' + (APPID_==='' ? '' : 'a'+APPID+'_') + 'ajaxLinkSend(&#039;globalContainer&#039;,&#039;' + page + '&#039;);return false;' + '">' + content + '</a>';
+	return '<a href="' + Main.scheme + Main.domain + Main.path + page + '" onclick="' + (APPID_==='' ? '' : 'a'+APPID+'_') + 'ajaxLinkSend(&#039;globalContainer&#039;,&#039;' + page + '&#039;);return false;' + '">' + content + '</a>';
 };
 
 /*
@@ -251,9 +251,9 @@ Page.to = function(url, args, force) { // Force = true/false (allows to reload t
 		this.set(['temp','loading'], true);
 		log('Navigating to ' + page);
 	} else if (force) {
-		window.location.href = 'javascript:void((function(){})())';// Force it to change
+		window.location.href = Main.js + 'void((function(){})())';// Force it to change
 	}
-	window.location.href = /^https?:/i.test(page) ? page : 'javascript:void(' + (APPID_==='' ? '' : 'a'+APPID+'_') + 'ajaxLinkSend("globalContainer","' + page + '"))';
+	window.location.href = /^https?:/i.test(page) ? page : Main.js+'void(' + (APPID_==='' ? '' : 'a'+APPID+'_') + 'ajaxLinkSend("globalContainer","' + page + '"))';
 	this._remind(this.option.timeout, 'retry');
 	this.set(['temp','count'], this.get(['temp','count'], 0) + 1);
 	return false;
