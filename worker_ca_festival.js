@@ -280,7 +280,7 @@ Festival.page = function(page, change) {
 			if (this.runtime.status !== 'start') {
 				this.set('runtime.status', 'fight');
 			}
-			this.set('runtime.start', now + (5*60*60 - i)*1000);
+			this.set('runtime.start', now + (i - 5*60*60)*1000);
 			this.set('runtime.finish', now + i*1000);
 			if (i*1000 > this.option.safety) {
 				this._remind(i*1000 - this.option.safety, 'fight');
