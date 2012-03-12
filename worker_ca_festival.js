@@ -627,7 +627,7 @@ Festival.work = function(state) {
 					  + ' ' + target[3] + '/' + target[4]
 					  + ' ' + target[0]
 					);
-					best = tmp.el(i);
+					best = tmp.eq(i);
 					besttarget = target;
 				}
 			}
