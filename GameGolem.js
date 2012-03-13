@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1186
+ * GameGolem v31.6.1187
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1186
+ * GameGolem v31.6.1187
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1186;
+var revision = 1187;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1185;
+var trunk_revision = 1186;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -21999,6 +21999,15 @@ Guild.display = [
 	}
 ];
 
+Guild.target_rx = new RegExp(
+  '^(.*)'							// 0: name
+  + ' Level *: (\\d+)'				// 1: level
+  + ' Class *: ([^ ]+)'				// 2: class
+  + ' Health *: (\\d+)\\/(\\d+)'	// 3/4: health, maxhealth
+  + ' Status *: ([^ ]+)'			// 5: status
+  + ' \\w+ Points *: (\\d+)'		// 6: activity
+);
+
 Guild.init = function(old_revision, fresh) {
 	var now = Date.now(), i, list;
 
@@ -22042,11 +22051,13 @@ Guild.page = function(page, change) {
 	switch (page) {
 	case 'battle_guild':
 		if ($('input[src*="dragon_list_btn_3."]').length) {
-			// enter button - battle is on
-			if (this.runtime.status !== 'start'
-			  && this.runtime.status !== 'fight'
-			) {
-				this.set('runtime.status', 'start');
+			// enter button - battle is on (or collect)
+			if (this.runtime.status === 'wait') {
+				if ((this.runtime.start || 0) + 9*60*60*1000 < now) {
+					this.set('runtime.status', 'start');
+				} else {
+					this.set('runtime.next', now + 30*60*1000);
+				}
 			}
 		} else {
 			// battle is done
@@ -22102,7 +22113,8 @@ Guild.page = function(page, change) {
 			if (this.runtime.status !== 'start') {
 				this.set('runtime.status', 'fight');
 			}
-			this.set('runtime.start', now + (i - 1*60*60)*1000);
+			this.set('runtime.next', now + 9*60*60*1000);
+			this.set('runtime.start', now + (i - 5*60*60)*1000);
 			this.set('runtime.finish', now + i*1000);
 			if (i*1000 > this.option.safety) {
 				this._remind(i*1000 - this.option.safety, 'fight');
@@ -22163,11 +22175,13 @@ Guild.page = function(page, change) {
 		if ((tmp = $('#'+APPID_+'guild_battle_banner_section')).length) {
 			txt = tmp.text().trim(true);
 		}
-		this.set('runtime.stunned', /\bStatus: Stunned\b/i.test(txt));
-		if ((i = txt.regex(/\bClass: (\w+)\b/i))) {
-			this.set('runtime.my_class', i);
-		} else {
-			this.set('runtime.my_class', null);
+		if ((i = txt.regex(this.target_rx))) {
+			if (isString(i[2])) {
+				this.set('runtime.my_class', i[2]);
+			}
+			if (isString(i[5])) {
+				this.set('runtime.stunned', i[5] === 'Stunned');
+			}
 		}
 		break;
 	}
@@ -22214,8 +22228,9 @@ Guild.update = function(event, events) {
 		this.set('runtime.collected', 0);
 	}
 
-	if (events.findEvent(null, 'trigger', 'tokens')
-	  || events.findEvent(null, 'reminder', 'tokens')
+	if ((this.runtime.finish || 0) > now
+	  && (events.findEvent(null, 'trigger', 'tokens')
+	  || events.findEvent(null, 'reminder', 'tokens'))
 	) {
 		this.set('runtime.tokens',
 		  Math.min(10, (this.runtime.tokens || 0) + 1));
@@ -22388,25 +22403,43 @@ Guild.work = function(state) {
 			  + ', #'+APPID_+'enemy_guild_member_list_2 > div'
 			  + ', #'+APPID_+'enemy_guild_member_list_3 > div'
 			  + ', #'+APPID_+'enemy_guild_member_list_4 > div');
+			if (!tmp.length) {
+				tmp = $('#enemy_guild_member_list'
+				  + ' > div[id*="enemy_guild_member_list_"]'
+				  + ':contains("No Soldiers Posted In This Position!")');
+			}
 			for (i = 0; i < tmp.length; i++) {
 				txt = tmp.eq(i).text().trim().replace(/\s+/g,' ');
-				target = txt.regex(/^(.*) Level *: (\d+) Class *: ([^ ]+) Health *: (\d+)\/(\d+) Status *: ([^ ]+) \w+ Points *: (\d+)/);
-				// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
-				if (!target
-				  || (this.option.defeat && this.data[target[0]])
-				  || (isNumber(this.option.limit)
-				  && target[1] > level + this.option.limit)
-				) {
-					continue;
-				}
+				target = txt.regex(this.target_rx);
 				skip = false;
-				for (j = ignore.length - 1; j >= 0; j--) {
-					if (target[0].indexOf(ignore[j]) >= 0) {
-						skip = true;
-						break;
+				if (!target) {
+					test = 'no target';
+					skip = true;
+				} else if (this.option.defeat && this.data[target[0]]) {
+					test = 'defeat protection';
+					skip = true;
+				} else if (isNumber(this.option.limit)
+				  && target[1] > level + this.option.limit
+				) {
+					test = 'tough target';
+					skip = true;
+				}
+				if (!skip) {
+					for (j = ignore.length - 1; j >= 0; j--) {
+						if (target[0].indexOf(ignore[j]) >= 0) {
+							test = 'ignore list';
+							skip = true;
+							break;
+						}
 					}
 				}
 				if (skip) {
+					log(LOG_DEBUG, '# skip: ' + test + ': '
+					  + ' ' + (target[6] ? 'active' : 'inactive')
+					  + ' ' + target[1] + '/' + target[2]
+					  + ' ' + target[3] + '/' + target[4]
+					  + ' ' + target[0]
+					);
 					continue;
 				}
 				test = false;
@@ -22686,6 +22719,15 @@ Festival.display = [
 	}
 ];
 
+Festival.target_rx = new RegExp(
+  '^(.*)'							// 0: name
+  + ' Level *: (\\d+)'				// 1: level
+  + ' Class *: ([^ ]+)'				// 2: class
+  + ' Health *: (\\d+)\\/(\\d+)'	// 3/4: health, maxhealth
+  + ' Status *: ([^ ]+)'			// 5: status
+  + ' \\w+ Points *: (\\d+)'		// 6: activity
+);
+
 Festival.init = function(old_revision, fresh) {
 	var now = Date.now(), i, list;
 
@@ -22731,9 +22773,7 @@ Festival.page = function(page, change) {
 		tmp = $('#'+APPID_+'current_battle_info').text();
 		if (tmp.indexOf('BATTLE NOW!') > -1) {
 			// battle is on
-			if (this.runtime.status !== 'start'
-			  && this.runtime.status !== 'fight'
-			) {
+			if (this.runtime.status === 'wait') {
 				this.set('runtime.status', 'start');
 			}
 		} else {
@@ -22791,7 +22831,7 @@ Festival.page = function(page, change) {
 			if (this.runtime.status !== 'start') {
 				this.set('runtime.status', 'fight');
 			}
-			this.set('runtime.start', now + (i - 5*60*60)*1000);
+			this.set('runtime.start', now + (i - 1*60*60)*1000);
 			this.set('runtime.finish', now + i*1000);
 			if (i*1000 > this.option.safety) {
 				this._remind(i*1000 - this.option.safety, 'fight');
@@ -22849,14 +22889,16 @@ Festival.page = function(page, change) {
 		this.set('temp.last', null);
 
 		txt = '';
-		if ((tmp = $('#'+APPID_+'guild_battle_banner_section')).length) {
+		if ((tmp = $('#'+APPID_+'arena_battle_banner_section')).length) {
 			txt = tmp.text().trim(true);
 		}
-		this.set('runtime.stunned', /\bStatus: Stunned\b/i.test(txt));
-		if ((i = txt.regex(/\bClass: (\w+)\b/i))) {
-			this.set('runtime.my_class', i);
-		} else {
-			this.set('runtime.my_class', null);
+		if ((i = txt.regex(this.target_rx))) {
+			if (isString(i[2])) {
+				this.set('runtime.my_class', i[2]);
+			}
+			if (isString(i[5])) {
+				this.set('runtime.stunned', i[5] === 'Stunned');
+			}
 		}
 		break;
 	}
@@ -22903,8 +22945,9 @@ Festival.update = function(event, events) {
 		this.set('runtime.collected', 0);
 	}
 
-	if (events.findEvent(null, 'trigger', 'tokens')
-	  || events.findEvent(null, 'reminder', 'tokens')
+	if ((this.runtime.finish || 0) > now
+	  && (events.findEvent(null, 'trigger', 'tokens')
+	  || events.findEvent(null, 'reminder', 'tokens'))
 	) {
 		this.set('runtime.tokens',
 		  Math.min(10, (this.runtime.tokens || 0) + 1));
@@ -23076,25 +23119,43 @@ Festival.work = function(state) {
 			  + ', #'+APPID_+'enemy_guild_member_list_2 > div'
 			  + ', #'+APPID_+'enemy_guild_member_list_3 > div'
 			  + ', #'+APPID_+'enemy_guild_member_list_4 > div');
+			if (!tmp.length) {
+				tmp = $('#enemy_guild_member_list'
+				  + ' > div[id*="enemy_guild_member_list_"]'
+				  + ':contains("No Soldiers Posted In This Position!")');
+			}
 			for (i = 0; i < tmp.length; i++) {
 				txt = tmp.eq(i).text().trim().replace(/\s+/g,' ');
-				target = txt.regex(/^(.*) Level *: (\d+) Class *: ([^ ]+) Health *: (\d+)\/(\d+) Status *: ([^ ]+) \w+ Points *: (\d+)/);
-				// target = [0:name, 1:level, 2:class, 3:health, 4:maxhealth, 5:status, 6:activity]
-				if (!target
-				  || (this.option.defeat && this.data[target[0]])
-				  || (isNumber(this.option.limit)
-				  && target[1] > level + this.option.limit)
-				) {
-					continue;
-				}
+				target = txt.regex(this.target_rx);
 				skip = false;
-				for (j = ignore.length - 1; j >= 0; j--) {
-					if (target[0].indexOf(ignore[j]) >= 0) {
-						skip = true;
-						break;
+				if (!target) {
+					test = 'no target';
+					skip = true;
+				} else if (this.option.defeat && this.data[target[0]]) {
+					test = 'defeat protection';
+					skip = true;
+				} else if (isNumber(this.option.limit)
+				  && target[1] > level + this.option.limit
+				) {
+					test = 'tough target';
+					skip = true;
+				}
+				if (!skip) {
+					for (j = ignore.length - 1; j >= 0; j--) {
+						if (target[0].indexOf(ignore[j]) >= 0) {
+							test = 'ignore list';
+							skip = true;
+							break;
+						}
 					}
 				}
 				if (skip) {
+					log(LOG_DEBUG, '# skip: ' + test + ': '
+					  + ' ' + (target[6] ? 'active' : 'inactive')
+					  + ' ' + target[1] + '/' + target[2]
+					  + ' ' + target[3] + '/' + target[4]
+					  + ' ' + target[0]
+					);
 					continue;
 				}
 				test = false;
