@@ -225,7 +225,7 @@ Guild.init = function(old_revision, fresh) {
 };
 
 Guild.page = function(page, change) {
-	var now = Date.now(), i, tmp, txt;
+	var now = Date.now(), i, tmp, txt, buttons;
 
 	switch (page) {
 	case 'battle_guild':
@@ -235,7 +235,9 @@ Guild.page = function(page, change) {
 				if ((this.runtime.start || 0) + 9*60*60*1000 < now) {
 					this.set('runtime.status', 'start');
 				} else {
-					this.set('runtime.next', now + 30*60*1000);
+					this.set('runtime.next',
+					  i = Math.max(now + 30*60*1000, this.runtime.next || 0));
+					this._remindMs(i - now, 'start');
 				}
 			}
 		} else {
@@ -254,8 +256,9 @@ Guild.page = function(page, change) {
 				this.set('runtime.status', 'wait');
 				this.set('runtime.collected', 0);
 			}
-			this.set('runtime.next', now + (i = 30*60*1000));
-			this._remindMs(i, 'start');
+			this.set('runtime.next',
+			  i = Math.max(now + 30*60*1000, this.runtime.next || 0));
+			this._remindMs(i - now, 'start');
 		}
 		break;
 
@@ -266,12 +269,15 @@ Guild.page = function(page, change) {
 			return change;
 		}
 
+		buttons = 0; // buttons flag
+
 		// join button
 		tmp = $('input[src*="guild_enter_battle_button."]');
 		if (tmp.length) {
 			this.set('runtime.status', 'start');
 			this.set('skip'); // Forget old "lose" list
 			this.set('runtime.collected', 0);
+			buttons |= 1;
 		}
 
 		// collect button
@@ -280,8 +286,7 @@ Guild.page = function(page, change) {
 		if (tmp.length) {
 			this.set('runtime.status', 'collect');
 			this.set('runtime.collected', 0);
-		} else {
-			this.set('runtime.collected', now);
+			buttons |= 2;
 		}
 
 		// battle timer
@@ -292,7 +297,6 @@ Guild.page = function(page, change) {
 			if (this.runtime.status !== 'start') {
 				this.set('runtime.status', 'fight');
 			}
-			this.set('runtime.next', now + 9*60*60*1000);
 			this.set('runtime.start', now + (i - 5*60*60)*1000);
 			this.set('runtime.finish', now + i*1000);
 			if (i*1000 > this.option.safety) {
@@ -301,6 +305,9 @@ Guild.page = function(page, change) {
 				this.set('runtime.burn', true);
 			}
 			this._remind(i, 'finish');
+			this.set('runtime.next',
+			  i = Math.max(now + 9*60*60*1000, this.runtime.next || 0));
+			this._remindMs(i - now, 'start');
 		} else {
 			// battle is done
 			if ((this.runtime.start || 0) > now) {
@@ -308,6 +315,9 @@ Guild.page = function(page, change) {
 			}
 			if ((this.runtime.finish || 0) > now) {
 				this.set('runtime.finish', now - 1);
+			}
+			if (!buttons) {
+				this.set('runtime.collected', now);
 			}
 			if (this.runtime.status !== 'wait'
 			  && (this.runtime.collected || 0) < (this.runtime.start || 0)
@@ -350,16 +360,22 @@ Guild.page = function(page, change) {
 		}
 		this.set('temp.last', null);
 
-		txt = '';
-		if ((tmp = $('#'+APPID_+'guild_battle_banner_section')).length) {
-			txt = tmp.text().trim(true);
-		}
-		if ((i = txt.regex(this.target_rx))) {
-			if (isString(i[2])) {
-				this.set('runtime.my_class', i[2]);
+		if (this.runtime.status === 'start'
+		  || this.runtime.status === 'fight'
+		) {
+			txt = '';
+			if ((tmp = $('#'+APPID_+'guild_battle_banner_section')).length) {
+				txt = tmp.text().trim(true);
 			}
-			if (isString(i[5])) {
-				this.set('runtime.stunned', i[5] === 'Stunned');
+			if ((i = txt.regex(this.target_rx))) {
+				if (isString(i[2])) {
+					this.set('runtime.my_class', i[2]);
+				}
+				if (isString(i[5])) {
+					this.set('runtime.stunned', i[5] === 'Stunned');
+				}
+			} else {
+				log(LOG_INFO, '# bad self parse: ' + txt);
 			}
 		}
 		break;
@@ -390,6 +406,13 @@ Guild.update = function(event, events) {
 			}
 		} else {
 			// state is unclear, so trigger a visit, just to be safe
+			visit = true;
+		}
+
+		// wake on next battle
+		if ((i = this.runtime.next || 0) > now) {
+			this._remindMs(i - now, 'start');
+		} else {
 			visit = true;
 		}
 	}
@@ -588,11 +611,11 @@ Guild.work = function(state) {
 				  + ':contains("No Soldiers Posted In This Position!")');
 			}
 			for (i = 0; i < tmp.length; i++) {
-				txt = tmp.eq(i).text().trim().replace(/\s+/g,' ');
+				txt = tmp.eq(i).text().trim(true);
 				target = txt.regex(this.target_rx);
 				skip = false;
 				if (!target) {
-					test = 'no target';
+					test = 'no targets';
 					skip = true;
 				} else if (this.option.defeat && this.data[target[0]]) {
 					test = 'defeat protection';
@@ -613,12 +636,16 @@ Guild.work = function(state) {
 					}
 				}
 				if (skip) {
-					log(LOG_DEBUG, '# skip: ' + test + ': '
-					  + ' ' + (target[6] ? 'active' : 'inactive')
-					  + ' ' + target[1] + '/' + target[2]
-					  + ' ' + target[3] + '/' + target[4]
-					  + ' ' + target[0]
-					);
+					if (!target) {
+						log(LOG_DEBUG, '# skip: ' + test);
+					} else {
+						log(LOG_DEBUG, '# skip: ' + test + ': '
+						  + ' ' + (target[6] ? 'active' : 'inactive')
+						  + ' ' + target[1] + '/' + target[2]
+						  + ' ' + target[3] + '/' + target[4]
+						  + ' ' + target[0]
+						);
+					}
 					continue;
 				}
 				test = false;
@@ -713,6 +740,8 @@ Guild.work = function(state) {
 				log(LOG_INFO, 'No targets, no next gate (0)');
 				return QUEUE_FINISH;
 			}
+		} else if (this.runtime.status === 'fight') {
+			log(LOG_INFO, '# wrong fight page: ' + Page.temp.page);
 		}
 	}
 

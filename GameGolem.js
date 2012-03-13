@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1187
+ * GameGolem v31.6.1188
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1187
+ * GameGolem v31.6.1188
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1187;
+var revision = 1188;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1186;
+var trunk_revision = 1187;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -6046,7 +6046,7 @@ Global._overload(null, 'work', function(state) {
 			}
 			// temporary fix for ISP woes
 			//Page.click('#reload_link');
-			window.location.replace('http://web3.castleagegame.com/castle_ws/index.php');
+			window.location.replace(Main.scheme + Main.domain + Main.path + 'index.php');
 		}
 		return QUEUE_CONTINUE;
 	}
@@ -13909,7 +13909,7 @@ Monster.page = function(page, change) {
 			//log(LOG_WARN, 'Monster Siege',siege + ' did ' + dmg.addCommas() + ' amount of damage.');
 			Monster.add(['data',mid,'damage','siege'], dmg / (types[type_label].orcs ? 1000 : 1));
 		}
-//		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser="]').each(function(i,el){}
+//		$('td.dragonContainer table table a[href*="keep.php?casuser="]').each(function(i,el){}
 		tmp = $('.dragonContainer img[src*="team_attack_icon."]').closest('tr');
 		if (!tmp.length) {
 			if ((tmp = $('.dragonContainer img[src*="like_button2."]')).length) {
@@ -14935,11 +14935,11 @@ Monster.dashboard = function(sort, rev) {
 		}
 		output = [];
 		blank = !(viewable[monster.state] && monster.total);
-		// http://apps.facebook.com/castle_age/battle_monster.php?user=00000&mpool=3
-		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
-		// http://apps.facebook.com/castle_age/raid.php?user=00000
-		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&casuser=100000419529058&action=doObjective&lka=100000419529058&ref=nf
+		// battle_monster.php?user=00000&mpool=3
+		// battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
+		// raid.php?user=00000
+		// raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
+		// raid.php?twt2=deathrune_adv&casuser=0000&action=doObjective&lka=0000&ref=nf
 		//args += '&twt2=' + ???;
 		args = '?casuser=' + uid;
 		mpool = type.mpool ? ('&mpool=' + type.mpool) : '';
@@ -22046,7 +22046,7 @@ Guild.init = function(old_revision, fresh) {
 };
 
 Guild.page = function(page, change) {
-	var now = Date.now(), i, tmp, txt;
+	var now = Date.now(), i, tmp, txt, buttons;
 
 	switch (page) {
 	case 'battle_guild':
@@ -22056,7 +22056,9 @@ Guild.page = function(page, change) {
 				if ((this.runtime.start || 0) + 9*60*60*1000 < now) {
 					this.set('runtime.status', 'start');
 				} else {
-					this.set('runtime.next', now + 30*60*1000);
+					this.set('runtime.next',
+					  i = Math.max(now + 30*60*1000, this.runtime.next || 0));
+					this._remindMs(i - now, 'start');
 				}
 			}
 		} else {
@@ -22075,8 +22077,9 @@ Guild.page = function(page, change) {
 				this.set('runtime.status', 'wait');
 				this.set('runtime.collected', 0);
 			}
-			this.set('runtime.next', now + (i = 30*60*1000));
-			this._remindMs(i, 'start');
+			this.set('runtime.next',
+			  i = Math.max(now + 30*60*1000, this.runtime.next || 0));
+			this._remindMs(i - now, 'start');
 		}
 		break;
 
@@ -22087,12 +22090,15 @@ Guild.page = function(page, change) {
 			return change;
 		}
 
+		buttons = 0; // buttons flag
+
 		// join button
 		tmp = $('input[src*="guild_enter_battle_button."]');
 		if (tmp.length) {
 			this.set('runtime.status', 'start');
 			this.set('skip'); // Forget old "lose" list
 			this.set('runtime.collected', 0);
+			buttons |= 1;
 		}
 
 		// collect button
@@ -22101,8 +22107,7 @@ Guild.page = function(page, change) {
 		if (tmp.length) {
 			this.set('runtime.status', 'collect');
 			this.set('runtime.collected', 0);
-		} else {
-			this.set('runtime.collected', now);
+			buttons |= 2;
 		}
 
 		// battle timer
@@ -22113,7 +22118,6 @@ Guild.page = function(page, change) {
 			if (this.runtime.status !== 'start') {
 				this.set('runtime.status', 'fight');
 			}
-			this.set('runtime.next', now + 9*60*60*1000);
 			this.set('runtime.start', now + (i - 5*60*60)*1000);
 			this.set('runtime.finish', now + i*1000);
 			if (i*1000 > this.option.safety) {
@@ -22122,6 +22126,9 @@ Guild.page = function(page, change) {
 				this.set('runtime.burn', true);
 			}
 			this._remind(i, 'finish');
+			this.set('runtime.next',
+			  i = Math.max(now + 9*60*60*1000, this.runtime.next || 0));
+			this._remindMs(i - now, 'start');
 		} else {
 			// battle is done
 			if ((this.runtime.start || 0) > now) {
@@ -22129,6 +22136,9 @@ Guild.page = function(page, change) {
 			}
 			if ((this.runtime.finish || 0) > now) {
 				this.set('runtime.finish', now - 1);
+			}
+			if (!buttons) {
+				this.set('runtime.collected', now);
 			}
 			if (this.runtime.status !== 'wait'
 			  && (this.runtime.collected || 0) < (this.runtime.start || 0)
@@ -22171,16 +22181,22 @@ Guild.page = function(page, change) {
 		}
 		this.set('temp.last', null);
 
-		txt = '';
-		if ((tmp = $('#'+APPID_+'guild_battle_banner_section')).length) {
-			txt = tmp.text().trim(true);
-		}
-		if ((i = txt.regex(this.target_rx))) {
-			if (isString(i[2])) {
-				this.set('runtime.my_class', i[2]);
+		if (this.runtime.status === 'start'
+		  || this.runtime.status === 'fight'
+		) {
+			txt = '';
+			if ((tmp = $('#'+APPID_+'guild_battle_banner_section')).length) {
+				txt = tmp.text().trim(true);
 			}
-			if (isString(i[5])) {
-				this.set('runtime.stunned', i[5] === 'Stunned');
+			if ((i = txt.regex(this.target_rx))) {
+				if (isString(i[2])) {
+					this.set('runtime.my_class', i[2]);
+				}
+				if (isString(i[5])) {
+					this.set('runtime.stunned', i[5] === 'Stunned');
+				}
+			} else {
+				log(LOG_INFO, '# bad self parse: ' + txt);
 			}
 		}
 		break;
@@ -22211,6 +22227,13 @@ Guild.update = function(event, events) {
 			}
 		} else {
 			// state is unclear, so trigger a visit, just to be safe
+			visit = true;
+		}
+
+		// wake on next battle
+		if ((i = this.runtime.next || 0) > now) {
+			this._remindMs(i - now, 'start');
+		} else {
 			visit = true;
 		}
 	}
@@ -22409,11 +22432,11 @@ Guild.work = function(state) {
 				  + ':contains("No Soldiers Posted In This Position!")');
 			}
 			for (i = 0; i < tmp.length; i++) {
-				txt = tmp.eq(i).text().trim().replace(/\s+/g,' ');
+				txt = tmp.eq(i).text().trim(true);
 				target = txt.regex(this.target_rx);
 				skip = false;
 				if (!target) {
-					test = 'no target';
+					test = 'no targets';
 					skip = true;
 				} else if (this.option.defeat && this.data[target[0]]) {
 					test = 'defeat protection';
@@ -22434,12 +22457,16 @@ Guild.work = function(state) {
 					}
 				}
 				if (skip) {
-					log(LOG_DEBUG, '# skip: ' + test + ': '
-					  + ' ' + (target[6] ? 'active' : 'inactive')
-					  + ' ' + target[1] + '/' + target[2]
-					  + ' ' + target[3] + '/' + target[4]
-					  + ' ' + target[0]
-					);
+					if (!target) {
+						log(LOG_DEBUG, '# skip: ' + test);
+					} else {
+						log(LOG_DEBUG, '# skip: ' + test + ': '
+						  + ' ' + (target[6] ? 'active' : 'inactive')
+						  + ' ' + target[1] + '/' + target[2]
+						  + ' ' + target[3] + '/' + target[4]
+						  + ' ' + target[0]
+						);
+					}
 					continue;
 				}
 				test = false;
@@ -22534,6 +22561,8 @@ Guild.work = function(state) {
 				log(LOG_INFO, 'No targets, no next gate (0)');
 				return QUEUE_FINISH;
 			}
+		} else if (this.runtime.status === 'fight') {
+			log(LOG_INFO, '# wrong fight page: ' + Page.temp.page);
 		}
 	}
 
@@ -22766,7 +22795,7 @@ Festival.init = function(old_revision, fresh) {
 };
 
 Festival.page = function(page, change) {
-	var now = Date.now(), i, tmp, txt;
+	var now = Date.now(), i, tmp, txt, buttons;
 
 	switch (page) {
 	case 'festival_guild':
@@ -22805,12 +22834,15 @@ Festival.page = function(page, change) {
 		    return change;
 		}
 
+		buttons = 0; // buttons flag
+
 		// join button
 		tmp = $('input[src*="guild_enter_battle_button."]');
 		if (tmp.length) {
 			this.set('runtime.status', 'start');
 			this.set('skip'); // Forget old "lose" list
 			this.set('runtime.collected', 0);
+			buttons |= 1;
 		}
 
 		// collect button
@@ -22819,8 +22851,7 @@ Festival.page = function(page, change) {
 		if (tmp.length) {
 			this.set('runtime.status', 'collect');
 			this.set('runtime.collected', 0);
-		} else {
-			this.set('runtime.collected', now);
+			buttons |= 2;
 		}
 
 		// battle timer
@@ -22846,6 +22877,9 @@ Festival.page = function(page, change) {
 			}
 			if ((this.runtime.finish || 0) > now) {
 				this.set('runtime.finish', now - 1);
+			}
+			if (!buttons) {
+				this.set('runtime.collected', now);
 			}
 			if (this.runtime.status !== 'wait'
 			  && (this.runtime.collected || 0) < (this.runtime.start || 0)
@@ -22888,16 +22922,22 @@ Festival.page = function(page, change) {
 		}
 		this.set('temp.last', null);
 
-		txt = '';
-		if ((tmp = $('#'+APPID_+'arena_battle_banner_section')).length) {
-			txt = tmp.text().trim(true);
-		}
-		if ((i = txt.regex(this.target_rx))) {
-			if (isString(i[2])) {
-				this.set('runtime.my_class', i[2]);
+		if (this.runtime.status === 'start'
+		  || this.runtime.status === 'fight'
+		) {
+			txt = '';
+			if ((tmp = $('#'+APPID_+'arena_battle_banner_section')).length) {
+				txt = tmp.text().trim(true);
 			}
-			if (isString(i[5])) {
-				this.set('runtime.stunned', i[5] === 'Stunned');
+			if ((i = txt.regex(this.target_rx))) {
+				if (isString(i[2])) {
+					this.set('runtime.my_class', i[2]);
+				}
+				if (isString(i[5])) {
+					this.set('runtime.stunned', i[5] === 'Stunned');
+				}
+			} else {
+				log(LOG_INFO, '# bad self parse: ' + txt);
 			}
 		}
 		break;
@@ -22928,6 +22968,13 @@ Festival.update = function(event, events) {
 			}
 		} else {
 			// state is unclear, so trigger a visit, just to be safe
+			visit = true;
+		}
+
+		// wake on next battle
+		if ((i = this.runtime.next || 0) > now) {
+			this._remindMs(i - now, 'start');
+		} else {
 			visit = true;
 		}
 	}
@@ -23125,11 +23172,11 @@ Festival.work = function(state) {
 				  + ':contains("No Soldiers Posted In This Position!")');
 			}
 			for (i = 0; i < tmp.length; i++) {
-				txt = tmp.eq(i).text().trim().replace(/\s+/g,' ');
+				txt = tmp.eq(i).text().trim(true);
 				target = txt.regex(this.target_rx);
 				skip = false;
 				if (!target) {
-					test = 'no target';
+					test = 'no targets';
 					skip = true;
 				} else if (this.option.defeat && this.data[target[0]]) {
 					test = 'defeat protection';
@@ -23150,12 +23197,16 @@ Festival.work = function(state) {
 					}
 				}
 				if (skip) {
-					log(LOG_DEBUG, '# skip: ' + test + ': '
-					  + ' ' + (target[6] ? 'active' : 'inactive')
-					  + ' ' + target[1] + '/' + target[2]
-					  + ' ' + target[3] + '/' + target[4]
-					  + ' ' + target[0]
-					);
+					if (!target) {
+						log(LOG_DEBUG, '# skip: ' + test);
+					} else {
+						log(LOG_DEBUG, '# skip: ' + test + ': '
+						  + ' ' + (target[6] ? 'active' : 'inactive')
+						  + ' ' + target[1] + '/' + target[2]
+						  + ' ' + target[3] + '/' + target[4]
+						  + ' ' + target[0]
+						);
+					}
 					continue;
 				}
 				test = false;
@@ -23250,6 +23301,8 @@ Festival.work = function(state) {
 				log(LOG_INFO, 'No targets, no next gate (0)');
 				return QUEUE_FINISH;
 			}
+		} else if (this.runtime.status === 'fight') {
+			log(LOG_INFO, '# wrong fight page: ' + Page.temp.page);
 		}
 	}
 

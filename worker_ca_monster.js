@@ -1684,7 +1684,7 @@ Monster.page = function(page, change) {
 			//log(LOG_WARN, 'Monster Siege',siege + ' did ' + dmg.addCommas() + ' amount of damage.');
 			Monster.add(['data',mid,'damage','siege'], dmg / (types[type_label].orcs ? 1000 : 1));
 		}
-//		$('td.dragonContainer table table a[href^="http://apps.facebook.com/castle_age/keep.php?casuser="]').each(function(i,el){}
+//		$('td.dragonContainer table table a[href*="keep.php?casuser="]').each(function(i,el){}
 		tmp = $('.dragonContainer img[src*="team_attack_icon."]').closest('tr');
 		if (!tmp.length) {
 			if ((tmp = $('.dragonContainer img[src*="like_button2."]')).length) {
@@ -2710,11 +2710,11 @@ Monster.dashboard = function(sort, rev) {
 		}
 		output = [];
 		blank = !(viewable[monster.state] && monster.total);
-		// http://apps.facebook.com/castle_age/battle_monster.php?user=00000&mpool=3
-		// http://apps.facebook.com/castle_age/battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
-		// http://apps.facebook.com/castle_age/raid.php?user=00000
-		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
-		// http://apps.facebook.com/castle_age/raid.php?twt2=deathrune_adv&casuser=100000419529058&action=doObjective&lka=100000419529058&ref=nf
+		// battle_monster.php?user=00000&mpool=3
+		// battle_monster.php?twt2=earth_1&user=00000&action=doObjective&mpool=3&lka=00000&ref=nf
+		// raid.php?user=00000
+		// raid.php?twt2=deathrune_adv&user=00000&action=doObjective&lka=00000&ref=nf
+		// raid.php?twt2=deathrune_adv&casuser=0000&action=doObjective&lka=0000&ref=nf
 		//args += '&twt2=' + ???;
 		args = '?casuser=' + uid;
 		mpool = type.mpool ? ('&mpool=' + type.mpool) : '';

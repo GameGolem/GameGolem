@@ -111,7 +111,7 @@ Global._overload(null, 'work', function(state) {
 			}
 			// temporary fix for ISP woes
 			//Page.click('#reload_link');
-			window.location.replace('http://web3.castleagegame.com/castle_ws/index.php');
+			window.location.replace(Main.scheme + Main.domain + Main.path + 'index.php');
 		}
 		return QUEUE_CONTINUE;
 	}
