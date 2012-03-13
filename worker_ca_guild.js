@@ -179,12 +179,12 @@ Guild.display = [
 ];
 
 Guild.target_rx = new RegExp(
-  '^(.*)'							// 0: name
-  + ' Level *: (\\d+)'				// 1: level
-  + ' Class *: ([^ ]+)'				// 2: class
-  + ' Health *: (\\d+)\\/(\\d+)'	// 3/4: health, maxhealth
-  + ' Status *: ([^ ]+)'			// 5: status
-  + ' \\w+ Points *: (\\d+)'		// 6: activity
+  '^(.*)'								// 0: name
+  + ' Level *: (\\d+)'					// 1: level
+  + ' Class *: ([^ ]+)'					// 2: class
+  + ' Health *: (\\d+)\\/(\\d+)'		// 3/4: health, maxhealth
+  + ' Status *: ([^ ]+)'				// 5: status
+  + '(?: \\w+){1,2} Points *: (\\d+)'	// 6: activity
 );
 
 Guild.init = function(old_revision, fresh) {
@@ -294,7 +294,7 @@ Guild.page = function(page, change) {
 		if (tmp.length && isNumber(i = tmp.text().parseTimer())
 		  && i > 0 && i < Date.HUGE
 		) {
-			if (this.runtime.status !== 'start') {
+			if (!buttons) {
 				this.set('runtime.status', 'fight');
 			}
 			this.set('runtime.start', now + (i - 5*60*60)*1000);

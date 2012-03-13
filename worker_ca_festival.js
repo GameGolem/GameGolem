@@ -179,12 +179,12 @@ Festival.display = [
 ];
 
 Festival.target_rx = new RegExp(
-  '^(.*)'							// 0: name
-  + ' Level *: (\\d+)'				// 1: level
-  + ' Class *: ([^ ]+)'				// 2: class
-  + ' Health *: (\\d+)\\/(\\d+)'	// 3/4: health, maxhealth
-  + ' Status *: ([^ ]+)'			// 5: status
-  + ' \\w+ Points *: (\\d+)'		// 6: activity
+  '^(.*)'								// 0: name
+  + ' Level *: (\\d+)'					// 1: level
+  + ' Class *: ([^ ]+)'					// 2: class
+  + ' Health *: (\\d+)\\/(\\d+)'		// 3/4: health, maxhealth
+  + ' Status *: ([^ ]+)'				// 5: status
+  + '(?: \\w+){1,2} Points *: (\\d+)'	// 6: activity
 );
 
 Festival.init = function(old_revision, fresh) {
@@ -251,9 +251,9 @@ Festival.page = function(page, change) {
 				this.set('runtime.status', 'wait');
 			}
 			i = tmp.indexOf('HOURS') > -1 ? tmp.regex(/(\d+) HOURS/i) * 60*60
-			  : tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i)*60 : 5*60;
+			  : tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i)*60 : 30*60;
 			this.set('runtime.next', now + i*1000);
-			this._remind(i , 'start');
+			this._remind(i, 'start');
 		}
 		break;
 
@@ -289,7 +289,7 @@ Festival.page = function(page, change) {
 		if (tmp.length && isNumber(i = tmp.text().parseTimer())
 		  && i > 0 && i < Date.HUGE
 		) {
-			if (this.runtime.status !== 'start') {
+			if (!buttons) {
 				this.set('runtime.status', 'fight');
 			}
 			this.set('runtime.start', now + (i - 1*60*60)*1000);

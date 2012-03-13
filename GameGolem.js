@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1188
+ * GameGolem v31.6.1189
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1188
+ * GameGolem v31.6.1189
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1188;
+var revision = 1189;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1187;
+var trunk_revision = 1188;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -22000,12 +22000,12 @@ Guild.display = [
 ];
 
 Guild.target_rx = new RegExp(
-  '^(.*)'							// 0: name
-  + ' Level *: (\\d+)'				// 1: level
-  + ' Class *: ([^ ]+)'				// 2: class
-  + ' Health *: (\\d+)\\/(\\d+)'	// 3/4: health, maxhealth
-  + ' Status *: ([^ ]+)'			// 5: status
-  + ' \\w+ Points *: (\\d+)'		// 6: activity
+  '^(.*)'								// 0: name
+  + ' Level *: (\\d+)'					// 1: level
+  + ' Class *: ([^ ]+)'					// 2: class
+  + ' Health *: (\\d+)\\/(\\d+)'		// 3/4: health, maxhealth
+  + ' Status *: ([^ ]+)'				// 5: status
+  + '(?: \\w+){1,2} Points *: (\\d+)'	// 6: activity
 );
 
 Guild.init = function(old_revision, fresh) {
@@ -22115,7 +22115,7 @@ Guild.page = function(page, change) {
 		if (tmp.length && isNumber(i = tmp.text().parseTimer())
 		  && i > 0 && i < Date.HUGE
 		) {
-			if (this.runtime.status !== 'start') {
+			if (!buttons) {
 				this.set('runtime.status', 'fight');
 			}
 			this.set('runtime.start', now + (i - 5*60*60)*1000);
@@ -22749,12 +22749,12 @@ Festival.display = [
 ];
 
 Festival.target_rx = new RegExp(
-  '^(.*)'							// 0: name
-  + ' Level *: (\\d+)'				// 1: level
-  + ' Class *: ([^ ]+)'				// 2: class
-  + ' Health *: (\\d+)\\/(\\d+)'	// 3/4: health, maxhealth
-  + ' Status *: ([^ ]+)'			// 5: status
-  + ' \\w+ Points *: (\\d+)'		// 6: activity
+  '^(.*)'								// 0: name
+  + ' Level *: (\\d+)'					// 1: level
+  + ' Class *: ([^ ]+)'					// 2: class
+  + ' Health *: (\\d+)\\/(\\d+)'		// 3/4: health, maxhealth
+  + ' Status *: ([^ ]+)'				// 5: status
+  + '(?: \\w+){1,2} Points *: (\\d+)'	// 6: activity
 );
 
 Festival.init = function(old_revision, fresh) {
@@ -22821,9 +22821,9 @@ Festival.page = function(page, change) {
 				this.set('runtime.status', 'wait');
 			}
 			i = tmp.indexOf('HOURS') > -1 ? tmp.regex(/(\d+) HOURS/i) * 60*60
-			  : tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i)*60 : 5*60;
+			  : tmp.indexOf('MINS') > -1 ? tmp.regex(/(\d+) MINS/i)*60 : 30*60;
 			this.set('runtime.next', now + i*1000);
-			this._remind(i , 'start');
+			this._remind(i, 'start');
 		}
 		break;
 
@@ -22859,7 +22859,7 @@ Festival.page = function(page, change) {
 		if (tmp.length && isNumber(i = tmp.text().parseTimer())
 		  && i > 0 && i < Date.HUGE
 		) {
-			if (this.runtime.status !== 'start') {
+			if (!buttons) {
 				this.set('runtime.status', 'fight');
 			}
 			this.set('runtime.start', now + (i - 1*60*60)*1000);
