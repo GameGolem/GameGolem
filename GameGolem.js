@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1189
+ * GameGolem v31.6.1190 Beta
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1189
+ * GameGolem v31.6.1190 Beta
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1189;
+var revision = 1190;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1188;
+var trunk_revision = 1189;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -6141,6 +6141,11 @@ Page.update = function(event, events) {
 	return true;
 };
 
+/**
+ * @param {string} url The symbolic page name or a URL.
+ * @param {?(string|Object)=} args An addition string or object of components.
+ * @return {string} The resulting qualified URL.
+ */
 Page.makeURL = function(url, args) {
 	var abs = Main.domain + Main.path;
 	if (url in this.pageNames) {
@@ -6158,37 +6163,69 @@ Page.makeURL = function(url, args) {
 	return url;
 };
 
+/**
+ * @param {string} url The symbolic page name or a URL.
+ * @param {?(string|Object)=} args An addition string or object of components.
+ * @param {string} content An addition string or object of components.
+ * @return {string} The resulting HTML link string.
+ */
 Page.makeLink = function(url, args, content) {
 	var page = this.makeURL(url, args);
-	return '<a href="' + Main.scheme + Main.domain + Main.path + page + '" onclick="' + (APPID_==='' ? '' : 'a'+APPID+'_') + 'ajaxLinkSend(&#039;globalContainer&#039;,&#039;' + page + '&#039;);return false;' + '">' + content + '</a>';
+	return ('<a href="' + Main.scheme + Main.domain + Main.path + page + '"'
+	  + ' onclick="' + (APPID_ === '' ? '' : 'a'+APPID+'_')
+	  + 'ajaxLinkSend(&#039;globalContainer&#039;,&#039;' + page + '&#039;);'
+	  + 'return false;' + '">' + content + '</a>');
 };
 
-/*
-Page.to('index', ['args' | {arg1:val, arg2:val},] [true|false]
-*/
-Page.to = function(url, args, force) { // Force = true/false (allows to reload the same page again)
+/**
+ * @param {string} url The symbolic page name or a URL.
+ * @param {?(string|Object)=} args An addition string or object of components.
+ * @param {?(boolean|number)=} force Force refresh threshold
+ *		true = always force,
+ *		false = never force,
+ *		number = force if number seconds stale.
+ * @param {boolean=} noWait Do not to block pages/clicks until the page loads.
+ * @return {?boolean} true = page loaded, false = try again.
+ */
+Page.to = function(url, args, force, noWait) {
 	if (!this.temp.enabled) {
 		log(LOG_ERROR, 'BAD_FUNCTION_USE in Page.to('+JSON.shallow(arguments,2)+'): Not allowed to use Page.to() outside .work(true)');
 		return true;
 	}
-	var page = this.makeURL(url, args);
+	var page = this.makeURL(url, args),
+	    oldpage = this.temp.last || this.makeURL(this.temp.page);
 //	if (Queue.option.pause) {
 //		log(LOG_ERROR, 'Trying to load page when paused...');
 //		return true;
 //	}
-	if (!page || (!force && page === (this.temp.last || this.temp.page))) {
+	if (isNumber(force)) {
+	    if (page === oldpage && !this.temp.last && this.temp.page) {
+		force = Page.isStale(this.temp.page, Date.now() - force*1000);
+	    } else {
+		force = true;
+	    }
+	}
+	if (!page || (!force && page === oldpage)) {
 		return true;
 	}
-	if (page !== (this.temp.last || this.temp.page)) {
+	if (page !== oldpage) {
+		/*
+		log(LOG_DEBUG, '# new page [' + page + '] !== '
+		  + 'old page [' + oldpage + ']'
+		);
+		*/
 		this.clear();
 		this.set(['temp','last'], page);
 		this.set(['temp','when'], Date.now());
 		this.set(['temp','loading'], true);
 		log('Navigating to ' + page);
 	} else if (force) {
-		window.location.href = Main.js + 'void((function(){})())';// Force it to change
+		// Force it to change
+		window.location.href = Main.js + 'void((function(){})())';
 	}
-	window.location.href = /^https?:/i.test(page) ? page : Main.js+'void(' + (APPID_==='' ? '' : 'a'+APPID+'_') + 'ajaxLinkSend("globalContainer","' + page + '"))';
+	window.location.href = /^https?:/i.test(page) ? page
+	  : Main.js + 'void(' + (APPID_ === '' ? '' : 'a'+APPID+'_')
+	  + 'ajaxLinkSend("globalContainer","' + page + '"))';
 	this._remind(this.option.timeout, 'retry');
 	this.set(['temp','count'], this.get(['temp','count'], 0) + 1);
 	return false;
@@ -6237,7 +6274,12 @@ Page.clearFBpost = function(obj) {
 	return output;
 };
 
-Page.click = function(el) {
+/**
+ * @param {(string|jQuery|Element)} el The jQuery selector or Element to click.
+ * @param {boolean=} noWait Do not to block pages/clicks until the page loads.
+ * @return {?boolean} true = page loaded, false = try again.
+ */
+Page.click = function(el, noWait) {
 	if (!this.temp.enabled) {
 		log(LOG_ERROR, 'BAD_FUNCTION_USE in Page.click('+JSON.shallow(arguments,2)+'): Not allowed to use Page.click() outside .work(true)');
 		return true;
@@ -7574,7 +7616,7 @@ Theme.update = function(event, events) {
 /*global
 	$, Worker, Workers, Config,
 	APP, APPID, PREFIX, userID, imagepath,
-	isRelease:true, version, revision, window, browser,
+	isRelease, version, revision, window, browser,
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	isArray, isFunction, isNumber, isObject, isString, isWorker
@@ -7586,24 +7628,30 @@ var Update = new Worker('Update');
 Update.data = Update.option = null;
 
 Update.settings = {
-	system:true
+	system:true,
+	taint:true
 };
 
 Update.runtime = {
-	installed:0,// Date this version was first seen
-	current:'',// What is our current version
-	lastcheck:0,// Date.now() = time since last check
-	version:0,// Last ones we saw in a check
-	revision:0,
-	force:false// Have we clicked a button, or is it an automatic check
+	current:'',		// Our current version
+	installed:0,	// Date our version was first seen
+	latest:'',		// The latest version presented as an update
+	updated:0,		// Date the latest version was presented as an update
+	lastcheck:0,	// Date we last tried to check for updates
+	lastseen:0,		// Date we last successfully checked for updates
+	version:0,		// Version of most recently checked update
+	revision:0,		// Revision of most recently checked update
+	release:null,	// Release flag of most recently checked update
+	force:false		// Have we clicked a button, or is it an automatic check
 };
 
 Update.temp = {
 	version:0,
 	revision:0,
-	check:'',// Url to check for new versions
-	url_1:'',// Url to download release
-	url_2:''// Url to download revision
+	release:null,
+	check:'',	// URL to check for new versions
+	url_1:'',	// URL to download a release
+	url_2:''	// URL to download a beta
 };
 
 /***** Update.init() *****
@@ -7612,43 +7660,49 @@ Update.temp = {
 2. On clicking the button set Update.runtime.force to true - so we can work() immediately...
 */
 Update.init = function() {
+	var now = Date.now(), root;
+
 	this.set(['temp','version'], version);
 	this.set(['temp','revision'], revision);
 	this.set(['runtime','version'], this.runtime.version || version);
 	this.set(['runtime','revision'], this.runtime.revision || revision);
+
 	if (browser === 'chrome') {
-		Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
-		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.release.crx'; // Release
-		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx'; // Beta
+		root = 'http://game-golem.googlecode.com/svn/trunk/chrome/';
+		Update.temp.check = root + '_version.js';
+		Update.temp.url_1 = root + 'GameGolem.release.crx'; // Release
+		Update.temp.url_2 = root + 'GameGolem.crx'; // Beta
 	} else {
 		// No easy way to check if we're Greasemonkey now as it behaves just like a bookmarklet
-		Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/_version.js';
-		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.release.user.js'; // Release
-		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js'; // Beta
+		root = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/';
+		Update.temp.check = root + '_version.js';
+		Update.temp.url_1 = root + 'GameGolem.release.user.js'; // Release
+		Update.temp.url_2 = root + 'GameGolem.user.js'; // Beta
 	}
+
 	// Add an update button for everyone
 	Config.addButton({
 		id:'golem_icon_update',
 		image:'update',
-		title:'Check for Update',
-		click:function(){
-			$(this).addClass('red');
-			Update.checkVersion(true);
-		}
+		title:'Check for Update'
+		  + (this.runtime.lastseen ? ' | Last checked: '
+		  + new Date(this.runtime.lastseen).format('D M j, Y @ h:ia') : ''),
+		click:function() { Update.checkVersion(true); }
 	});
-	if (isRelease) { // Add an advanced "beta" button for official release versions
+
+	/*
+	if (isRelease) {
+		// Add an advanced "beta" button for official release versions
 		Config.addButton({
 			id:'golem_icon_beta',
 			image:'beta',
 			title:'Check for Beta Versions',
 			advanced:true,
-			click:function(){
-				isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
-				$(this).addClass('red');
-				Update.checkVersion(true);
-			}
+			click:function() { Update.checkVersion(true); }
 		});
 	}
+	*/
+
 	// Add a changelog advanced button
 	Config.addButton({
 		image:'log',
@@ -7659,6 +7713,7 @@ Update.init = function() {
 			window.open('http://code.google.com/p/game-golem/source/list', '_blank'); 
 		}
 	});
+
 	// Add a wiki button
 	Config.addButton({
 		image:'wiki',
@@ -7668,20 +7723,47 @@ Update.init = function() {
 			window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
 		}
 	});
-	$('head').bind('DOMNodeInserted', function(event){
-		var tmp;
-		if (event.target.nodeName === 'META' && $(event.target).attr('name') === 'golem-version') {
-			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)/);
+
+	$('head').bind('DOMNodeInserted', function(event) {
+		var now = Date.now(), tmp;
+		if (event.target.nodeName === 'META'
+		  && $(event.target).attr('name') === 'golem-version'
+		) {
+			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)(\s*Release)?/i);
 			if (tmp) {
-				Update._remind(21600, 'check');// 6 hours
-				Update.set(['runtime','lastcheck'], Date.now());
+				Update.set(['runtime','lastseen'], now);
 				Update.set(['runtime','version'], tmp[0]);
 				Update.set(['runtime','revision'], tmp[1]);
-				if (Update.get(['runtime','force']) && Update.get(['temp','version'], version) >= tmp[0] && (isRelease || Update.get(['temp','revision'], revision) >= tmp[1])) {
-					$('<div class="golem-button golem-info red" style="passing:4px;">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} }).appendTo('#golem_info');
+				Update.set(['runtime','release'], isString(tmp[2]));
+
+				$('golem_icon_update').attr('title',
+				  'Check for Update | Last checked: '
+				  + new Date(now).format('D m d, Y @ H:i:s'));
+				if (Config.get('option.advanced')
+				  || Config.get('option.debug')
+				) {
+					log(LOG_INFO, '# meta ' + JSON.shallow(tmp,2));
+				}
+				// force && new
+				if (Update.get(['runtime','force'])
+				  && (Update.get(['temp','version'], version) > tmp[0]
+				  || (Update.get(['temp','version'], version) >= tmp[0]
+				  && Update.get(['temp','revision'], revision) > tmp[1])
+				  || (isRelease && !Config.get('option.advanced')
+				  && !Update.get(['runtime','release'])))
+				) {
+					// filter out betas for release, non-advanced users
+					$('<div class="golem-button golem-info red"'
+					  + ' style="passing:4px;">No Update Found</div>')
+					  .animate({'z-index':0}, {
+					    duration:5000,
+					    complete:function(){$(this).remove();}
+					  }).appendTo('#golem_info');
 				}
 				Update.set(['runtime','force'], false);
-				$('#golem_icon_update,#golem_icon_beta').removeClass('red');
+				Update._remindMs(1, 'recalc'); // shouldn't be needed
+			} else {
+				log(LOG_INFO, '# no meta version seen at all');
 			}
 			event.stopImmediatePropagation();
 			$('script.golem-script-version').remove();
@@ -7689,24 +7771,35 @@ Update.init = function() {
 			return false;
 		}
 	});
+
 	if (this.runtime.current !== (version + '.' + revision)) {
-		this.set(['runtime','installed'], Date.now());
 		this.set(['runtime','current'], version + '.' + revision);
+		this.set(['runtime','installed'], now);
 	}
 };
 
 Update.checkVersion = function(force) {
-	var now = Date.now();
-	// Don't check again for 1 minute - will get reset if we get a reply
-	Update.set('runtime.lastcheck', now - (6*60+1)*60*1000);
-	Update.set('runtime.force', force);
-	window.setTimeout(function() {
-		var s = document.createElement('script');
-		s.setAttribute('type', 'text/javascript');
-		s.className = 'golem-script-version';
-		s.src = Update.temp.check + '?random=' + now;
-		document.getElementsByTagName('head')[0].appendChild(s);
-	}, 100);
+	var now = Date.now(), i,
+		last = Math.max(Update.get('runtime.lastcheck', 0, 'number'),
+		  Update.get('runtime.lastseen', 0, 'number'));
+
+	$('#golem_icon_update,#golem_icon_beta').addClass('red');
+
+	// Don't allow checking faster than once a minute, ever
+	if ((i = last + 60*1000) <= now) {
+		Update.set('runtime.lastcheck', now);
+		Update.set('runtime.force', force);
+		window.setTimeout(function() {
+			var s = document.createElement('script');
+			log(LOG_INFO, '# -----[ CHECKING SCRIPT VERSION STATUS NOW ]-----');
+			s.setAttribute('type', 'text/javascript');
+			s.className = 'golem-script-version';
+			s.src = Update.temp.check + '?random=' + now;
+			document.getElementsByTagName('head')[0].appendChild(s);
+		}, 1);
+	} else {
+		Update._remindMs(i - now, 'throttle');
+	}
 };
 
 /***** Update.update() *****
@@ -7718,46 +7811,80 @@ Update.checkVersion = function(force) {
 4. Set a reminder if there isn't
 */
 Update.update = function(event, events) {
-	var now = Date.now(), age, time;
+	var now = Date.now(), i, next = now,
+		inst = this.get('runtime.installed', 0, 'number'),
+		updt = this.get('runtime.updated', 0, 'number'),
+		last = this.get('runtime.lastcheck', 0, 'number'),
+		seen = this.get('runtime.lastseen', 0, 'number'),
+		base = Math.max(last, seen),
+		age = now - Math.max(inst, updt);
 
-	if (events.findEvent(null, 'reminder')) {
+	if (events.findEvent(null, 'reminder', 'check')) {
 		this.checkVersion(false);
 	}
 
-	if (events.findEvent(null, 'init') || events.findEvent(null, 'reminder')) {
-		age = now - this.runtime.installed;
-		time = now - this.runtime.lastcheck;
-		if (age <= 6*60*60*1000) {
-			// Every hour for 6 hours
-			time += 60*60*1000;
-		} else if (age <= (1+2)*6*60*60*1000) {
-			// Every 2 hours for another 12 hours (18 total)
-			time += 2*60*60;
-		} else if (age <= (1+2+3)*6*60*60*1000) {
-			// Every 3 hours for another 18 hours (36 total)
-			time += 3*60*60*1000;
-		} else if (age <= (1+2+3+4)*6*60*60*1000) {
-			// Every 4 hours for another 24 hours (60 total)
-			time += 4*60*60*1000;
-		} else {
-			// Every 6 hours normally
-			time += 6*60*60*1000;
-		}
-		this._remindMs(Math.max(1000, time), 'check');
+	if ((i = base + 60*1000) > now) {
+		$('#golem_icon_update,#golem_icon_beta').addClass('red');
+		Update._remindAt(i, 'throttle');
+	} else {
+		$('#golem_icon_update,#golem_icon_beta').removeClass('red');
 	}
 
+	if (age <= 6*60*60*1000) {
+		// Every hour for 6 hours
+		log(LOG_INFO, '# on hourly checks');
+		next = base + 1*60*60*1000;
+	} else if (age <= (1+2)*6*60*60*1000) {
+		// Every 2 hours for another 12 hours (18 total)
+		log(LOG_INFO, '# on 2-hour checks');
+		next = base + 2*60*60*1000;
+	} else if (age <= (1+2+3)*6*60*60*1000) {
+		// Every 3 hours for another 18 hours (36 total)
+		log(LOG_INFO, '# on 3-hour checks');
+		next = base + 3*60*60*1000;
+	} else if (age <= (1+2+3+4)*6*60*60*1000) {
+		// Every 4 hours for another 24 hours (60 total)
+		log(LOG_INFO, '# on 4-hour checks');
+		next = base + 4*60*60*1000;
+	} else {
+		// Every 6 hours normally
+		log(LOG_INFO, '# default 6-hour checks');
+		next = base + 6*60*60*1000;
+	}
+
+	this._remindMs(Math.max(1000, next - now), 'check');
+
 	if (this.runtime.version > this.temp.version
-	  || (!isRelease && this.runtime.revision > this.temp.revision)
+	  || (this.runtime.version >= this.temp.version
+	  && this.runtime.revision > this.temp.revision)
 	) {
-		log(LOG_INFO, 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + this.runtime.current);
-		if (this.runtime.version > this.temp.version) {
-			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_1 + '?' + Date.now() + '">New Version Available</a></div>');
-		}
-		if (!isRelease && this.runtime.revision > this.temp.revision) {
-			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_2 + '?' + Date.now() + '">New Beta Available</a></div>');
+		log(LOG_INFO, 'New version available: '
+		  + this.runtime.version + '.' + this.runtime.revision
+		  + ' ' + (this.runtime.release ? 'Release' : 'Beta')
+		  + ', currently on ' + this.runtime.current);
+		if (this.runtime.release) {
+			$('#golem_info').append('<div class="golem-button golem-info green"'
+			  + ' title="' + this.runtime.version + '.' + this.runtime.revision
+			  + ' release, currently on ' + version + '.' + revision + '"'
+			  + ' style="passing:4px;">'
+			  + '<a href="' + this.temp.url_1 + '?' + now + '">'
+			  + 'New Release Available</a></div>');
+		} else if (!isRelease || Config.option.advanced) {
+			$('#golem_info').append('<div class="golem-button golem-info green"'
+			  + ' title="' + this.runtime.version + '.' + this.runtime.revision
+			  + ' beta, currently on ' + version + '.' + revision + '"'
+			  + ' style="passing:4px;">'
+			  + '<a href="' + this.temp.url_2 + '?' + now + '">'
+			  + 'New Beta Available</a></div>');
 		}
 		this.set(['temp','version'], this.runtime.version);
 		this.set(['temp','revision'], this.runtime.revision);
+		this.set(['temp','release'], this.runtime.release);
+
+		if (this.runtime.latest !== (i = this.temp.version + '.' + this.temp.revision)) {
+			this.set(['runtime','latest'], i);
+			this.set(['runtime','updated'], now);
+		}
 	}
 
 	return true;
@@ -8941,7 +9068,7 @@ Battle.work = function(state) {
 //		log(LOG_WARN, 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health',0) + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
-	if (!state || !Generals.to(Generals.runtime.zin || (this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice)) || !Page.to('battle_battle')) {
+	if (!state || !Generals.to(Generals.runtime.zin || (this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice)) || !Page.to('battle_battle', '', 30)) {
 		return QUEUE_CONTINUE;
 	}
 	/*jslint onevar:false*/
@@ -8950,7 +9077,7 @@ Battle.work = function(state) {
 	/*jslint onevar:true*/
 	if (!$form.length) {
 		log(LOG_WARN, 'Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
-		Page.to('index');
+		Page.to('index', '', 30);
 	} else {
 		log(LOG_INFO, (this.runtime.points ? this.option.points : this.option.type) + ' ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
@@ -9174,7 +9301,7 @@ Blessing.update = function(event, events) {
 };
 
 Blessing.work = function(state) {
-	if (!state || !Page.to('oracle_demipower')) {
+	if (!state || !Page.to('oracle_demipower', '', 30)) {
 		return QUEUE_CONTINUE;
 	}
 	var which = this.option.which;
@@ -9336,7 +9463,7 @@ Elite.update = function(event, events) {
 Elite.work = function(state) {
 	if (state) {
 //		log(LOG_LOG, 'Add ' + Army.get(['Army', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
-		Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite});
+		Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite}, true);
 	}
 	return true;
 };
@@ -11321,7 +11448,7 @@ Idle.work = function(state) {
 					if (!Generals.to(this.option.general)) {
 						return true;
 					}
-					if (!Page.to(this.pages[i][p])) {
+					if (!Page.to(this.pages[i][p], '', 30)) {
 						return true;
 					}
 				}
@@ -14672,7 +14799,7 @@ Monster.work = function(state) {
 	}
 	if (this.runtime.check) {
 		log(LOG_WARN, this.runtime.message);
-		Page.to(this.runtime.page, this.runtime.check);
+		Page.to(this.runtime.page, this.runtime.check, 30);
 		this.set('runtime.check', false);
 		this.set('runtime.limit', false);
 		this.set('runtime.message', false);
@@ -14763,7 +14890,7 @@ Monster.work = function(state) {
 		//log(LOG_WARN, 'Reloading page. Page.temp.page = '+ Page.temp.page);
 		//log(LOG_WARN, 'Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
 		this.check(this.runtime[mode],'','casuser','');
-		Page.to(this.runtime.page,this.runtime.check);
+		Page.to(this.runtime.page, this.runtime.check, 30);
 		this.set('runtime.check', null);
 		return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
 	}
@@ -14779,7 +14906,7 @@ Monster.work = function(state) {
 		target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*(\d+).*Army: (\d+)/);
 		if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio) && this.option.raid.indexOf('Invade') >= 0) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio) && this.option.raid.indexOf('Invade') === -1)){ // Check our target (first player in Raid list) against our criteria - always get this target even with +1
 			log(LOG_LOG, 'No valid Raid target!');
-			Page.to('battle_raid', ''); // Force a page reload to change the targets
+			Page.to('battle_raid', '', true); // Force a page reload to change the targets
 			return QUEUE_CONTINUE;
 		}
 	}
@@ -15305,7 +15432,7 @@ Monster.visit_link = function(raw, assist) {
 		);
 		x = Page.get('temp.enabled');
 		Page.set('temp.enabled', true);
-		Page.to(page, args);
+		Page.to(page, args, true);
 		Page.set('temp.enabled', x);
 	}
 };
@@ -16079,6 +16206,9 @@ Potions.work = function(state) {
 				this.set(['runtime','type'], null);
 				this.set(['runtime','amount'], 0);
 			}
+		} else if (!tmp.length) {
+			this.set(['runtime','type'], null);
+			this.set(['runtime','amount'], 0);
 		}
 	}
 
@@ -17265,7 +17395,7 @@ Quest.work = function(state) {
 		log(LOG_WARN, "Can't get to quest area!");
 		return QUEUE_FINISH;
 	}
-	if (!Page.to(page)) {
+	if (!Page.to(page, '', 30)) {
 		return QUEUE_CONTINUE;
 	}
 
@@ -17284,6 +17414,7 @@ Quest.work = function(state) {
 	log(LOG_LOG, 'Performing - ' + quest.name
 	  + '; energy: ' + quest.energy
 	  + (general !== 'any' ? '; general: ' + general : '')
+	  //+ '; form ' + button.closest('form').attr('id')
 	);
 
 	if (!Page.click(button)) {
@@ -22359,10 +22490,8 @@ Guild.work = function(state) {
 		  || Page.isStale(page, now - 30*1000)
 		) {
 			// visit battle list page
-			if (Page.temp.page !== (page = 'battle_guild')
-			  || Page.isStale(page, now - 30*1000)
-			) {
-				Page.to(page);
+			if (Page.temp.page !== (page = 'battle_guild')) {
+				Page.to(page, '', 30);
 				return QUEUE_CONTINUE;
 			}
 		}
@@ -22549,10 +22678,12 @@ Guild.work = function(state) {
 				tmp = $('input[src*="monster_duel_button."]', best);
 				if (!tmp.length) {
 					log(LOG_INFO, "Can't find attack button, backing out.");
-					Page.to('battle_guild');
+					page = 'battle_guild';
+					Page.to(page, '', 30);
 				} else if (!Page.click(tmp[0])) {
 					log(LOG_INFO, "Can't click attack button, backing out.");
-					Page.to('battle_guild');
+					page = 'battle_guild';
+					Page.to(page, '', 30);
 					this.set(['temp','last'], null);
 				} else {
 					this.set(['temp','last'], besttarget[0]);
@@ -23100,10 +23231,8 @@ Festival.work = function(state) {
 		  || Page.isStale(page, now - 30*1000)
 		) {
 			// visit battle list page
-			if (Page.temp.page !== (page = 'festival_guild')
-			  || Page.isStale(page, now - 30*1000)
-			) {
-				Page.to(page);
+			if (Page.temp.page !== (page = 'festival_guild')) {
+				Page.to(page, '', 30);
 				return QUEUE_CONTINUE;
 			}
 		}
@@ -23289,10 +23418,12 @@ Festival.work = function(state) {
 				tmp = $('input[src*="monster_duel_button."]', best);
 				if (!tmp.length) {
 					log(LOG_INFO, "Can't find attack button, backing out.");
-					Page.to('festival_guild');
+					page = 'festival_guild';
+					Page.to(page, '', 30);
 				} else if (!Page.click(tmp[0])) {
 					log(LOG_INFO, "Can't click attack button, backing out.");
-					Page.to('battle_guild');
+					page = 'festival_guild';
+					Page.to(page, '', 30);
 					this.set(['temp','last'], null);
 				} else {
 					this.set(['temp','last'], besttarget[0]);

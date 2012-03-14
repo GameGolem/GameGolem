@@ -1178,7 +1178,7 @@ Quest.work = function(state) {
 		log(LOG_WARN, "Can't get to quest area!");
 		return QUEUE_FINISH;
 	}
-	if (!Page.to(page)) {
+	if (!Page.to(page, '', 30)) {
 		return QUEUE_CONTINUE;
 	}
 
@@ -1197,6 +1197,7 @@ Quest.work = function(state) {
 	log(LOG_LOG, 'Performing - ' + quest.name
 	  + '; energy: ' + quest.energy
 	  + (general !== 'any' ? '; general: ' + general : '')
+	  //+ '; form ' + button.closest('form').attr('id')
 	);
 
 	if (!Page.click(button)) {

@@ -149,7 +149,7 @@ Elite.update = function(event, events) {
 Elite.work = function(state) {
 	if (state) {
 //		log(LOG_LOG, 'Add ' + Army.get(['Army', this.runtime.nextelite, 'name'], this.runtime.nextelite) + ' to Elite Guard');
-		Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite});
+		Page.to('keep_eliteguard', {twt:'jneg' , jneg:true, user:this.runtime.nextelite}, true);
 	}
 	return true;
 };

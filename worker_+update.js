@@ -2,7 +2,7 @@
 /*global
 	$, Worker, Workers, Config,
 	APP, APPID, PREFIX, userID, imagepath,
-	isRelease:true, version, revision, window, browser,
+	isRelease, version, revision, window, browser,
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
 	isArray, isFunction, isNumber, isObject, isString, isWorker
@@ -14,24 +14,30 @@ var Update = new Worker('Update');
 Update.data = Update.option = null;
 
 Update.settings = {
-	system:true
+	system:true,
+	taint:true
 };
 
 Update.runtime = {
-	installed:0,// Date this version was first seen
-	current:'',// What is our current version
-	lastcheck:0,// Date.now() = time since last check
-	version:0,// Last ones we saw in a check
-	revision:0,
-	force:false// Have we clicked a button, or is it an automatic check
+	current:'',		// Our current version
+	installed:0,	// Date our version was first seen
+	latest:'',		// The latest version presented as an update
+	updated:0,		// Date the latest version was presented as an update
+	lastcheck:0,	// Date we last tried to check for updates
+	lastseen:0,		// Date we last successfully checked for updates
+	version:0,		// Version of most recently checked update
+	revision:0,		// Revision of most recently checked update
+	release:null,	// Release flag of most recently checked update
+	force:false		// Have we clicked a button, or is it an automatic check
 };
 
 Update.temp = {
 	version:0,
 	revision:0,
-	check:'',// Url to check for new versions
-	url_1:'',// Url to download release
-	url_2:''// Url to download revision
+	release:null,
+	check:'',	// URL to check for new versions
+	url_1:'',	// URL to download a release
+	url_2:''	// URL to download a beta
 };
 
 /***** Update.init() *****
@@ -40,43 +46,49 @@ Update.temp = {
 2. On clicking the button set Update.runtime.force to true - so we can work() immediately...
 */
 Update.init = function() {
+	var now = Date.now(), root;
+
 	this.set(['temp','version'], version);
 	this.set(['temp','revision'], revision);
 	this.set(['runtime','version'], this.runtime.version || version);
 	this.set(['runtime','revision'], this.runtime.revision || revision);
+
 	if (browser === 'chrome') {
-		Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/chrome/_version.js';
-		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.release.crx'; // Release
-		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/chrome/GameGolem.crx'; // Beta
+		root = 'http://game-golem.googlecode.com/svn/trunk/chrome/';
+		Update.temp.check = root + '_version.js';
+		Update.temp.url_1 = root + 'GameGolem.release.crx'; // Release
+		Update.temp.url_2 = root + 'GameGolem.crx'; // Beta
 	} else {
 		// No easy way to check if we're Greasemonkey now as it behaves just like a bookmarklet
-		Update.temp.check = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/_version.js';
-		Update.temp.url_1 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.release.user.js'; // Release
-		Update.temp.url_2 = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/GameGolem.user.js'; // Beta
+		root = 'http://game-golem.googlecode.com/svn/trunk/greasemonkey/';
+		Update.temp.check = root + '_version.js';
+		Update.temp.url_1 = root + 'GameGolem.release.user.js'; // Release
+		Update.temp.url_2 = root + 'GameGolem.user.js'; // Beta
 	}
+
 	// Add an update button for everyone
 	Config.addButton({
 		id:'golem_icon_update',
 		image:'update',
-		title:'Check for Update',
-		click:function(){
-			$(this).addClass('red');
-			Update.checkVersion(true);
-		}
+		title:'Check for Update'
+		  + (this.runtime.lastseen ? ' | Last checked: '
+		  + new Date(this.runtime.lastseen).format('D M j, Y @ h:ia') : ''),
+		click:function() { Update.checkVersion(true); }
 	});
-	if (isRelease) { // Add an advanced "beta" button for official release versions
+
+	/*
+	if (isRelease) {
+		// Add an advanced "beta" button for official release versions
 		Config.addButton({
 			id:'golem_icon_beta',
 			image:'beta',
 			title:'Check for Beta Versions',
 			advanced:true,
-			click:function(){
-				isRelease = false;// Isn't persistant, so nothing visible to the user except the beta release
-				$(this).addClass('red');
-				Update.checkVersion(true);
-			}
+			click:function() { Update.checkVersion(true); }
 		});
 	}
+	*/
+
 	// Add a changelog advanced button
 	Config.addButton({
 		image:'log',
@@ -87,6 +99,7 @@ Update.init = function() {
 			window.open('http://code.google.com/p/game-golem/source/list', '_blank'); 
 		}
 	});
+
 	// Add a wiki button
 	Config.addButton({
 		image:'wiki',
@@ -96,20 +109,47 @@ Update.init = function() {
 			window.open('http://code.google.com/p/game-golem/wiki/castle_age', '_blank'); 
 		}
 	});
-	$('head').bind('DOMNodeInserted', function(event){
-		var tmp;
-		if (event.target.nodeName === 'META' && $(event.target).attr('name') === 'golem-version') {
-			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)/);
+
+	$('head').bind('DOMNodeInserted', function(event) {
+		var now = Date.now(), tmp;
+		if (event.target.nodeName === 'META'
+		  && $(event.target).attr('name') === 'golem-version'
+		) {
+			tmp = $(event.target).attr('content').regex(/(\d+\.\d+)\.(\d+)(\s*Release)?/i);
 			if (tmp) {
-				Update._remind(21600, 'check');// 6 hours
-				Update.set(['runtime','lastcheck'], Date.now());
+				Update.set(['runtime','lastseen'], now);
 				Update.set(['runtime','version'], tmp[0]);
 				Update.set(['runtime','revision'], tmp[1]);
-				if (Update.get(['runtime','force']) && Update.get(['temp','version'], version) >= tmp[0] && (isRelease || Update.get(['temp','revision'], revision) >= tmp[1])) {
-					$('<div class="golem-button golem-info red" style="passing:4px;">No Update Found</div>').animate({'z-index':0}, {duration:5000,complete:function(){$(this).remove();} }).appendTo('#golem_info');
+				Update.set(['runtime','release'], isString(tmp[2]));
+
+				$('golem_icon_update').attr('title',
+				  'Check for Update | Last checked: '
+				  + new Date(now).format('D m d, Y @ H:i:s'));
+				if (Config.get('option.advanced')
+				  || Config.get('option.debug')
+				) {
+					log(LOG_INFO, '# meta ' + JSON.shallow(tmp,2));
+				}
+				// force && new
+				if (Update.get(['runtime','force'])
+				  && (Update.get(['temp','version'], version) > tmp[0]
+				  || (Update.get(['temp','version'], version) >= tmp[0]
+				  && Update.get(['temp','revision'], revision) > tmp[1])
+				  || (isRelease && !Config.get('option.advanced')
+				  && !Update.get(['runtime','release'])))
+				) {
+					// filter out betas for release, non-advanced users
+					$('<div class="golem-button golem-info red"'
+					  + ' style="passing:4px;">No Update Found</div>')
+					  .animate({'z-index':0}, {
+					    duration:5000,
+					    complete:function(){$(this).remove();}
+					  }).appendTo('#golem_info');
 				}
 				Update.set(['runtime','force'], false);
-				$('#golem_icon_update,#golem_icon_beta').removeClass('red');
+				Update._remindMs(1, 'recalc'); // shouldn't be needed
+			} else {
+				log(LOG_INFO, '# no meta version seen at all');
 			}
 			event.stopImmediatePropagation();
 			$('script.golem-script-version').remove();
@@ -117,24 +157,35 @@ Update.init = function() {
 			return false;
 		}
 	});
+
 	if (this.runtime.current !== (version + '.' + revision)) {
-		this.set(['runtime','installed'], Date.now());
 		this.set(['runtime','current'], version + '.' + revision);
+		this.set(['runtime','installed'], now);
 	}
 };
 
 Update.checkVersion = function(force) {
-	var now = Date.now();
-	// Don't check again for 1 minute - will get reset if we get a reply
-	Update.set('runtime.lastcheck', now - (6*60+1)*60*1000);
-	Update.set('runtime.force', force);
-	window.setTimeout(function() {
-		var s = document.createElement('script');
-		s.setAttribute('type', 'text/javascript');
-		s.className = 'golem-script-version';
-		s.src = Update.temp.check + '?random=' + now;
-		document.getElementsByTagName('head')[0].appendChild(s);
-	}, 100);
+	var now = Date.now(), i,
+		last = Math.max(Update.get('runtime.lastcheck', 0, 'number'),
+		  Update.get('runtime.lastseen', 0, 'number'));
+
+	$('#golem_icon_update,#golem_icon_beta').addClass('red');
+
+	// Don't allow checking faster than once a minute, ever
+	if ((i = last + 60*1000) <= now) {
+		Update.set('runtime.lastcheck', now);
+		Update.set('runtime.force', force);
+		window.setTimeout(function() {
+			var s = document.createElement('script');
+			log(LOG_INFO, '# -----[ CHECKING SCRIPT VERSION STATUS NOW ]-----');
+			s.setAttribute('type', 'text/javascript');
+			s.className = 'golem-script-version';
+			s.src = Update.temp.check + '?random=' + now;
+			document.getElementsByTagName('head')[0].appendChild(s);
+		}, 1);
+	} else {
+		Update._remindMs(i - now, 'throttle');
+	}
 };
 
 /***** Update.update() *****
@@ -146,46 +197,80 @@ Update.checkVersion = function(force) {
 4. Set a reminder if there isn't
 */
 Update.update = function(event, events) {
-	var now = Date.now(), age, time;
+	var now = Date.now(), i, next = now,
+		inst = this.get('runtime.installed', 0, 'number'),
+		updt = this.get('runtime.updated', 0, 'number'),
+		last = this.get('runtime.lastcheck', 0, 'number'),
+		seen = this.get('runtime.lastseen', 0, 'number'),
+		base = Math.max(last, seen),
+		age = now - Math.max(inst, updt);
 
-	if (events.findEvent(null, 'reminder')) {
+	if (events.findEvent(null, 'reminder', 'check')) {
 		this.checkVersion(false);
 	}
 
-	if (events.findEvent(null, 'init') || events.findEvent(null, 'reminder')) {
-		age = now - this.runtime.installed;
-		time = now - this.runtime.lastcheck;
-		if (age <= 6*60*60*1000) {
-			// Every hour for 6 hours
-			time += 60*60*1000;
-		} else if (age <= (1+2)*6*60*60*1000) {
-			// Every 2 hours for another 12 hours (18 total)
-			time += 2*60*60;
-		} else if (age <= (1+2+3)*6*60*60*1000) {
-			// Every 3 hours for another 18 hours (36 total)
-			time += 3*60*60*1000;
-		} else if (age <= (1+2+3+4)*6*60*60*1000) {
-			// Every 4 hours for another 24 hours (60 total)
-			time += 4*60*60*1000;
-		} else {
-			// Every 6 hours normally
-			time += 6*60*60*1000;
-		}
-		this._remindMs(Math.max(1000, time), 'check');
+	if ((i = base + 60*1000) > now) {
+		$('#golem_icon_update,#golem_icon_beta').addClass('red');
+		Update._remindAt(i, 'throttle');
+	} else {
+		$('#golem_icon_update,#golem_icon_beta').removeClass('red');
 	}
 
+	if (age <= 6*60*60*1000) {
+		// Every hour for 6 hours
+		log(LOG_INFO, '# on hourly checks');
+		next = base + 1*60*60*1000;
+	} else if (age <= (1+2)*6*60*60*1000) {
+		// Every 2 hours for another 12 hours (18 total)
+		log(LOG_INFO, '# on 2-hour checks');
+		next = base + 2*60*60*1000;
+	} else if (age <= (1+2+3)*6*60*60*1000) {
+		// Every 3 hours for another 18 hours (36 total)
+		log(LOG_INFO, '# on 3-hour checks');
+		next = base + 3*60*60*1000;
+	} else if (age <= (1+2+3+4)*6*60*60*1000) {
+		// Every 4 hours for another 24 hours (60 total)
+		log(LOG_INFO, '# on 4-hour checks');
+		next = base + 4*60*60*1000;
+	} else {
+		// Every 6 hours normally
+		log(LOG_INFO, '# default 6-hour checks');
+		next = base + 6*60*60*1000;
+	}
+
+	this._remindMs(Math.max(1000, next - now), 'check');
+
 	if (this.runtime.version > this.temp.version
-	  || (!isRelease && this.runtime.revision > this.temp.revision)
+	  || (this.runtime.version >= this.temp.version
+	  && this.runtime.revision > this.temp.revision)
 	) {
-		log(LOG_INFO, 'New version available: ' + this.runtime.version + '.' + this.runtime.revision + ', currently on ' + this.runtime.current);
-		if (this.runtime.version > this.temp.version) {
-			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_1 + '?' + Date.now() + '">New Version Available</a></div>');
-		}
-		if (!isRelease && this.runtime.revision > this.temp.revision) {
-			$('#golem_info').append('<div class="golem-button golem-info green" title="' + this.runtime.version + '.' + this.runtime.revision + ' released, currently on ' + version + '.' + revision + '" style="passing:4px;"><a href="' + this.temp.url_2 + '?' + Date.now() + '">New Beta Available</a></div>');
+		log(LOG_INFO, 'New version available: '
+		  + this.runtime.version + '.' + this.runtime.revision
+		  + ' ' + (this.runtime.release ? 'Release' : 'Beta')
+		  + ', currently on ' + this.runtime.current);
+		if (this.runtime.release) {
+			$('#golem_info').append('<div class="golem-button golem-info green"'
+			  + ' title="' + this.runtime.version + '.' + this.runtime.revision
+			  + ' release, currently on ' + version + '.' + revision + '"'
+			  + ' style="passing:4px;">'
+			  + '<a href="' + this.temp.url_1 + '?' + now + '">'
+			  + 'New Release Available</a></div>');
+		} else if (!isRelease || Config.option.advanced) {
+			$('#golem_info').append('<div class="golem-button golem-info green"'
+			  + ' title="' + this.runtime.version + '.' + this.runtime.revision
+			  + ' beta, currently on ' + version + '.' + revision + '"'
+			  + ' style="passing:4px;">'
+			  + '<a href="' + this.temp.url_2 + '?' + now + '">'
+			  + 'New Beta Available</a></div>');
 		}
 		this.set(['temp','version'], this.runtime.version);
 		this.set(['temp','revision'], this.runtime.revision);
+		this.set(['temp','release'], this.runtime.release);
+
+		if (this.runtime.latest !== (i = this.temp.version + '.' + this.temp.revision)) {
+			this.set(['runtime','latest'], i);
+			this.set(['runtime','updated'], now);
+		}
 	}
 
 	return true;

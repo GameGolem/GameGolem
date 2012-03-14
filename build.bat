@@ -315,6 +315,15 @@ for /f "tokens=* delims=" %%A in (%1) do (
 		call set "line=%%line:$VER$=%version%%%"
 		call set "line=%%line:$REV$=%revision%%%"
 		call set "line=%%line:$OLDREV$=%oldrev%%%"
+		if "%release%" == "1" (
+			call set "line=%%line:$REVORREL$= Release%%"
+			call set "line=%%line:$REL$= Release%%"
+			call set "line=%%line:$ISREL$=true%%"
+		) else (
+			call set "line=%%line:$REVORREL$=.%revision%%%"
+			call set "line=%%line:$REL$= Beta%%"
+			call set "line=%%line:$ISREL$=false%%"
+		)
 		call set "line=%%line:$FILE$=%manifest%%%"
 		echo.!line!
 	) ELSE echo.

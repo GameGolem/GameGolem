@@ -2447,7 +2447,7 @@ Monster.work = function(state) {
 	}
 	if (this.runtime.check) {
 		log(LOG_WARN, this.runtime.message);
-		Page.to(this.runtime.page, this.runtime.check);
+		Page.to(this.runtime.page, this.runtime.check, 30);
 		this.set('runtime.check', false);
 		this.set('runtime.limit', false);
 		this.set('runtime.message', false);
@@ -2538,7 +2538,7 @@ Monster.work = function(state) {
 		//log(LOG_WARN, 'Reloading page. Page.temp.page = '+ Page.temp.page);
 		//log(LOG_WARN, 'Reloading page. Monster Owner UID is ' + $('div[style*="dragon_title_owner"] img[linked]').attr('uid') + ' Expecting UID : ' + uid);
 		this.check(this.runtime[mode],'','casuser','');
-		Page.to(this.runtime.page,this.runtime.check);
+		Page.to(this.runtime.page, this.runtime.check, 30);
 		this.set('runtime.check', null);
 		return QUEUE_CONTINUE; // Reload if we can't find the button or we're on the wrong page
 	}
@@ -2554,7 +2554,7 @@ Monster.work = function(state) {
 		target_info = $('div[id*="raid_atk_lst0"] div div').text().regex(/Lvl\s*(\d+).*Army: (\d+)/);
 		if ((this.option.armyratio !== 'Any' && ((target_info[1]/Player.get('army')) > this.option.armyratio) && this.option.raid.indexOf('Invade') >= 0) || (this.option.levelratio !== 'Any' && ((target_info[0]/Player.get('level')) > this.option.levelratio) && this.option.raid.indexOf('Invade') === -1)){ // Check our target (first player in Raid list) against our criteria - always get this target even with +1
 			log(LOG_LOG, 'No valid Raid target!');
-			Page.to('battle_raid', ''); // Force a page reload to change the targets
+			Page.to('battle_raid', '', true); // Force a page reload to change the targets
 			return QUEUE_CONTINUE;
 		}
 	}
@@ -3080,7 +3080,7 @@ Monster.visit_link = function(raw, assist) {
 		);
 		x = Page.get('temp.enabled');
 		Page.set('temp.enabled', true);
-		Page.to(page, args);
+		Page.to(page, args, true);
 		Page.set('temp.enabled', x);
 	}
 };

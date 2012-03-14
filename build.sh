@@ -169,7 +169,12 @@ if [ "$build_chrome" = "Yes" ]; then
     if [ -f chrome/GameGolem.pem ]; then
         echo "Creating packed Chrome extension"
         "$chrome_browser" --no-message-box --pack-extension="$workdir/chrome/GameGolem" --pack-extension-key="$workdir/chrome/GameGolem.pem"
-        sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" chrome/update.tmpl > chrome/update.xml
+	if [ "$build_release" = "Yes" ]; then
+	    map="s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g;s/\\\$REL\\\$/ Release/g;s/\\\$ISREL\\\$/true/g;s/\\\$REVORREL\\\$/ Release/g"
+	else
+	    map="s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g;s/\\\$REL\\\$/.$rev/g;s/\\\$ISREL\\\$/false/g;s/\\\$REVORREL\\\$/.$rev/g"
+	fi
+	sed "$map" chrome/update.tmpl > chrome/update.xml
         cp _version.js chrome/
    else
         echo "Would create packed Chrome extension, but you are missing chrome/GameGolem.pem"
@@ -183,7 +188,8 @@ if [ "$build_release" = "Yes" ]; then
     echo "Creating minimised version (will display any syntax errors)"
     if [ -f "$js_compiler" -a -f "$in" ]; then
 	if [ -f $head ] ; then
-	    sed "s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g" "$head" > "$out"
+	    map="s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g;s/\\\$REL\\\$/ Release/g;s/\\\$ISREL\\\$/true/g;s/\\\$REVORREL\\\$/ Release/g"
+	    sed "$map" "$head" > "$out"
 	else
 	    echo "Error: missing $head"
 	    rc=1

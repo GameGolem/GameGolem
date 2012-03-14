@@ -206,6 +206,11 @@ Page.update = function(event, events) {
 	return true;
 };
 
+/**
+ * @param {string} url The symbolic page name or a URL.
+ * @param {?(string|Object)=} args An addition string or object of components.
+ * @return {string} The resulting qualified URL.
+ */
 Page.makeURL = function(url, args) {
 	var abs = Main.domain + Main.path;
 	if (url in this.pageNames) {
@@ -223,37 +228,69 @@ Page.makeURL = function(url, args) {
 	return url;
 };
 
+/**
+ * @param {string} url The symbolic page name or a URL.
+ * @param {?(string|Object)=} args An addition string or object of components.
+ * @param {string} content An addition string or object of components.
+ * @return {string} The resulting HTML link string.
+ */
 Page.makeLink = function(url, args, content) {
 	var page = this.makeURL(url, args);
-	return '<a href="' + Main.scheme + Main.domain + Main.path + page + '" onclick="' + (APPID_==='' ? '' : 'a'+APPID+'_') + 'ajaxLinkSend(&#039;globalContainer&#039;,&#039;' + page + '&#039;);return false;' + '">' + content + '</a>';
+	return ('<a href="' + Main.scheme + Main.domain + Main.path + page + '"'
+	  + ' onclick="' + (APPID_ === '' ? '' : 'a'+APPID+'_')
+	  + 'ajaxLinkSend(&#039;globalContainer&#039;,&#039;' + page + '&#039;);'
+	  + 'return false;' + '">' + content + '</a>');
 };
 
-/*
-Page.to('index', ['args' | {arg1:val, arg2:val},] [true|false]
-*/
-Page.to = function(url, args, force) { // Force = true/false (allows to reload the same page again)
+/**
+ * @param {string} url The symbolic page name or a URL.
+ * @param {?(string|Object)=} args An addition string or object of components.
+ * @param {?(boolean|number)=} force Force refresh threshold
+ *		true = always force,
+ *		false = never force,
+ *		number = force if number seconds stale.
+ * @param {boolean=} noWait Do not to block pages/clicks until the page loads.
+ * @return {?boolean} true = page loaded, false = try again.
+ */
+Page.to = function(url, args, force, noWait) {
 	if (!this.temp.enabled) {
 		log(LOG_ERROR, 'BAD_FUNCTION_USE in Page.to('+JSON.shallow(arguments,2)+'): Not allowed to use Page.to() outside .work(true)');
 		return true;
 	}
-	var page = this.makeURL(url, args);
+	var page = this.makeURL(url, args),
+	    oldpage = this.temp.last || this.makeURL(this.temp.page);
 //	if (Queue.option.pause) {
 //		log(LOG_ERROR, 'Trying to load page when paused...');
 //		return true;
 //	}
-	if (!page || (!force && page === (this.temp.last || this.temp.page))) {
+	if (isNumber(force)) {
+	    if (page === oldpage && !this.temp.last && this.temp.page) {
+		force = Page.isStale(this.temp.page, Date.now() - force*1000);
+	    } else {
+		force = true;
+	    }
+	}
+	if (!page || (!force && page === oldpage)) {
 		return true;
 	}
-	if (page !== (this.temp.last || this.temp.page)) {
+	if (page !== oldpage) {
+		/*
+		log(LOG_DEBUG, '# new page [' + page + '] !== '
+		  + 'old page [' + oldpage + ']'
+		);
+		*/
 		this.clear();
 		this.set(['temp','last'], page);
 		this.set(['temp','when'], Date.now());
 		this.set(['temp','loading'], true);
 		log('Navigating to ' + page);
 	} else if (force) {
-		window.location.href = Main.js + 'void((function(){})())';// Force it to change
+		// Force it to change
+		window.location.href = Main.js + 'void((function(){})())';
 	}
-	window.location.href = /^https?:/i.test(page) ? page : Main.js+'void(' + (APPID_==='' ? '' : 'a'+APPID+'_') + 'ajaxLinkSend("globalContainer","' + page + '"))';
+	window.location.href = /^https?:/i.test(page) ? page
+	  : Main.js + 'void(' + (APPID_ === '' ? '' : 'a'+APPID+'_')
+	  + 'ajaxLinkSend("globalContainer","' + page + '"))';
 	this._remind(this.option.timeout, 'retry');
 	this.set(['temp','count'], this.get(['temp','count'], 0) + 1);
 	return false;
@@ -302,7 +339,12 @@ Page.clearFBpost = function(obj) {
 	return output;
 };
 
-Page.click = function(el) {
+/**
+ * @param {(string|jQuery|Element)} el The jQuery selector or Element to click.
+ * @param {boolean=} noWait Do not to block pages/clicks until the page loads.
+ * @return {?boolean} true = page loaded, false = try again.
+ */
+Page.click = function(el, noWait) {
 	if (!this.temp.enabled) {
 		log(LOG_ERROR, 'BAD_FUNCTION_USE in Page.click('+JSON.shallow(arguments,2)+'): Not allowed to use Page.click() outside .work(true)');
 		return true;

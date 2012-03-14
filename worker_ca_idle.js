@@ -185,7 +185,7 @@ Idle.work = function(state) {
 					if (!Generals.to(this.option.general)) {
 						return true;
 					}
-					if (!Page.to(this.pages[i][p])) {
+					if (!Page.to(this.pages[i][p], '', 30)) {
 						return true;
 					}
 				}

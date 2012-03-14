@@ -538,10 +538,8 @@ Guild.work = function(state) {
 		  || Page.isStale(page, now - 30*1000)
 		) {
 			// visit battle list page
-			if (Page.temp.page !== (page = 'battle_guild')
-			  || Page.isStale(page, now - 30*1000)
-			) {
-				Page.to(page);
+			if (Page.temp.page !== (page = 'battle_guild')) {
+				Page.to(page, '', 30);
 				return QUEUE_CONTINUE;
 			}
 		}
@@ -728,10 +726,12 @@ Guild.work = function(state) {
 				tmp = $('input[src*="monster_duel_button."]', best);
 				if (!tmp.length) {
 					log(LOG_INFO, "Can't find attack button, backing out.");
-					Page.to('battle_guild');
+					page = 'battle_guild';
+					Page.to(page, '', 30);
 				} else if (!Page.click(tmp[0])) {
 					log(LOG_INFO, "Can't click attack button, backing out.");
-					Page.to('battle_guild');
+					page = 'battle_guild';
+					Page.to(page, '', 30);
 					this.set(['temp','last'], null);
 				} else {
 					this.set(['temp','last'], besttarget[0]);

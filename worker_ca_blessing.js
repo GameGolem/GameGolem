@@ -120,7 +120,7 @@ Blessing.update = function(event, events) {
 };
 
 Blessing.work = function(state) {
-	if (!state || !Page.to('oracle_demipower')) {
+	if (!state || !Page.to('oracle_demipower', '', 30)) {
 		return QUEUE_CONTINUE;
 	}
 	var which = this.option.which;

@@ -161,6 +161,9 @@ Potions.work = function(state) {
 				this.set(['runtime','type'], null);
 				this.set(['runtime','amount'], 0);
 			}
+		} else if (!tmp.length) {
+			this.set(['runtime','type'], null);
+			this.set(['runtime','amount'], 0);
 		}
 	}
 

@@ -562,7 +562,7 @@ Battle.work = function(state) {
 //		log(LOG_WARN, 'Not attacking because: ' + (this.runtime.attacking ? '' : 'No Target, ') + 'Health: ' + Player.get('health',0) + ' (must be >=10), Burn Stamina: ' + useable_stamina + ' (must be >=1)');
 		return QUEUE_FINISH;
 	}
-	if (!state || !Generals.to(Generals.runtime.zin || (this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice)) || !Page.to('battle_battle')) {
+	if (!state || !Generals.to(Generals.runtime.zin || (this.option.general ? (this.runtime.points ? this.option.points : this.option.type) : this.option.general_choice)) || !Page.to('battle_battle', '', 30)) {
 		return QUEUE_CONTINUE;
 	}
 	/*jslint onevar:false*/
@@ -571,7 +571,7 @@ Battle.work = function(state) {
 	/*jslint onevar:true*/
 	if (!$form.length) {
 		log(LOG_WARN, 'Unable to find ' + (this.runtime.points ? this.option.points : this.option.type) + ' button, forcing reload');
-		Page.to('index');
+		Page.to('index', '', 30);
 	} else {
 		log(LOG_INFO, (this.runtime.points ? this.option.points : this.option.type) + ' ' + this.data.user[this.runtime.attacking].name + ' (' + this.runtime.attacking + ')');
 		$('input[name="target_id"]', $form).attr('value', this.runtime.attacking);
