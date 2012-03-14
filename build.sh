@@ -172,7 +172,7 @@ if [ "$build_chrome" = "Yes" ]; then
 	if [ "$build_release" = "Yes" ]; then
 	    map="s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g;s/\\\$REL\\\$/ Release/g;s/\\\$ISREL\\\$/true/g;s/\\\$REVORREL\\\$/ Release/g"
 	else
-	    map="s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g;s/\\\$REL\\\$/.$rev/g;s/\\\$ISREL\\\$/false/g;s/\\\$REVORREL\\\$/.$rev/g"
+	    map="s/\\\$REV\\\$/$rev/g;s/\\\$VER\\\$/$ver/g;s/\\\$REL\\\$/ Beta/g;s/\\\$ISREL\\\$/false/g;s/\\\$REVORREL\\\$/.$rev/g"
 	fi
 	sed "$map" chrome/update.tmpl > chrome/update.xml
         cp _version.js chrome/
