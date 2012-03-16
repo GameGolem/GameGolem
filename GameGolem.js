@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1192 Beta
+ * GameGolem v31.6.1193 Beta
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1192 Beta
+ * GameGolem v31.6.1193 Beta
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1192;
+var revision = 1193;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1191;
+var trunk_revision = 1192;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -6087,7 +6087,7 @@ Global._overload(null, 'work', function(state) {
 		Page.set(['temp','checked'], true);
 	}
 
-	if (((i = Page.option.refresh || 0) && i >= (Page.temp.count || 0))
+	if (((i = Page.option.refresh || 0) && i <= (Page.temp.count || 0))
 	  || (((i = Page.option.reload_max_time || 0) && script_started + i > now))
 	  || (Page.runtime.retry || 0) >= this.option.reload
 	) {
@@ -6291,6 +6291,9 @@ Page.to = function(url, args, force, noWait) {
 		} else {
 			force = true;
 		}
+	} else if (page === oldpage) {
+		// default all pages to a 5 minute timout
+		force = Page.isStale(url, Date.now() - 5*60*1000);
 	}
 
 	// check that we aren't already loading a page

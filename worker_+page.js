@@ -144,7 +144,7 @@ Global._overload(null, 'work', function(state) {
 		Page.set(['temp','checked'], true);
 	}
 
-	if (((i = Page.option.refresh || 0) && i >= (Page.temp.count || 0))
+	if (((i = Page.option.refresh || 0) && i <= (Page.temp.count || 0))
 	  || (((i = Page.option.reload_max_time || 0) && script_started + i > now))
 	  || (Page.runtime.retry || 0) >= this.option.reload
 	) {
@@ -348,6 +348,9 @@ Page.to = function(url, args, force, noWait) {
 		} else {
 			force = true;
 		}
+	} else if (page === oldpage) {
+		// default all pages to a 5 minute timout
+		force = Page.isStale(url, Date.now() - 5*60*1000);
 	}
 
 	// check that we aren't already loading a page
