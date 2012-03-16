@@ -8,6 +8,7 @@
 // Add "Castle Age" to known applications
 Main.add('castle_age', '46755028429', 'Castle Age', /^https?:\/\/web3\.castleagegame\.com\/castle_ws\//i, function() {
 	if (!isFacebook) {
+		Main.file = 'index.php';
 		userID = ($('#main_bntp img').attr('src') || '').regex(/graph\.facebook\.com\/(\d+)\/picture/i);
 		imagepath = ($('#AjaxLoadIcon img').attr('src') || '').pathpart();
 		var fn = function(){

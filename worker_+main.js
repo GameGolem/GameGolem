@@ -159,6 +159,7 @@ Main.update = function(event, events) {
 		this.scheme = window.location.protocol + '//';
 		this.domain = window.location.hostname;
 		this.path = window.location.pathname.pathpart();
+		this.file = window.location.pathname.filepart();
 		this.js = 'javascript';
 		this.js += ':'; // split to avoid jslint gripes
 
@@ -385,13 +386,20 @@ Main.update = function(event, events) {
 Main.shutdown = function() {
 	var i;
 
+	// stop the flush timer
 	if (!isUndefined(i = Worker.flush._timer)) {
 		window.clearInterval(i);
 		delete Worker.flush._timer;
 	}
 
+	// stop the rest of the timers
 	for (i in Workers) {
 		Workers[i]._forgetAll(); 
+	}
+
+	// flush all remainting data
+	for (i in Workers) {
+		Workers[i]._flush();
 	}
 };
 

@@ -211,7 +211,7 @@ Update.update = function(event, events) {
 
 	if ((i = base + 60*1000) > now) {
 		$('#golem_icon_update,#golem_icon_beta').addClass('red');
-		Update._remindAt(i, 'throttle');
+		Update._remindMs(i - now, 'throttle');
 	} else {
 		$('#golem_icon_update,#golem_icon_beta').removeClass('red');
 	}

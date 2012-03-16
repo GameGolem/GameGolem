@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1190 Beta
+ * GameGolem v31.6.1192 Beta
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1190 Beta
+ * GameGolem v31.6.1192 Beta
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1190;
+var revision = 1192;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1189;
+var trunk_revision = 1191;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -5588,6 +5588,7 @@ Main.update = function(event, events) {
 		this.scheme = window.location.protocol + '//';
 		this.domain = window.location.hostname;
 		this.path = window.location.pathname.pathpart();
+		this.file = window.location.pathname.filepart();
 		this.js = 'javascript';
 		this.js += ':'; // split to avoid jslint gripes
 
@@ -5814,13 +5815,20 @@ Main.update = function(event, events) {
 Main.shutdown = function() {
 	var i;
 
+	// stop the flush timer
 	if (!isUndefined(i = Worker.flush._timer)) {
 		window.clearInterval(i);
 		delete Worker.flush._timer;
 	}
 
+	// stop the rest of the timers
 	for (i in Workers) {
 		Workers[i]._forgetAll(); 
+	}
+
+	// flush all remainting data
+	for (i in Workers) {
+		Workers[i]._flush();
 	}
 };
 
@@ -5936,7 +5944,7 @@ Menu.init = function() {
 /*jslint browser:true, laxbreak:true, forin:true, sub:true, onevar:true, undef:true, eqeqeq:true, regexp:false */
 /*global
 	$, Worker, Workers, Global, Main,
-	APP, APPID, APPID_, PREFIX, userID, imagepath,
+	APP, APPID, APPID_, PREFIX, userID, imagepath, script_started,
 	isRelease, version, revision, Images, window, browser,
 	LOG_ERROR, LOG_WARN, LOG_LOG, LOG_INFO, LOG_DEBUG, log,
 	QUEUE_CONTINUE, QUEUE_RELEASE, QUEUE_FINISH,
@@ -5958,7 +5966,9 @@ Page.option = {
 	timeout:60,
 	reload:5,
 	nochat:false,
-	refresh:250
+	refresh:250,
+	reload_max_time:3*24*60*60*1000,
+	link_reload: false
 };
 
 Page.temp = {
@@ -5990,7 +6000,7 @@ Global.display.push({
 		{
 			id:['Page','option','timeout'],
 			label:'Retry after',
-			select:[10, 15, 30, 60, 75, 90],
+			select:[10, 15, 20, 30, 45, 60, 75, 90],
 			after:'seconds'
 		},{
 			id:['Page','option','reload'],
@@ -6005,14 +6015,51 @@ Global.display.push({
 		},{
 			id:['Page','option','refresh'],
 			label:'Refresh After',
-			select:{0:'Never', 50:'50 Pages', 100:'100 Pages', 150:'150 Pages', 200:'200 Pages', 250:'250 Pages', 500:'500 Pages'}
+			select:{
+				0:'Never',
+				50:'50 pages',
+				100:'100 pages',
+				150:'150 pages',
+				200:'200 pages',
+				250:'250 pages',
+				500:'500 pages',
+				750:'750 pages',
+				1000:'1000 pages'
+			}
+		},{
+			id:['Page','option','reload_max_time'],
+			label:'Reload after',
+			select:{
+				0:'Never',
+				3600000: '1 hour',
+				7200000: '2 hours',
+				10800000: '3 hours',
+				14400000: '4 hours',
+				21600000: '6 hours',
+				28800000: '8 hours',
+				43200000: '12 hours',
+				64800000: '18 hours',
+				86400000: '1 day',
+				172800000: '2 days',
+				259200000: '3 days',
+				432000000: '5 days',
+				604800000: '1 week'
+			}
+		},{
+			id:['Page','option','link_reload'],
+			label:'Reload via link',
+			checkbox:true,
+			help:'Reload via a remote link that directs the browser back one in history.'
+			  + ' The alternative is to simply replace the current link'
+			  + ', but this may not be as effective at clearing out memory in your browser.'
 		}
 	]
 });
 
 // We want this to run on the Global context
 Global._overload(null, 'work', function(state) {
-	var i, l, list, found = null;
+	var now = Date.now(), i, l, list, found = null;
+
 	if (!Page.temp.checked) {
 		for (i in Workers) {
 			if (isString(Workers[i].pages)) {
@@ -6039,21 +6086,21 @@ Global._overload(null, 'work', function(state) {
 	//	arguments.callee = new Function();// Only check when first loading, once we're running we never work() again :-P
 		Page.set(['temp','checked'], true);
 	}
-	if (Page.option.refresh && Page.temp.count >= Page.option.refresh) {
+
+	if (((i = Page.option.refresh || 0) && i >= (Page.temp.count || 0))
+	  || (((i = Page.option.reload_max_time || 0) && script_started + i > now))
+	  || (Page.runtime.retry || 0) >= this.option.reload
+	) {
 		if (state) {
-			if (!$('#reload_link').length) {
-				$('body').append('<a id="reload_link" href="http://www.cloutman.com/reload.php">reload</a>');
-			}
-			// temporary fix for ISP woes
-			//Page.click('#reload_link');
-			window.location.replace(Main.scheme + Main.domain + Main.path + 'index.php');
+			Page.reload();
 		}
 		return QUEUE_CONTINUE;
 	}
+
 	return this._parent();
 });
 
-Page.init = function() {
+Page.init = function(old_revision, fresh) {
 	this._trigger('#'+APPID_+'app_body_container, #'+APPID_+'globalContainer', 'page_change');
 	this._trigger('.generic_dialog_popup', 'facebook');
 	if (this.option.nochat) {
@@ -6064,8 +6111,9 @@ Page.init = function() {
 
 Page.update = function(event, events) {
 	// Can use init as no system workers (which can come before us) care what page we are on
-	var i, list, now = Date.now(), time;
-	if (events.findEvent(null,'reminder','timers')) {
+	var i, list, now = Date.now(), time, page_change, facebook_page;
+
+	if (events.findEvent(null, 'reminder', 'timers')) {
 		for (i in this.runtime.timers) {
 			time = this.runtime.timers[i] - now;
 			// Delete old timers 1 week after "now?"
@@ -6076,23 +6124,69 @@ Page.update = function(event, events) {
 			}
 		}
 	}
-	if (events.findEvent(null,'reminder','retry')) {
-		this.retry();
+
+	if (events.findEvent(null, 'trigger', 'page_change')
+	  || events.findEvent(null,'init')
+	) {
+		page_change = true;
 	}
-	if (events.findEvent(null,'init') || events.findEvent(null,'trigger','page_change')) {
-		list = this.pageCheck;
-//		log('Page change noticed...');
-		this._forget('retry');
+
+	// Need to act as if it's a page change
+	if (events.findEvent(null, 'trigger', 'facebook')) {
+		page_change = true;
+		facebook_page = true;
+	}
+
+	if (events.findEvent(null, 'reminder', 'timeout')) {
+		this.temp.page = ''; // timeout invalidates the current page
+		this.set(['temp','id'], null);
 		this.set(['temp','loading'], false);
-		for (i=0; i<list.length; i++) {
+		//this.retry();
+	}
+
+	if (page_change) {
+//		log('Page change noticed...');
+		this._forget('timeout');
+		if (!this.temp.loading) {
+			// manual page change, so tick the counter
+			this.add('temp.count', 1);
+		}
+		$('#AjaxLoadIcon').hide(); // sometimes it doesn't go away
+		this.set(['temp','loading'], false);
+
+		if (facebook_page) {
+			this.temp.page = 'facebook';
+			list = {};
+			for (i in Workers) {
+				if (Workers[i].pages
+				  && Workers[i].pages.indexOf
+				  && (Workers[i].pages.indexOf('*') >= 0
+					|| (this.temp.page !== ''
+					  && Workers[i].pages.indexOf(this.temp.page) >= 0))
+				  && Workers[i]._page(this.temp.page, false)
+				) {
+					list[i] = true;
+				}
+			}
+			for (i in list) {
+				Workers[i]._page(this.temp.page, true);
+			}
+			return true;
+		}
+
+		// failed parse invalidates the current page
+		this.temp.page = '';
+
+		list = this.pageCheck;
+		for (i = 0; i < list.length; i++) {
 			if (!$(list[i]).length) {
 				log(LOG_WARN, 'Bad page warning: Unabled to find '+list[i]);
-				this.retry();
-				return;
+				//this.retry();
+				return true;
 			}
 		}
+
 		// NOTE: Need a better function to identify pages, this lot is bad for CPU
-		this.temp.page = '';
 		$('img', $('#'+APPID_+'app_body')).each(function(a,el){
 			var i, filename = $(el).attr('src').filepart();
 			for (i in Page.pageNames) {
@@ -6113,15 +6207,18 @@ Page.update = function(event, events) {
 		}
 		if (this.temp.page !== '') {
 			this.set(['data',this.temp.page], Date.now());
-			this.set(['runtime', 'stale', this.temp.page]);
+			this.set(['runtime','stale',this.temp.page]);
 		}
+
 //		log(LOG_WARN, 'Page.update: ' + (this.temp.page || 'Unknown page') + ' recognised');
 		list = {};
 		for (i in Workers) {
 			if (Workers[i].pages
 			 && Workers[i].pages.indexOf
-			 && (Workers[i].pages.indexOf('*') >= 0 || (this.temp.page !== '' && Workers[i].pages.indexOf(this.temp.page) >= 0))
-			 && Workers[i]._page(this.temp.page, false)) {
+			 && (Workers[i].pages.indexOf('*') >= 0 || (this.temp.page !== ''
+			   && Workers[i].pages.indexOf(this.temp.page) >= 0))
+			 && Workers[i]._page(this.temp.page, false)
+			) {
 				list[i] = true;
 			}
 		}
@@ -6129,15 +6226,7 @@ Page.update = function(event, events) {
 			Workers[i]._page(this.temp.page, true);
 		}
 	}
-	if (events.findEvent(null,'trigger','facebook')) { // Need to act as if it's a page change
-		this._forget('retry');
-		this.set(['temp', 'loading'], false);
-		for (i in Workers) {
-			if (Workers[i].page && Workers[i].pages && Workers[i].pages.indexOf('facebook') >= 0) {
-				Workers[i]._page('facebook', false);
-			}
-		}
-	}
+
 	return true;
 };
 
@@ -6192,42 +6281,57 @@ Page.to = function(url, args, force, noWait) {
 		log(LOG_ERROR, 'BAD_FUNCTION_USE in Page.to('+JSON.shallow(arguments,2)+'): Not allowed to use Page.to() outside .work(true)');
 		return true;
 	}
+
 	var page = this.makeURL(url, args),
-	    oldpage = this.temp.last || this.makeURL(this.temp.page);
-//	if (Queue.option.pause) {
-//		log(LOG_ERROR, 'Trying to load page when paused...');
-//		return true;
-//	}
+		oldpage = this.temp.last || this.makeURL(this.temp.page);
+
 	if (isNumber(force)) {
-	    if (page === oldpage && !this.temp.last && this.temp.page) {
-		force = Page.isStale(this.temp.page, Date.now() - force*1000);
-	    } else {
-		force = true;
-	    }
+		if (page === oldpage) {
+			force = Page.isStale(url, Date.now() - force*1000);
+		} else {
+			force = true;
+		}
 	}
+
+	// check that we aren't already loading a page
+	if (this.temp.loading) {
+		log(LOG_WARN, 'Trying to load page while loading'
+		  + ': ' + (Date.now() - this.temp.loading).toTimespan(2)
+		  + ', id ' + this.temp.id
+		);
+		return null;
+	}
+
 	if (!page || (!force && page === oldpage)) {
 		return true;
 	}
-	if (page !== oldpage) {
-		/*
-		log(LOG_DEBUG, '# new page [' + page + '] !== '
-		  + 'old page [' + oldpage + ']'
-		);
-		*/
-		this.clear();
-		this.set(['temp','last'], page);
-		this.set(['temp','when'], Date.now());
-		this.set(['temp','loading'], true);
-		log('Navigating to ' + page);
-	} else if (force) {
-		// Force it to change
+
+	if (page === oldpage && force) {
 		window.location.href = Main.js + 'void((function(){})())';
 	}
-	window.location.href = /^https?:/i.test(page) ? page
-	  : Main.js + 'void(' + (APPID_ === '' ? '' : 'a'+APPID+'_')
-	  + 'ajaxLinkSend("globalContainer","' + page + '"))';
-	this._remind(this.option.timeout, 'retry');
-	this.set(['temp','count'], this.get(['temp','count'], 0) + 1);
+
+	this.clear();
+	this.set(['temp','last'], page);
+	this.set(['temp','when'], Date.now());
+	if (!noWait) {
+		this.set(['temp','loading'], true);
+	}
+
+	log('Navigating to ' + page);
+
+	// set the new page
+	if (/^\w+:/.test(page)) {
+		window.location.href = page;
+	} else {
+		window.location.href = Main.js + 'void('
+		  + (APPID_ === '' ? '' : 'a'+APPID+'_')
+		  + 'ajaxLinkSend("globalContainer","' + page + '"))';
+	}
+	if (!noWait) {
+		this._remind(this.option.timeout, 'timeout');
+		this.add(['temp','count'], 1);
+	}
+
 	return false;
 };
 
@@ -6257,8 +6361,23 @@ Page.retry = function() {
 };
 		
 Page.reload = function() {
-	log('Page.reload()');
-	window.location.replace(window.location.href);
+	var i;
+
+	log('Reloading...');
+
+	Main.shutdown();
+
+	if (!isString(Main.file)) {
+		window.location.replace(window.location.href);
+	} else if (!this.option.link_reload) {
+		i = Main.scheme + Main.domain + Main.path + Main.file;
+		window.location.replace(i);
+	} else {
+		if (!$('#reload_link').length) {
+			$('body').append('<a id="reload_link" href="http://www.cloutman.com/reload.php">reload</a>');
+		}
+		this.click('#reload_link');
+	}
 };
 
 Page.clearFBpost = function(obj) {
@@ -6295,12 +6414,16 @@ Page.click = function(el, noWait) {
 	this.set(['runtime', 'delay'], 0);
 	this.lastclick = el; // Causes circular reference when watching...
 	this.set(['temp','when'], Date.now());
-	this.set(['temp','loading'], true);
+	if (!noWait) {
+		this.set(['temp','loading'], true);
+	}
 	e = document.createEvent("MouseEvents");
 	e.initEvent("click", true, true);
 	(element.wrappedJSObject ? element.wrappedJSObject : element).dispatchEvent(e);
-	this._remind(this.option.timeout, 'retry');
-	this.set(['temp','count'], this.get(['temp','count'], 0) + 1);
+	if (!noWait) {
+		this._remind(this.option.timeout, 'timeout');
+		this.add(['temp','count'], 1);
+	}
 	return true;
 };
 
@@ -7825,7 +7948,7 @@ Update.update = function(event, events) {
 
 	if ((i = base + 60*1000) > now) {
 		$('#golem_icon_update,#golem_icon_beta').addClass('red');
-		Update._remindAt(i, 'throttle');
+		Update._remindMs(i - now, 'throttle');
 	} else {
 		$('#golem_icon_update,#golem_icon_beta').removeClass('red');
 	}
@@ -7900,6 +8023,7 @@ Update.update = function(event, events) {
 // Add "Castle Age" to known applications
 Main.add('castle_age', '46755028429', 'Castle Age', /^https?:\/\/web3\.castleagegame\.com\/castle_ws\//i, function() {
 	if (!isFacebook) {
+		Main.file = 'index.php';
 		userID = ($('#main_bntp img').attr('src') || '').regex(/graph\.facebook\.com\/(\d+)\/picture/i);
 		imagepath = ($('#AjaxLoadIcon img').attr('src') || '').pathpart();
 		var fn = function(){
