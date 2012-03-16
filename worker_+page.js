@@ -145,8 +145,8 @@ Global._overload(null, 'work', function(state) {
 	}
 
 	if (((i = Page.option.refresh || 0) && i <= (Page.temp.count || 0))
-	  || (((i = Page.option.reload_max_time || 0) && script_started + i > now))
-	  || (Page.runtime.retry || 0) >= this.option.reload
+	  || (((i = Page.option.reload_max_time || 0) && script_started + i <= now))
+	  || (i = Page.option.reload || 0) && i <= (Page.runtime.retry || 0)
 	) {
 		if (state) {
 			Page.reload();
@@ -198,6 +198,7 @@ Page.update = function(event, events) {
 		this.temp.page = ''; // timeout invalidates the current page
 		this.set(['temp','id'], null);
 		this.set(['temp','loading'], false);
+		this.add(['runtime','retry'], 1);
 		//this.retry();
 	}
 
@@ -209,6 +210,7 @@ Page.update = function(event, events) {
 			this.add('temp.count', 1);
 		}
 		$('#AjaxLoadIcon').hide(); // sometimes it doesn't go away
+		this.set(['runtime','retry'], 0);
 		this.set(['temp','loading'], false);
 
 		if (facebook_page) {

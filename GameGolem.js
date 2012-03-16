@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1193 Beta
+ * GameGolem v31.6.1194 Beta
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1193 Beta
+ * GameGolem v31.6.1194 Beta
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1193;
+var revision = 1194;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1192;
+var trunk_revision = 1193;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -6088,8 +6088,8 @@ Global._overload(null, 'work', function(state) {
 	}
 
 	if (((i = Page.option.refresh || 0) && i <= (Page.temp.count || 0))
-	  || (((i = Page.option.reload_max_time || 0) && script_started + i > now))
-	  || (Page.runtime.retry || 0) >= this.option.reload
+	  || (((i = Page.option.reload_max_time || 0) && script_started + i <= now))
+	  || (i = Page.option.reload || 0) && i <= (Page.runtime.retry || 0)
 	) {
 		if (state) {
 			Page.reload();
@@ -6141,6 +6141,7 @@ Page.update = function(event, events) {
 		this.temp.page = ''; // timeout invalidates the current page
 		this.set(['temp','id'], null);
 		this.set(['temp','loading'], false);
+		this.add(['runtime','retry'], 1);
 		//this.retry();
 	}
 
@@ -6152,6 +6153,7 @@ Page.update = function(event, events) {
 			this.add('temp.count', 1);
 		}
 		$('#AjaxLoadIcon').hide(); // sometimes it doesn't go away
+		this.set(['runtime','retry'], 0);
 		this.set(['temp','loading'], false);
 
 		if (facebook_page) {
