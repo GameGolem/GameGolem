@@ -188,6 +188,7 @@ Page.defaults.castle_age = {
 				selector:'div[style*="monster_header_"]'
 				  + ',div[style*="boss_header_"]'
 				  + ',div[style*="dragon_title_owner."]'
+				  + ',div[style*="boss_"][style*="_header."]'
 				  + ',div[style*="monster_"][style*="_header."]',
 				skip:true
 			},

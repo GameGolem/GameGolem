@@ -1,5 +1,5 @@
 /**
- * GameGolem v31.6.1194 Beta
+ * GameGolem v31.6.1195 Beta
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -435,7 +435,7 @@ load:function(i){i=this._getIndex(i);var b=this,h=this.options,j=this.anchors.eq
 url:function(i,b){this.anchors.eq(i).removeData("cache.tabs").data("load.tabs",b);return this},length:function(){return this.anchors.length}});a.extend(a.ui.tabs,{version:"1.8.13"});a.extend(a.ui.tabs.prototype,{rotation:null,rotate:function(i,b){var h=this,j=this.options,l=h._rotate||(h._rotate=function(o){clearTimeout(h.rotation);h.rotation=setTimeout(function(){var n=j.selected;h.select(++n<h.anchors.length?n:0)},i);o&&o.stopPropagation()});b=h._unrotate||(h._unrotate=!b?function(o){o.clientX&&
 h.rotate(null)}:function(){t=j.selected;l()});if(i){this.element.bind("tabsshow",l);this.anchors.bind(j.event+".tabs",b);l()}else{clearTimeout(h.rotation);this.element.unbind("tabsshow",l);this.anchors.unbind(j.event+".tabs",b);delete this._rotate;delete this._unrotate}return this}})})(jQuery);
 /**
- * GameGolem v31.6.1194 Beta
+ * GameGolem v31.6.1195 Beta
  * http://rycochet.com/
  * http://code.google.com/p/game-golem/
  *
@@ -453,7 +453,7 @@ var isRelease = false;
 var script_started = Date.now();
 // Version of the script
 var version = "31.6";
-var revision = 1194;
+var revision = 1195;
 // Automatically filled from Worker:Main
 var userID, imagepath, APP, APPID, APPID_, APPNAME, PREFIX, isFacebook; // All set from Worker:Main
 // Detect browser - this is rough detection, mainly for updates - may use jQuery detection at a later point
@@ -471,7 +471,7 @@ if (navigator.userAgent.indexOf('Chrome') >= 0) {
 	}
 }
 // needed for stable trunk links when developing
-var trunk_revision = 1193;
+var trunk_revision = 1194;
 try {
     trunk_revision = parseFloat(("$Revision$".match(/\b(\d+)\s*\$/)||[0,0])[1]) || trunk_revision;
 } catch (e97) {}
@@ -13896,6 +13896,7 @@ Monster.page = function(page, change) {
 		  + ',div[style*="boss_header_"]'
 		  + ',div[style*="festival_monsters_top_"]'
 		  + ',div[style*="dragon_title_owner."]'
+		  + ',div[style*="boss_"][style*="_header."]'
 		  + ',div[style*="monster_"][style*="_header."]'); // grrr
 
 		if (!i.length) {
@@ -15865,6 +15866,7 @@ Page.defaults.castle_age = {
 				selector:'div[style*="monster_header_"]'
 				  + ',div[style*="boss_header_"]'
 				  + ',div[style*="dragon_title_owner."]'
+				  + ',div[style*="boss_"][style*="_header."]'
 				  + ',div[style*="monster_"][style*="_header."]',
 				skip:true
 			},
@@ -22134,7 +22136,8 @@ Guild.runtime = {
 	burn:false,
 	stunned:false,
 	my_class:null,	// current class
-	collected:0		// last collection mark
+	collected:0,	// last collection mark
+	check:0
 };
 
 Guild.temp = {
@@ -22312,14 +22315,10 @@ Guild.page = function(page, change) {
 	case 'battle_guild':
 		if ($('input[src*="dragon_list_btn_3."]').length) {
 			// enter button - battle is on (or collect)
-			if (this.runtime.status === 'wait') {
-				if ((this.runtime.start || 0) + 9*60*60*1000 < now) {
-					this.set('runtime.status', 'start');
-				} else {
-					this.set('runtime.next',
-					  i = Math.max(now + 30*60*1000, this.runtime.next || 0));
-					this._remindMs(i - now, 'start');
-				}
+			if ((i = this.runtime.next || 0) > now) {
+				this._remindMs(i - now, 'start');
+			} else if ((this.runtime.start || 0) < now) {
+				this.set('runtime.check', now);
 			}
 		} else {
 			// battle is done
@@ -22337,8 +22336,14 @@ Guild.page = function(page, change) {
 				this.set('runtime.status', 'wait');
 				this.set('runtime.collected', 0);
 			}
-			this.set('runtime.next',
-			  i = Math.max(now + 30*60*1000, this.runtime.next || 0));
+			i = now - (this.runtime.finish || 0);
+			if (i < (9*60+20)*60*1000) {
+				this.set('runtime.next', i = now + 5*60*1000);
+			} else if (i < 10*60*60*1000) {
+				this.set('runtime.next', i = now + 10*60*1000);
+			} else {
+				this.set('runtime.next', i = now + 30*60*1000);
+			}
 			this._remindMs(i - now, 'start');
 		}
 		break;
@@ -22467,6 +22472,10 @@ Guild.page = function(page, change) {
 
 Guild.update = function(event, events) {
 	var now = Date.now(), i, j, status, visit;
+
+	if (this.runtime.check) {
+		visit = true;
+	}
 
 	if (events.findEvent(this, 'init')) {
 		// invalidate stale collection point
@@ -22619,8 +22628,7 @@ Guild.work = function(state) {
 		  || Page.isStale(page, now - 30*1000)
 		) {
 			// visit battle list page
-			if (Page.temp.page !== (page = 'battle_guild')) {
-				Page.to(page, '', 30);
+			if (!Page.to('battle_guild', '', 30)) {
 				return QUEUE_CONTINUE;
 			}
 		}
@@ -22824,6 +22832,8 @@ Guild.work = function(state) {
 		} else if (this.runtime.status === 'fight') {
 			log(LOG_INFO, '# wrong fight page: ' + Page.temp.page);
 		}
+
+		this.set('runtime.check', 0);
 	}
 
 	return QUEUE_CONTINUE;

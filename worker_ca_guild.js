@@ -53,7 +53,8 @@ Guild.runtime = {
 	burn:false,
 	stunned:false,
 	my_class:null,	// current class
-	collected:0		// last collection mark
+	collected:0,	// last collection mark
+	check:0
 };
 
 Guild.temp = {
@@ -231,14 +232,10 @@ Guild.page = function(page, change) {
 	case 'battle_guild':
 		if ($('input[src*="dragon_list_btn_3."]').length) {
 			// enter button - battle is on (or collect)
-			if (this.runtime.status === 'wait') {
-				if ((this.runtime.start || 0) + 9*60*60*1000 < now) {
-					this.set('runtime.status', 'start');
-				} else {
-					this.set('runtime.next',
-					  i = Math.max(now + 30*60*1000, this.runtime.next || 0));
-					this._remindMs(i - now, 'start');
-				}
+			if ((i = this.runtime.next || 0) > now) {
+				this._remindMs(i - now, 'start');
+			} else if ((this.runtime.start || 0) < now) {
+				this.set('runtime.check', now);
 			}
 		} else {
 			// battle is done
@@ -256,8 +253,14 @@ Guild.page = function(page, change) {
 				this.set('runtime.status', 'wait');
 				this.set('runtime.collected', 0);
 			}
-			this.set('runtime.next',
-			  i = Math.max(now + 30*60*1000, this.runtime.next || 0));
+			i = now - (this.runtime.finish || 0);
+			if (i < (9*60+20)*60*1000) {
+				this.set('runtime.next', i = now + 5*60*1000);
+			} else if (i < 10*60*60*1000) {
+				this.set('runtime.next', i = now + 10*60*1000);
+			} else {
+				this.set('runtime.next', i = now + 30*60*1000);
+			}
 			this._remindMs(i - now, 'start');
 		}
 		break;
@@ -386,6 +389,10 @@ Guild.page = function(page, change) {
 
 Guild.update = function(event, events) {
 	var now = Date.now(), i, j, status, visit;
+
+	if (this.runtime.check) {
+		visit = true;
+	}
 
 	if (events.findEvent(this, 'init')) {
 		// invalidate stale collection point
@@ -538,8 +545,7 @@ Guild.work = function(state) {
 		  || Page.isStale(page, now - 30*1000)
 		) {
 			// visit battle list page
-			if (Page.temp.page !== (page = 'battle_guild')) {
-				Page.to(page, '', 30);
+			if (!Page.to('battle_guild', '', 30)) {
 				return QUEUE_CONTINUE;
 			}
 		}
@@ -743,6 +749,8 @@ Guild.work = function(state) {
 		} else if (this.runtime.status === 'fight') {
 			log(LOG_INFO, '# wrong fight page: ' + Page.temp.page);
 		}
+
+		this.set('runtime.check', 0);
 	}
 
 	return QUEUE_CONTINUE;

@@ -1415,6 +1415,7 @@ Monster.page = function(page, change) {
 		  + ',div[style*="boss_header_"]'
 		  + ',div[style*="festival_monsters_top_"]'
 		  + ',div[style*="dragon_title_owner."]'
+		  + ',div[style*="boss_"][style*="_header."]'
 		  + ',div[style*="monster_"][style*="_header."]'); // grrr
 
 		if (!i.length) {
