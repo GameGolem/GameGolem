@@ -477,8 +477,8 @@ Festival.update = function(event, events) {
 
 Festival.work = function(state) {
 	var now = Date.now(), i, j, tmp, txt, page, general,
-		skip, test, cleric, target, targetla, ignore,
-		best, besttarget, besttargetla, level, tokens;
+		skip, test, target, ignore,
+		best, besttarget, any, anytarget, level, tokens;
 
 	// wait:
 	// - check list page
@@ -588,8 +588,8 @@ Festival.work = function(state) {
 			  && this.option.ignore.length ? this.option.ignore.split('|') : [];
 			level = Player.get('level', 1, 'number');
 			tokens = this.get(['runtime','tokens'], 0, 'number');
-			best = null;
-			besttarget = null;
+			best = besttarget = null;
+			any = anytarget = null;
 			tmp = $('#'+APPID_+'enemy_guild_member_list_1 > div'
 			  + ', #'+APPID_+'enemy_guild_member_list_2 > div'
 			  + ', #'+APPID_+'enemy_guild_member_list_3 > div'
@@ -637,52 +637,12 @@ Festival.work = function(state) {
 					}
 					continue;
 				}
-				test = false;
-				if (besttarget) {
-					switch (this.option.order) {
-					case 'level':		test = target[1] < besttarget[1];	break;
-					case 'health':		test = target[3] < besttarget[3];	break;
-					case 'maxhealth':	test = target[4] < besttarget[4];	break;
-					case 'activity':	test = target[6] < besttarget[6];	break;
-					case 'level2':		test = target[1] > besttarget[1];	break;
-					case 'health2':		test = target[3] > besttarget[3];	break;
-					case 'maxhealth2':	test = target[4] > besttarget[4];	break;
-					case 'activity2':	test = target[6] > besttarget[6];	break;
-					case 'levelactive':
-						besttargetla = besttarget[1];
-						if (besttarget[6]) {
-							besttargetla = -1.0/besttargetla;
-						}
-						targetla = target[1];
-						if (target[6]) {
-							targetla = -1.0/targetla;
-						}
-						test = targetla < besttargetla;
-						break;
-					case 'levelactive2':
-						besttargetla = besttarget[1];
-						if (!besttarget[6]) {
-							besttargetla = -1.0/besttargetla;
-						}
-						targetla = target[1];
-						if (!target[6]) {
-							targetla = -1.0/targetla;
-						}
-						test = targetla > besttargetla;
-						break;
-					}
-				}
-				cleric = false;
-				if (this.option.cleric) {
-					cleric = target[2] === 'Cleric' && target[6]
-					  && (!best || besttarget[2] !== 'Cleric');
-				}
-				if (((tokens >= 10 || (this.option.suppress && target[6])) ? target[3] : target[3] >= 200)
-				  && (!best
-				  || cleric
-				  || (this.option.active && target[6] && !besttarget[6])
-				  || (this.option.live && target[3] >= 200 && besttarget[3] < 200)
-				  || test)
+				if (target[3] > 0
+				  && (this.option.cleric ? (target[2] === 'Cleric' && target[6]) || !best || besttarget[2] !== 'Cleric' || !besttarget[6] : true)
+				  && (this.option.active ? target[6] || !best || !besttarget[6] : true)
+				  && (this.option.live ? target[3] >= 200 || !best || besttarget[3] < 200 : true)
+				  && (this.option.suppress ? target[6] : target[3] >= 200)
+				  && this.best_target(target, besttarget)
 				) {
 					log(LOG_INFO, '# ' + (best ? '' : 'initial ')
 					  + 'best.' + i + ':'
@@ -693,7 +653,17 @@ Festival.work = function(state) {
 					);
 					best = tmp.eq(i);
 					besttarget = target;
+				} else if (target[3] > 0
+				  && (this.runtime.burn || (this.runtime.tokens || 0) >= 10)
+				  && this.best_target(target, anytarget)
+				) {
+				    any = tmp.eq(i);
+				    anytarget = target;
 				}
+			}
+			if (!best && any) {
+				best = any;
+				besttarget = anytarget;
 			}
 			if (!best && tmp.length) {
 				// cheap and dirty gate change hack
@@ -737,4 +707,49 @@ Festival.work = function(state) {
 	}
 
 	return QUEUE_CONTINUE;
+};
+
+Festival.best_target = function(target1, target2) {
+	var cmp = false, v1, v2;
+
+	if (isArray(target1)) {
+		if (!isArray(target2)) {
+			cmp = true;
+		} else {
+			switch (this.option.order) {
+			case 'level':		cmp = target1[1] < target2[1];	break;
+			case 'health':		cmp = target1[3] < target2[3];	break;
+			case 'maxhealth':	cmp = target1[4] < target2[4];	break;
+			case 'activity':	cmp = target1[6] < target2[6];	break;
+			case 'level2':		cmp = target1[1] > target2[1];	break;
+			case 'health2':		cmp = target1[3] > target2[3];	break;
+			case 'maxhealth2':	cmp = target1[4] > target2[4];	break;
+			case 'activity2':	cmp = target1[6] > target2[6];	break;
+			case 'levelactive':
+				v1 = target1[1] || 1e99;
+				if (target1[6]) {
+					v1 = -1.0 / v1;
+				}
+				v2 = target2[1] || 1e99;
+				if (target2[6]) {
+					v2 = -1.0 / v2;
+				}
+				cmp = v1 < v2;
+				break;
+			case 'levelactive2':
+				v1 = target1[1] || 1e99;
+				if (!target1[6]) {
+					v1 = -1.0 / v1;
+				}
+				v2 = target2[1] || 1e99;
+				if (!target2[6]) {
+					v2 = -1.0 / v2;
+				}
+				cmp = v1 > v2;
+				break;
+			}
+		}
+	}
+
+	return cmp;
 };
