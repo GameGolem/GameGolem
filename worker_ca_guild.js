@@ -232,7 +232,9 @@ Guild.page = function(page, change) {
 	case 'battle_guild':
 		if ($('input[src*="dragon_list_btn_3."]').length) {
 			// enter button - battle is on (or collect)
-			if ((i = this.runtime.next || 0) > now) {
+			if ((this.runtime.collected || 0) < (this.runtime.start || 0)) {
+				this.set('runtime.check', now);
+			} else if ((i = this.runtime.next || 0) > now) {
 				this._remindMs(i - now, 'start');
 			} else if ((this.runtime.start || 0) < now) {
 				this.set('runtime.check', now);
