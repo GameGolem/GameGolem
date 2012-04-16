@@ -142,7 +142,7 @@ set /A revision=0
 set /A oldrev=0
 rem TortoiseSVN version:
 if "%tortoise%"=="1" (
-	for /F "usebackq delims=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:'\ " %%a in (`SubWCRev.exe .`) do (
+	for /F "usebackq delims=-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:'\ " %%a in (`SubWCRev.exe .`) do (
 		set /A revision=1+%%a
 		set /A oldrev=0+%%a
 	)

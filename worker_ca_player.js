@@ -103,7 +103,7 @@ Player.page = function(page, change) {
 		this.set('armymax', $('a[href*="army.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/));
 		this.set('army', Math.min(data.armymax, 501)); // XXX Need to check what max army is!
 		this.set('upgrade', $('a[href*="keep.php"]', '#'+APPID_+'main_bntp').text().regex(/(\d+)/) || 0);
-		this.set('general', $('#main_bn div[style*="general_plate."] > div').first().text().trim(true).replace(/\*+$/, ''));
+		this.set('general', $('div[style*="hot_container."] > div, div[style*="general_plate."] > div').first().text().trim(true).replace(/\*+$/, ''));  
 		this.set('imagepath', $('#'+APPID_+'globalContainer img:eq(0)').attr('src').pathpart());
 		if (page === 'keep_stats') {
 			keep = $('.keep_attribute_section').first(); // Only when it's our own keep and not someone elses
